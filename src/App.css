@@ -1,0 +1,33 @@
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-content {
+  flex: 1 0 auto;
+}
+
+.app-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  background: var(--card-bg, #ffffff);
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.app-footer__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.9rem;
+}
+
+.app-footer__sub {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
