@@ -1,14 +1,5 @@
+import PriceBox from '../PriceBox/PriceBox.jsx';
 import './ProductCard.css';
-
-/**
- * Formata valor numérico para Moeda Brasileira (BRL)
- */
-const formatPrice = (value) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-};
 
 export function ProductCard({ product, onAddToCart }) {
   if (!product) return null;
@@ -66,10 +57,7 @@ export function ProductCard({ product, onAddToCart }) {
         </p>
 
         <div className="product-card__footer">
-          <div className="product-card__price-wrapper">
-            <span className="product-card__price-label">Preço</span>
-            <span className="product-card__price">{formatPrice(price)}</span>
-          </div>
+          <PriceBox price={price} size="md" />
 
           <button
             type="button"

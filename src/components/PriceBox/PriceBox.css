@@ -1,0 +1,69 @@
+.price-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.price-box__discount-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.2;
+}
+
+.price-box__regular-price {
+  font-size: 0.82rem;
+  color: var(--text-muted, #9ca3af);
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.price-box__discount-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  .price-box__discount-badge {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+  }
+}
+
+.price-box__final-price {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--primary, #7c3aed);
+  line-height: 1.15;
+}
+
+/* Tamanhos configuráveis para reutilização nos cards e na futura PDP */
+.price-box--sm .price-box__final-price {
+  font-size: 1.1rem;
+}
+
+.price-box--md .price-box__final-price {
+  font-size: 1.35rem;
+}
+
+.price-box--lg .price-box__final-price {
+  font-size: 2rem;
+}
+
+.price-box--lg .price-box__regular-price {
+  font-size: 1.05rem;
+}
+
+.price-box--lg .price-box__discount-badge {
+  font-size: 0.82rem;
+  padding: 3px 8px;
+}

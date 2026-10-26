@@ -49,9 +49,17 @@ export const productsApi = {
 
     if (sortBy) {
       if (sortBy === 'price-asc') {
-        result.sort((a, b) => a.price - b.price);
+        result.sort(
+          (a, b) =>
+            (a.price?.final_price ?? a.price) -
+            (b.price?.final_price ?? b.price),
+        );
       } else if (sortBy === 'price-desc') {
-        result.sort((a, b) => b.price - a.price);
+        result.sort(
+          (a, b) =>
+            (b.price?.final_price ?? b.price) -
+            (a.price?.final_price ?? a.price),
+        );
       } else if (sortBy === 'rating') {
         result.sort((a, b) => b.rating.rate - a.rating.rate);
       } else if (sortBy === 'name') {

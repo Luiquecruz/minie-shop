@@ -22,8 +22,9 @@ Projeto de uma aplicação **Minie Shop Progressiva** desenvolvida do zero (*fro
 ## 🛠️ Stack Tecnológica Instalada
 - **Build Tool:** [Vite](https://vite.dev/) `v8.x`
 - **Biblioteca Principal:** [React](https://react.dev/) `v19.x` & `react-dom`
+- **Gerenciamento de Estado Global:** [`@reduxjs/toolkit`](https://redux-toolkit.js.org/) & [`react-redux`](https://react-redux.js.org/) (usado no motor de currency e carrinho)
 - **Roteamento:** [`react-router-dom`](https://reactrouter.com/) `v7.x`
-- **Gerenciamento de Cabeçalho / SEO:** [`react-helmet-async`](https://github.com/staylor/react-helmet-async) `v3.x` *(adotado como substituto moderno e compatível com React 19/concurrency para o react-helmet original)*
+- **Gerenciamento de Cabeçalho / SEO:** [`react-helmet-async`](https://github.com/staylor/react-helmet-async) `v3.x`
 - **Linter:** [Oxlint](https://oxc.rs/)
 
 ---
@@ -48,18 +49,28 @@ react-minieshop/
 └── src/
     ├── assets/            # Assets estáticos padrão
     ├── components/
-    │   ├── Navbar/        # Barra de navegação com logotipo e indicador de carrinho
+    │   ├── Navbar/        # Barra de navegação com seletor de moeda e indicador de carrinho
+    │   ├── PriceBox/      # Componente reutilizável de preço conectado ao motor de currency
     │   └── ProductCard/   # Card de produto individual (imagem, rating, preço, ações)
     ├── data/
-    │   └── products.js    # Base mock de 30 produtos (id, nome, preço, imagem, etc.)
+    │   └── products.js    # Base mock de 30 produtos com preços processados pelo motor de preço
+    ├── hooks/
+    │   └── useCurrency.js # Hook customizado para consumir e alternar moedas (BRL, USD, EUR)
     ├── pages/
     │   └── ProductListingPage/ # PLP com busca, filtros de categoria, ordenação e grid
     ├── services/
-    │   └── api.js         # Camada de API simulada frontend-only (busca, filtro, paginação)
+    │   └── api.js         # Camada de API simulada frontend-only (busca, filtro, ordenação por final_price)
+    ├── store/
+    │   ├── index.js       # Configuração da store do Redux Toolkit
+    │   └── slices/
+    │       └── currencySlice.js # Slice de moeda com persistência em localStorage
+    ├── utils/
+    │   ├── currency.js    # Motor de multi-moedas (taxas, conversão e formatação com Intl)
+    │   └── price.js       # Motor de cálculo de preços (calculatePrice e formatCurrency)
     ├── App.css            # Estilos de layout (shell, content, footer)
     ├── App.jsx            # Shell com BrowserRouter, HelmetProvider e rotas
     ├── index.css          # Design system com tokens CSS (light/dark mode)
-    └── main.jsx           # Ponto de entrada React (createRoot)
+    └── main.jsx           # Ponto de entrada React com Redux Provider
 ```
 
 ---

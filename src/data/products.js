@@ -1,8 +1,13 @@
-export const PRODUCTS_MOCK = [
+import { calculatePrice } from '../utils/price.js';
+
+const RAW_PRODUCTS = [
   {
     id: 1,
     name: 'Fone de Ouvido Bluetooth Over-Ear Pro',
-    price: 349.9,
+    price: {
+      regular_price: 399.9,
+      special_price: 349.9,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80',
     description: 'Cancelamento ativo de ruído, bateria de até 40 horas e almofadas com isolamento acústico premium.',
@@ -12,7 +17,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 2,
     name: 'Smartwatch Fitness Active Series',
-    price: 499.0,
+    price: {
+      regular_price: 599.0,
+      special_price: 499.0,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
     description: 'Monitor cardíaco contínuo, GPS integrado, oxímetro e resistência à água até 50 metros.',
@@ -22,7 +30,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 3,
     name: 'Teclado Mecânico RGB Switch Brown',
-    price: 289.5,
+    price: {
+      regular_price: 289.5,
+      special_price: null,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=600&q=80',
     description: 'Switches táteis silenciosos, iluminação RGB personalizável por tecla e chassi em alumínio anodizado.',
@@ -32,7 +43,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 4,
     name: 'Mouse Óptico Ergonômico Sem Fio',
-    price: 159.9,
+    price: {
+      regular_price: 199.9,
+      special_price: 159.9,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=600&q=80',
     description: 'Design vertical ergonômico que reduz a tensão muscular, sensor de 4000 DPI e conexão multi-dispositivo.',
@@ -42,7 +56,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 5,
     name: 'Caixa de Som Portátil Bluetooth Waterproof',
-    price: 229.0,
+    price: {
+      regular_price: 229.0,
+      special_price: null,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=600&q=80',
     description: 'Som estéreo de 360 graus, graves aprimorados, certificação IPX7 à prova d’água e 15h de reprodução.',
@@ -52,7 +69,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 6,
     name: 'Câmera Mirrorless 4K Creator Kit',
-    price: 3299.0,
+    price: {
+      regular_price: 3699.0,
+      special_price: 3299.0,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80',
     description: 'Sensor APS-C de 24.2 MP, gravação de vídeo 4K sem cortes e autofoco veloz com detecção ocular.',
@@ -62,7 +82,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 7,
     name: 'Mochila Urbana Impermeável Antifurto',
-    price: 189.9,
+    price: {
+      regular_price: 229.9,
+      special_price: 189.9,
+    },
     category: 'Acessórios',
     image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=600&q=80',
     description: 'Compartimento acolchoado para notebook de até 15.6 pol, porta USB externa e tecido resistente a rasgos.',
@@ -72,7 +95,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 8,
     name: 'Óculos de Sol Polarizado Classic Aviator',
-    price: 139.9,
+    price: {
+      regular_price: 139.9,
+      special_price: null,
+    },
     category: 'Acessórios',
     image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=600&q=80',
     description: 'Lentes polarizadas com proteção UV400 completa e armação em liga metálica ultra leve.',
@@ -82,7 +108,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 9,
     name: 'Carteira Slim em Couro Legítimo',
-    price: 89.9,
+    price: {
+      regular_price: 109.9,
+      special_price: 89.9,
+    },
     category: 'Acessórios',
     image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=600&q=80',
     description: 'Perfil ultrafino com proteção RFID contra clonagem, comporta 8 cartões e notas desdobradas.',
@@ -92,7 +121,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 10,
     name: 'Garrafa Térmica Inox Vacuum 750ml',
-    price: 99.0,
+    price: {
+      regular_price: 99.0,
+      special_price: null,
+    },
     category: 'Acessórios',
     image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=600&q=80',
     description: 'Isolamento a vácuo de parede dupla que mantém bebidas geladas por 24 horas e quentes por 12 horas.',
@@ -102,7 +134,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 11,
     name: 'Tênis Running Ultralight Performance',
-    price: 379.9,
+    price: {
+      regular_price: 449.9,
+      special_price: 379.9,
+    },
     category: 'Calçados',
     image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80',
     description: 'Entressola com amortecimento responsivo, cabedal em malha respirável e solado com aderência superior.',
@@ -112,7 +147,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 12,
     name: 'Tênis Casual Canvas Vintage',
-    price: 199.9,
+    price: {
+      regular_price: 199.9,
+      special_price: null,
+    },
     category: 'Calçados',
     image: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=600&q=80',
     description: 'Estilo clássico em lona durável com solado vulcanizado de borracha antiderrapante.',
@@ -122,7 +160,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 13,
     name: 'Jaqueta Jeans Trucker Vintage',
-    price: 259.0,
+    price: {
+      regular_price: 299.0,
+      special_price: 259.0,
+    },
     category: 'Vestuário',
     image: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=600&q=80',
     description: '100% algodão com lavagem média tradicional, bolsos frontais e fechamento em botões metálicos reforçados.',
@@ -132,7 +173,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 14,
     name: 'Camiseta Básica Algodão Pima Premium',
-    price: 79.9,
+    price: {
+      regular_price: 99.9,
+      special_price: 79.9,
+    },
     category: 'Vestuário',
     image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80',
     description: 'Toque extra macio e longa durabilidade com algodão peruano de fibra longa.',
@@ -142,7 +186,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 15,
     name: 'Moletom Hoodie Minimalista com Capuz',
-    price: 219.0,
+    price: {
+      regular_price: 219.0,
+      special_price: null,
+    },
     category: 'Vestuário',
     image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80',
     description: 'Interior flanelado aconchegante, bolso canguru e cordões de ajuste com acabamento metálico.',
@@ -152,7 +199,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 16,
     name: 'Luminária de Mesa Articulada Nórdica',
-    price: 169.0,
+    price: {
+      regular_price: 199.0,
+      special_price: 169.0,
+    },
     category: 'Casa & Decoração',
     image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=600&q=80',
     description: 'Base e cúpula em metal fosco com articulações em madeira maciça, soquete universal E27.',
@@ -162,7 +212,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 17,
     name: 'Kit Xícaras de Cerâmica Artesanal (2 un)',
-    price: 64.9,
+    price: {
+      regular_price: 64.9,
+      special_price: null,
+    },
     category: 'Casa & Decoração',
     image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80',
     description: 'Cerâmica de alta temperatura com esmaltação reativa exclusiva e capacidade para 250ml cada.',
@@ -172,7 +225,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 18,
     name: 'Cafeteira Prensa Francesa Inox 600ml',
-    price: 119.9,
+    price: {
+      regular_price: 149.9,
+      special_price: 119.9,
+    },
     category: 'Casa & Decoração',
     image: 'https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?auto=format&fit=crop&w=600&q=80',
     description: 'Vidro borossilicato resistente a choques térmicos com filtro de aço inoxidável de alta precisão.',
@@ -182,7 +238,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 19,
     name: 'Vela Aromática Artesanal Soja & Baunilha',
-    price: 49.9,
+    price: {
+      regular_price: 49.9,
+      special_price: null,
+    },
     category: 'Casa & Decoração',
     image: 'https://images.unsplash.com/photo-1603006905003-be475563bc59?auto=format&fit=crop&w=600&q=80',
     description: 'Cera de soja 100% vegetal com queima limpa e pavio de algodão. Duração de aproximadamente 35 horas.',
@@ -192,7 +251,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 20,
     name: 'Cadeira de Escritório Ergonômica Mesh',
-    price: 899.0,
+    price: {
+      regular_price: 1199.0,
+      special_price: 899.0,
+    },
     category: 'Casa & Decoração',
     image: 'https://images.unsplash.com/photo-1580481077195-c3a821a58875?auto=format&fit=crop&w=600&q=80',
     description: 'Apoio lombar ajustável, encosto em tela mesh respirável e mecanismo relax com trava em múltiplos pontos.',
@@ -202,7 +264,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 21,
     name: 'Carregador Sem Fio Fast Charge 15W',
-    price: 109.9,
+    price: {
+      regular_price: 139.9,
+      special_price: 109.9,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1622445262464-84b1456045b6?auto=format&fit=crop&w=600&q=80',
     description: 'Compatível com padrão Qi, proteção contra sobreaquecimento e acabamento em tecido antiderrapante.',
@@ -212,7 +277,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 22,
     name: 'Drone Compacto Dobrável 4K HDR',
-    price: 1899.0,
+    price: {
+      regular_price: 2199.0,
+      special_price: 1899.0,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&w=600&q=80',
     description: 'Transmissão de vídeo até 6km, estabilização gimbal de 3 eixos e 31 minutos de autonomia de voo.',
@@ -222,7 +290,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 23,
     name: 'Earbuds TWS Cancelamento de Ruído',
-    price: 279.0,
+    price: {
+      regular_price: 329.0,
+      special_price: 279.0,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=600&q=80',
     description: 'Áudio de alta resolução, microfones com redução de ruído por IA para chamadas nítidas e case com recarga rápida.',
@@ -232,7 +303,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 24,
     name: 'Óculos de Grau / Bloqueio Luz Azul',
-    price: 119.0,
+    price: {
+      regular_price: 119.0,
+      special_price: null,
+    },
     category: 'Acessórios',
     image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?auto=format&fit=crop&w=600&q=80',
     description: 'Filtro contra luz azul emitida por telas digitais para prevenir fadiga ocular e dores de cabeça.',
@@ -242,7 +316,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 25,
     name: 'Relógio de Pulso Analógico Couro Camel',
-    price: 320.0,
+    price: {
+      regular_price: 380.0,
+      special_price: 320.0,
+    },
     category: 'Acessórios',
     image: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=600&q=80',
     description: 'Movimento quartzo japonês preciso, pulseira em couro natural legítimo e vidro resistente a riscos.',
@@ -252,7 +329,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 26,
     name: 'Bolsa Mala de Viagem Duffle Weekend',
-    price: 249.9,
+    price: {
+      regular_price: 299.9,
+      special_price: 249.9,
+    },
     category: 'Acessórios',
     image: 'https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&w=600&q=80',
     description: 'Espaço generoso com compartimento separado para sapatos e alça de ombro ajustável acolchoada.',
@@ -262,7 +342,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 27,
     name: 'Tablet 10.5 Polegadas Retina Display',
-    price: 1799.0,
+    price: {
+      regular_price: 1999.0,
+      special_price: 1799.0,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=600&q=80',
     description: 'Tela vibrante de 120Hz, 128GB de armazenamento expansível e suporte para caneta stylus inteligente.',
@@ -272,7 +355,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 28,
     name: 'Óculos de Realidade Virtual Imersivo',
-    price: 1499.0,
+    price: {
+      regular_price: 1699.0,
+      special_price: 1499.0,
+    },
     category: 'Eletrônicos',
     image: 'https://images.unsplash.com/photo-1622979135225-d2ba269bc1df?auto=format&fit=crop&w=600&q=80',
     description: 'Experiência imersiva sem fios com áudio espacial 3D integrado e controles com feedback tátil háptico.',
@@ -282,7 +368,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 29,
     name: 'Organizador de Mesa em Madeira & Alumínio',
-    price: 85.0,
+    price: {
+      regular_price: 85.0,
+      special_price: null,
+    },
     category: 'Casa & Decoração',
     image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=600&q=80',
     description: 'Suporte elegante para canetas, smartphone e pequenos blocos de notas com acabamento minimalista.',
@@ -292,7 +381,10 @@ export const PRODUCTS_MOCK = [
   {
     id: 30,
     name: 'Suporte Articulado para Notebook Alumínio',
-    price: 129.9,
+    price: {
+      regular_price: 159.9,
+      special_price: 129.9,
+    },
     category: 'Acessórios',
     image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=600&q=80',
     description: '6 níveis de inclinação ergonômica, estrutura dobrável compacta e almofadas antiderrapantes em silicone.',
@@ -300,3 +392,18 @@ export const PRODUCTS_MOCK = [
     stock: 35,
   },
 ];
+
+/**
+ * Produtos processados pelo motor de preço.
+ * Cada produto possui price com:
+ * - regular_price
+ * - special_price
+ * - final_price (menor valor aplicável)
+ * - discount_percentage (calculado com base na diferença final vs regular)
+ */
+export const PRODUCTS_MOCK = RAW_PRODUCTS.map((product) => ({
+  ...product,
+  price: calculatePrice(product.price),
+}));
+
+export default PRODUCTS_MOCK;
