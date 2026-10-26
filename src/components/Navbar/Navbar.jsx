@@ -1,8 +1,14 @@
 import { useCurrency } from '../../hooks/useCurrency.js';
+import Dropdown from '../Dropdown/Dropdown.jsx';
 import './Navbar.css';
 
 export function Navbar({ cartCount = 0 }) {
   const { currentCurrency, changeCurrency, supportedCurrencies } = useCurrency();
+
+  const currencyOptions = Object.values(supportedCurrencies).map((curr) => ({
+    value: curr.code,
+    label: curr.label,
+  }));
 
   return (
     <header className="navbar">
@@ -27,25 +33,14 @@ export function Navbar({ cartCount = 0 }) {
         </a>
 
         <div className="navbar__actions">
-          {/* Seletor de Multi-Moedas */}
-          <div className="navbar__currency-wrapper">
-            <label htmlFor="currency-select" className="visually-hidden">
-              Selecionar Moeda
-            </label>
-            <select
-              id="currency-select"
-              className="navbar__currency-select"
-              value={currentCurrency}
-              onChange={(e) => changeCurrency(e.target.value)}
-              aria-label="Selecionar moeda"
-            >
-              {Object.values(supportedCurrencies).map((curr) => (
-                <option key={curr.code} value={curr.code}>
-                  {curr.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Seletor de Multi-Moedas com Dropdown Personalizado */}
+          <Dropdown
+            options={currencyOptions}
+            value={currentCurrency}
+            onChange={changeCurrency}
+            ariaLabel="Selecionar moeda da loja"
+            align="right"
+          />
 
           <button
             type="button"

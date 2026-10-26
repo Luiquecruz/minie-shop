@@ -2,7 +2,16 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { productsApi } from '../../services/api.js';
 import ProductCard from '../../components/ProductCard/ProductCard.jsx';
+import Dropdown from '../../components/Dropdown/Dropdown.jsx';
 import './ProductListingPage.css';
+
+const SORT_OPTIONS = [
+  { value: '', label: 'Padrão (Destaques)' },
+  { value: 'price-asc', label: 'Menor Preço' },
+  { value: 'price-desc', label: 'Maior Preço' },
+  { value: 'rating', label: 'Melhor Avaliados' },
+  { value: 'name', label: 'Nome (A - Z)' },
+];
 
 export function ProductListingPage() {
   const [products, setProducts] = useState([]);
@@ -74,8 +83,12 @@ export function ProductListingPage() {
     setIsLoading(true);
   };
 
-  const handleSortChange = (e) => {
-    setSortBy(e.target.value);
+  const handleSortChange = (newValue) => {
+    const value =
+      typeof newValue === 'object' && newValue?.target
+        ? newValue.target.value
+        : newValue;
+    setSortBy(value);
     setIsLoading(true);
   };
 
@@ -159,23 +172,16 @@ export function ProductListingPage() {
             />
           </div>
 
-          {/* Ordenação */}
+          {/* Ordenação com Dropdown Customizado */}
           <div className="plp-sort">
-            <label htmlFor="plp-sort-select" className="plp-sort__label">
-              Ordenar por:
-            </label>
-            <select
-              id="plp-sort-select"
-              className="plp-sort__select"
+            <span className="plp-sort__label">Ordenar por:</span>
+            <Dropdown
+              options={SORT_OPTIONS}
               value={sortBy}
               onChange={handleSortChange}
-            >
-              <option value="">Padrão (Destaques)</option>
-              <option value="price-asc">Menor Preço</option>
-              <option value="price-desc">Maior Preço</option>
-              <option value="rating">Melhor Avaliados</option>
-              <option value="name">Nome (A - Z)</option>
-            </select>
+              ariaLabel="Ordenar produtos"
+              align="right"
+            />
           </div>
         </div>
 

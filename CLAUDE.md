@@ -14,6 +14,7 @@ Projeto de uma aplicação **Minie Shop Progressiva** desenvolvida do zero (*fro
 - **Regra de Ouro (UI):** Emojis são estritamente **proibidos** na interface (UI). Utilize ícones vetoriais SVG, tipografia adequada ou recursos gráficos equivalentes.
 - **Linguagem:** **JavaScript (JSX)** exclusivamente nesta etapa inicial.
   - *Nota:* A migração/adoção de **TypeScript** será realizada posteriormente, sob comando explícito do usuário.
+- **Agilidade de Entrega:** Ciclos rápidos e diretos. Evitar subagentes pesados ou passos redundantes para tarefas pontuais. Foco em edição cirúrgica, validação com linter e retorno imediato.
 - **Regra Crucial para Agentes:** Não antecipar a criação de componentes, páginas ou regras de negócio sem que o usuário solicite explicitamente o próximo passo. Proceda passo a passo.
 - **Manutenção deste arquivo:** Sempre que novas decisões de arquitetura, dependências ou convenções forem introduzidas, atualize este arquivo `CLAUDE.md`.
 
@@ -49,7 +50,8 @@ react-minieshop/
 └── src/
     ├── assets/            # Assets estáticos padrão
     ├── components/
-    │   ├── Navbar/        # Barra de navegação com seletor de moeda e indicador de carrinho
+    │   ├── Dropdown/      # Dropdown customizado reutilizável para unidade visual entre sistemas
+    │   ├── Navbar/        # Barra de navegação com seletor de moeda customizado e carrinho
     │   ├── PriceBox/      # Componente reutilizável de preço conectado ao motor de currency
     │   └── ProductCard/   # Card de produto individual (imagem, rating, preço, ações)
     ├── data/
