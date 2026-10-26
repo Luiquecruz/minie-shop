@@ -2,34 +2,34 @@ import { useState, useRef, useEffect } from 'react';
 import './Dropdown.css';
 
 /**
- * Componente Dropdown customizado para garantir unidade visual entre sistemas operacionais e navegadores.
+ * Custom Dropdown component providing visual unity across operating systems and browsers.
  *
  * @param {Object} props
- * @param {Array<{ value: string|number, label: string }>} props.options - Lista de opções
- * @param {string|number} props.value - Valor atualmente selecionado
- * @param {(value: string|number) => void} props.onChange - Callback acionado ao selecionar uma opção
- * @param {string} [props.placeholder='Selecione'] - Placeholder caso nenhum valor esteja selecionado
- * @param {'sm'|'md'|'lg'} [props.size='md'] - Tamanho do dropdown
- * @param {'left'|'right'} [props.align='right'] - Alinhamento do menu flutuante
- * @param {string} [props.className=''] - Classes adicionais
- * @param {string} [props.ariaLabel='Seletor'] - Rótulo de acessibilidade
+ * @param {Array<{ value: string|number, label: string }>} props.options - List of options
+ * @param {string|number} props.value - Currently selected value
+ * @param {(value: string|number) => void} props.onChange - Callback triggered on option select
+ * @param {string} [props.placeholder='Select'] - Placeholder if no value is selected
+ * @param {'sm'|'md'|'lg'} [props.size='md'] - Dropdown size variant
+ * @param {'left'|'right'} [props.align='right'] - Alignment of the floating menu
+ * @param {string} [props.className=''] - Additional CSS classes
+ * @param {string} [props.ariaLabel='Selector'] - Accessibility label
  */
 export function Dropdown({
   options = [],
   value,
   onChange,
-  placeholder = 'Selecione',
+  placeholder = 'Select',
   size = 'md',
   align = 'right',
   className = '',
-  ariaLabel = 'Seletor',
+  ariaLabel = 'Selector',
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
-  // Fecha o menu ao clicar fora
+  // Close the menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -49,7 +49,7 @@ export function Dropdown({
     };
   }, [isOpen]);
 
-  // Tecla Escape para fechar
+  // Close on Escape key press
   const handleKeyDown = (event) => {
     if (event.key === 'Escape' && isOpen) {
       setIsOpen(false);

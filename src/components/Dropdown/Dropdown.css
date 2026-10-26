@@ -6,7 +6,7 @@
   text-align: left;
 }
 
-/* Botão de Disparo / Trigger */
+/* Trigger Button */
 .custom-dropdown__trigger {
   display: inline-flex;
   align-items: center;
@@ -60,7 +60,7 @@
   color: var(--primary, #7c3aed);
 }
 
-/* Menu Flutuante */
+/* Floating Menu */
 .custom-dropdown__menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -96,7 +96,7 @@
   }
 }
 
-/* Opções */
+/* Options */
 .custom-dropdown__option {
   display: flex;
   align-items: center;
@@ -143,13 +143,13 @@
   flex-shrink: 0;
 }
 
-/* Variações de alinhamento */
+/* Alignment variants */
 .custom-dropdown--align-left .custom-dropdown__menu {
   right: auto;
   left: 0;
 }
 
-/* Variações de tamanho */
+/* Size variants */
 .custom-dropdown--sm .custom-dropdown__trigger {
   padding: 6px 10px;
   font-size: 0.8rem;

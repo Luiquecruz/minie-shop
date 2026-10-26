@@ -11,7 +11,7 @@ import {
 } from '../utils/currency.js';
 
 /**
- * Hook customizado para consumir e manipular o motor de moedas (multi-currency).
+ * Custom hook to consume and manage the multi-currency engine via Redux Toolkit.
  */
 export function useCurrency() {
   const dispatch = useDispatch();

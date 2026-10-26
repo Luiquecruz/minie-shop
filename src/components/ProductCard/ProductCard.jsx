@@ -21,7 +21,7 @@ export function ProductCard({ product, onAddToCart }) {
         <span className="product-card__category">{category}</span>
         {typeof stock === 'number' && (
           <span className="product-card__stock-badge">
-            {stock > 0 ? `${stock} em estoque` : 'Esgotado'}
+            {stock > 0 ? `${stock} in stock` : 'Out of stock'}
           </span>
         )}
         <img
@@ -33,7 +33,7 @@ export function ProductCard({ product, onAddToCart }) {
       </div>
 
       <div className="product-card__content">
-        <div className="product-card__rating" aria-label={`Avaliação ${rating.rate} de 5 estrelas`}>
+        <div className="product-card__rating" aria-label={`Rating ${rating.rate} out of 5 stars`}>
           <span className="product-card__stars" aria-hidden="true">
             <svg
               width="16"
@@ -63,7 +63,7 @@ export function ProductCard({ product, onAddToCart }) {
             type="button"
             className="product-card__btn"
             onClick={() => onAddToCart && onAddToCart(product)}
-            aria-label={`Adicionar ${name} ao carrinho`}
+            aria-label={`Add ${name} to cart`}
           >
             <svg
               className="product-card__btn-icon"
@@ -78,7 +78,7 @@ export function ProductCard({ product, onAddToCart }) {
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
               />
             </svg>
-            Comprar
+            Add to Cart
           </button>
         </div>
       </div>

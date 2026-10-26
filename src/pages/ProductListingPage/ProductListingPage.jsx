@@ -6,35 +6,35 @@ import Dropdown from '../../components/Dropdown/Dropdown.jsx';
 import './ProductListingPage.css';
 
 const SORT_OPTIONS = [
-  { value: '', label: 'Padrão (Destaques)' },
-  { value: 'price-asc', label: 'Menor Preço' },
-  { value: 'price-desc', label: 'Maior Preço' },
-  { value: 'rating', label: 'Melhor Avaliados' },
-  { value: 'name', label: 'Nome (A - Z)' },
+  { value: '', label: 'Default (Featured)' },
+  { value: 'price-asc', label: 'Lowest Price' },
+  { value: 'price-desc', label: 'Highest Price' },
+  { value: 'rating', label: 'Top Rated' },
+  { value: 'name', label: 'Name (A - Z)' },
 ];
 
 export function ProductListingPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Carrega categorias disponíveis na montagem
+  // Load available categories on mount
   useEffect(() => {
     let ignore = false;
     productsApi
       .getCategories(0)
       .then((cats) => {
         if (!ignore) {
-          setCategories(['Todos', ...cats]);
+          setCategories(['All', ...cats]);
         }
       })
       .catch((err) => {
-        console.error('Erro ao carregar categorias:', err);
+        console.error('Failed to load categories:', err);
       });
 
     return () => {
@@ -42,13 +42,13 @@ export function ProductListingPage() {
     };
   }, []);
 
-  // Sincroniza produtos com a API simulada
+  // Synchronize products from simulated API
   useEffect(() => {
     let ignore = false;
 
     productsApi
       .getProducts({
-        category: selectedCategory === 'Todos' ? undefined : selectedCategory,
+        category: selectedCategory === 'All' ? undefined : selectedCategory,
         search: searchTerm,
         sortBy: sortBy || undefined,
         delayMs: 200,
@@ -62,8 +62,8 @@ export function ProductListingPage() {
       })
       .catch((err) => {
         if (!ignore) {
-          console.error('Erro ao buscar produtos:', err);
-          setError('Não foi possível carregar os produtos. Tente novamente.');
+          console.error('Failed to load products:', err);
+          setError('Could not load products. Please try again.');
           setIsLoading(false);
         }
       });
@@ -93,7 +93,7 @@ export function ProductListingPage() {
   };
 
   const handleResetFilters = () => {
-    setSelectedCategory('Todos');
+    setSelectedCategory('All');
     setSearchTerm('');
     setSortBy('');
     setIsLoading(true);
@@ -105,20 +105,20 @@ export function ProductListingPage() {
   };
 
   const handleAddToCart = (product) => {
-    alert(`"${product.name}" adicionado ao carrinho!`);
+    alert(`"${product.name}" added to cart!`);
   };
 
   return (
     <main className="plp-container">
       <Helmet>
-        <title>Catálogo de Produtos | Mini Shop</title>
+        <title>Product Catalog | Minie Shop</title>
         <meta
           name="description"
-          content="Explore todos os 30 produtos da nossa Mini Shop. Eletrônicos, vestuário, calçados e decoração com os melhores preços."
+          content="Explore all 30 products in Minie Shop. Electronics, clothing, footwear, and home decor at great prices."
         />
       </Helmet>
 
-      {/* Cabeçalho da PLP */}
+      {/* PLP Header */}
       <header className="plp-header">
         <span className="plp-header__badge">
           <svg
@@ -136,18 +136,18 @@ export function ProductListingPage() {
               d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
             />
           </svg>
-          Coleção Completa
+          Complete Collection
         </span>
-        <h1 className="plp-header__title">Catálogo de Produtos</h1>
+        <h1 className="plp-header__title">Product Catalog</h1>
         <p className="plp-header__subtitle">
-          Explore nossa seleção com 30 itens selecionados, preços transparentes e entrega rápida.
+          Explore our handpicked collection of 30 items, transparent pricing, and fast delivery.
         </p>
       </header>
 
-      {/* Barra de Filtros e Ferramentas */}
-      <section className="plp-toolbar" aria-label="Filtros de produtos">
+      {/* Filters and Search Toolbar */}
+      <section className="plp-toolbar" aria-label="Product filters">
         <div className="plp-toolbar__top">
-          {/* Campo de Busca */}
+          {/* Search Input */}
           <div className="plp-search">
             <svg
               className="plp-search__icon"
@@ -165,29 +165,29 @@ export function ProductListingPage() {
             <input
               type="text"
               className="plp-search__input"
-              placeholder="Buscar por nome ou descrição..."
+              placeholder="Search by name or description..."
               value={searchTerm}
               onChange={handleSearchChange}
-              aria-label="Buscar produtos"
+              aria-label="Search products"
             />
           </div>
 
-          {/* Ordenação com Dropdown Customizado */}
+          {/* Sort Dropdown */}
           <div className="plp-sort">
-            <span className="plp-sort__label">Ordenar por:</span>
+            <span className="plp-sort__label">Sort by:</span>
             <Dropdown
               options={SORT_OPTIONS}
               value={sortBy}
               onChange={handleSortChange}
-              ariaLabel="Ordenar produtos"
+              ariaLabel="Sort products"
               align="right"
             />
           </div>
         </div>
 
-        {/* Chips de Categoria */}
+        {/* Category Chips */}
         {categories.length > 0 && (
-          <div className="plp-categories" role="tablist" aria-label="Categorias">
+          <div className="plp-categories" role="tablist" aria-label="Categories">
             {categories.map((category) => {
               const isActive = selectedCategory === category;
               return (
@@ -208,33 +208,33 @@ export function ProductListingPage() {
         )}
       </section>
 
-      {/* Contagem de Resultados */}
+      {/* Results Count */}
       {!isLoading && !error && (
         <div className="plp-results-count">
-          Exibindo <strong>{products.length}</strong> {products.length === 1 ? 'produto' : 'produtos'}
-          {selectedCategory !== 'Todos' && ` em "${selectedCategory}"`}
-          {searchTerm && ` para "${searchTerm}"`}
+          Showing <strong>{products.length}</strong> {products.length === 1 ? 'product' : 'products'}
+          {selectedCategory !== 'All' && ` in "${selectedCategory}"`}
+          {searchTerm && ` for "${searchTerm}"`}
         </div>
       )}
 
-      {/* Mensagem de Erro */}
+      {/* Error State */}
       {error && (
         <div className="plp-empty" role="alert">
-          <p className="plp-empty__title">Ops! Ocorreu um problema</p>
+          <p className="plp-empty__title">Oops! Something went wrong</p>
           <p className="plp-empty__text">{error}</p>
           <button
             type="button"
             className="plp-empty__reset-btn"
             onClick={handleRetry}
           >
-            Tentar Novamente
+            Try Again
           </button>
         </div>
       )}
 
       {/* Skeleton Loading */}
       {isLoading && (
-        <div className="plp-grid" aria-busy="true" aria-label="Carregando produtos">
+        <div className="plp-grid" aria-busy="true" aria-label="Loading products">
           {Array.from({ length: 8 }).map((_, index) => (
             <div key={index} className="skeleton-card">
               <div className="skeleton-card__img" />
@@ -249,7 +249,7 @@ export function ProductListingPage() {
         </div>
       )}
 
-      {/* Grid de Produtos */}
+      {/* Products Grid */}
       {!isLoading && !error && products.length > 0 && (
         <div className="plp-grid" id="product-grid">
           {products.map((product) => (
@@ -262,7 +262,7 @@ export function ProductListingPage() {
         </div>
       )}
 
-      {/* Estado Vazio (Nenhum produto encontrado) */}
+      {/* Empty State */}
       {!isLoading && !error && products.length === 0 && (
         <div className="plp-empty">
           <svg
@@ -278,16 +278,16 @@ export function ProductListingPage() {
               d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h2 className="plp-empty__title">Nenhum produto encontrado</h2>
+          <h2 className="plp-empty__title">No products found</h2>
           <p className="plp-empty__text">
-            Tente buscar com outros termos ou selecione uma categoria diferente.
+            Try searching with different terms or selecting another category.
           </p>
           <button
             type="button"
             className="plp-empty__reset-btn"
             onClick={handleResetFilters}
           >
-            Limpar Filtros
+            Reset Filters
           </button>
         </div>
       )}

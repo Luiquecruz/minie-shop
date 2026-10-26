@@ -12,7 +12,7 @@ const getInitialCurrency = () => {
       }
     }
   } catch (error) {
-    console.warn('Não foi possível acessar o localStorage para ler a moeda:', error);
+    console.warn('Failed to read currency from localStorage:', error);
   }
   return DEFAULT_CURRENCY;
 };
@@ -34,7 +34,7 @@ export const currencySlice = createSlice({
             window.localStorage.setItem(STORAGE_KEY, newCurrency);
           }
         } catch (error) {
-          console.warn('Não foi possível persistir a moeda no localStorage:', error);
+          console.warn('Failed to persist currency to localStorage:', error);
         }
       }
     },

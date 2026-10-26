@@ -13,7 +13,7 @@ export function Navbar({ cartCount = 0 }) {
   return (
     <header className="navbar">
       <div className="navbar__inner">
-        <a href="/" className="navbar__brand" aria-label="Minie Shop Início">
+        <a href="/" className="navbar__brand" aria-label="Minie Shop Home">
           <span className="navbar__brand-badge" aria-hidden="true">
             <svg
               fill="none"
@@ -33,19 +33,19 @@ export function Navbar({ cartCount = 0 }) {
         </a>
 
         <div className="navbar__actions">
-          {/* Seletor de Multi-Moedas com Dropdown Personalizado */}
+          {/* Custom Multi-Currency Dropdown */}
           <Dropdown
             options={currencyOptions}
             value={currentCurrency}
             onChange={changeCurrency}
-            ariaLabel="Selecionar moeda da loja"
+            ariaLabel="Select store currency"
             align="right"
           />
 
           <button
             type="button"
             className="navbar__cart-btn"
-            aria-label="Carrinho de compras"
+            aria-label="Shopping cart"
           >
             <svg
               width="20"
@@ -61,7 +61,7 @@ export function Navbar({ cartCount = 0 }) {
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
               />
             </svg>
-            <span>Carrinho</span>
+            <span>Cart</span>
             <span className="navbar__cart-count">{cartCount}</span>
           </button>
         </div>

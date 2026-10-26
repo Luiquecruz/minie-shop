@@ -3,14 +3,14 @@ import { useCurrency } from '../../hooks/useCurrency.js';
 import './PriceBox.css';
 
 /**
- * Componente PriceBox reutilizável para Cards, PDP e onde mais houver exibição de preço.
- * Integrado ao motor de currency e store global do Redux Toolkit.
+ * Reusable PriceBox component for Cards, PDP, and any price display.
+ * Integrated with the multi-currency engine and Redux Toolkit global store.
  *
  * @param {Object} props
- * @param {Object|number} props.price - Estrutura de preço ({ regular_price, special_price, final_price, discount_percentage })
- * @param {'sm'|'md'|'lg'} [props.size='md'] - Tamanho do bloco de preço
- * @param {string} [props.className=''] - Classes CSS adicionais
- * @param {string} [props.currency] - Moeda opcional para override ('BRL' | 'USD' | 'EUR')
+ * @param {Object|number} props.price - Price structure ({ regular_price, special_price, final_price, discount_percentage })
+ * @param {'sm'|'md'|'lg'} [props.size='md'] - Price box size variant
+ * @param {string} [props.className=''] - Additional CSS classes
+ * @param {string} [props.currency] - Optional currency override ('BRL' | 'USD' | 'EUR')
  */
 export function PriceBox({ price, size = 'md', className = '', currency }) {
   const { currentCurrency } = useCurrency();
@@ -26,13 +26,13 @@ export function PriceBox({ price, size = 'md', className = '', currency }) {
         <div className="price-box__discount-row">
           <span
             className="price-box__regular-price"
-            aria-label={`Preço original ${formatCurrency(regular_price, activeCurrency)}`}
+            aria-label={`Original price ${formatCurrency(regular_price, activeCurrency)}`}
           >
             {formatCurrency(regular_price, activeCurrency)}
           </span>
           <span
             className="price-box__discount-badge"
-            aria-label={`Desconto de ${discount_percentage}%`}
+            aria-label={`${discount_percentage}% discount`}
           >
             -{discount_percentage}%
           </span>
@@ -41,7 +41,7 @@ export function PriceBox({ price, size = 'md', className = '', currency }) {
 
       <span
         className="price-box__final-price"
-        aria-label={`Preço atual ${formatCurrency(final_price, activeCurrency)}`}
+        aria-label={`Current price ${formatCurrency(final_price, activeCurrency)}`}
       >
         {formatCurrency(final_price, activeCurrency)}
       </span>

@@ -1,85 +1,86 @@
-# CLAUDE.md — Minie Shop Progressivo
+# CLAUDE.md — Progressive Minie Shop
 
-Documento de contexto e diretrizes para agentes e desenvolvedores que atuarem neste repositório.
-
----
-
-## 🎯 Visão Geral do Projeto
-Projeto de uma aplicação **Minie Shop Progressiva** desenvolvida do zero (*from scratch*) com o objetivo de revisar conceitos fundamentais e avançados de React de forma incremental e didática.
+Context and guidelines for agents and developers working on this repository.
 
 ---
 
-## 📌 Status Atual & Regras de Condução
-- **Fase Atual:** Fase 3 — Construção da PLP e catálogo de produtos.
-- **Regra de Ouro (UI):** Emojis são estritamente **proibidos** na interface (UI). Utilize ícones vetoriais SVG, tipografia adequada ou recursos gráficos equivalentes.
-- **Linguagem:** **JavaScript (JSX)** exclusivamente nesta etapa inicial.
-  - *Nota:* A migração/adoção de **TypeScript** será realizada posteriormente, sob comando explícito do usuário.
-- **Agilidade de Entrega:** Ciclos rápidos e diretos. Evitar subagentes pesados ou passos redundantes para tarefas pontuais. Foco em edição cirúrgica, validação com linter e retorno imediato.
-- **Regra Crucial para Agentes:** Não antecipar a criação de componentes, páginas ou regras de negócio sem que o usuário solicite explicitamente o próximo passo. Proceda passo a passo.
-- **Manutenção deste arquivo:** Sempre que novas decisões de arquitetura, dependências ou convenções forem introduzidas, atualize este arquivo `CLAUDE.md`.
+## 🎯 Project Overview
+Progressive **Minie Shop** application built from scratch to review fundamental and advanced React concepts in an incremental and educational approach.
 
 ---
 
-## 🛠️ Stack Tecnológica Instalada
+## 📌 Current Status & Execution Guidelines
+- **Current Phase:** Phase 3 — PLP construction and product catalog.
+- **Golden Rule (UI):** Emojis are strictly **forbidden** in the UI. Use vector SVG icons, proper typography, or equivalent graphic elements.
+- **Language for Documentation & Code:** All documentation, code comments, and annotations must strictly be written in English.
+- **Language/Stack:** **JavaScript (JSX)** exclusively in this initial phase.
+  - *Note:* Migration/adoption of **TypeScript** will be carried out subsequently upon explicit user command.
+- **Delivery Agility:** Fast and direct cycles. Avoid heavy browser subagents or redundant steps for targeted tasks. Focus on surgical edits, quick lint validation, and immediate feedback.
+- **Crucial Rule for Agents:** Do not anticipate components, pages, or business rules unless the user explicitly requests the next step. Proceed step-by-step.
+- **Maintenance of this file:** Whenever new architecture decisions, dependencies, or conventions are introduced, update this `CLAUDE.md` file.
+
+---
+
+## 🛠️ Installed Tech Stack
 - **Build Tool:** [Vite](https://vite.dev/) `v8.x`
-- **Biblioteca Principal:** [React](https://react.dev/) `v19.x` & `react-dom`
-- **Gerenciamento de Estado Global:** [`@reduxjs/toolkit`](https://redux-toolkit.js.org/) & [`react-redux`](https://react-redux.js.org/) (usado no motor de currency e carrinho)
-- **Roteamento:** [`react-router-dom`](https://reactrouter.com/) `v7.x`
-- **Gerenciamento de Cabeçalho / SEO:** [`react-helmet-async`](https://github.com/staylor/react-helmet-async) `v3.x`
+- **Main Library:** [React](https://react.dev/) `v19.x` & `react-dom`
+- **Global State Management:** [`@reduxjs/toolkit`](https://redux-toolkit.js.org/) & [`react-redux`](https://react-redux.js.org/) (used in multi-currency engine and cart)
+- **Routing:** [`react-router-dom`](https://reactrouter.com/) `v7.x`
+- **Header / SEO Management:** [`react-helmet-async`](https://github.com/staylor/react-helmet-async) `v3.x`
 - **Linter:** [Oxlint](https://oxc.rs/)
 
 ---
 
-## 🚀 Scripts Disponíveis
+## 🚀 Available Scripts
 ```bash
-npm run dev      # Inicia o servidor local de desenvolvimento Vite
-npm run build    # Compila a aplicação para produção
-npm run preview  # Visualiza localmente o bundle de produção
-npm run lint     # Executa verificação com oxlint
+npm run dev      # Start Vite local development server
+npm run build    # Build production bundle
+npm run preview  # Preview production bundle locally
+npm run lint     # Run oxlint checks
 ```
 
 ---
 
-## 📁 Estrutura de Arquivos Inicial
+## 📁 File Structure
 ```text
 react-minieshop/
-├── CLAUDE.md              # Documentação e rastreamento para agentes
-├── index.html             # Ponto de entrada HTML
-├── package.json           # Dependências e scripts
-├── vite.config.js         # Configuração do Vite com plugin React
+├── CLAUDE.md              # Documentation and context tracking for agents
+├── index.html             # HTML entry point
+├── package.json           # Dependencies and scripts
+├── vite.config.js         # Vite configuration with React plugin
 └── src/
-    ├── assets/            # Assets estáticos padrão
+    ├── assets/            # Static assets
     ├── components/
-    │   ├── Dropdown/      # Dropdown customizado reutilizável para unidade visual entre sistemas
-    │   ├── Navbar/        # Barra de navegação com seletor de moeda customizado e carrinho
-    │   ├── PriceBox/      # Componente reutilizável de preço conectado ao motor de currency
-    │   └── ProductCard/   # Card de produto individual (imagem, rating, preço, ações)
+    │   ├── Dropdown/      # Reusable custom dropdown for cross-system visual unity
+    │   ├── Navbar/        # Navigation bar with custom currency selector and cart
+    │   ├── PriceBox/      # Reusable price component connected to currency engine
+    │   └── ProductCard/   # Product card component (image, rating, price, actions)
     ├── data/
-    │   └── products.js    # Base mock de 30 produtos com preços processados pelo motor de preço
+    │   └── products.js    # Mock base of 30 products processed by the pricing engine
     ├── hooks/
-    │   └── useCurrency.js # Hook customizado para consumir e alternar moedas (BRL, USD, EUR)
+    │   └── useCurrency.js # Custom hook to consume and switch currencies (BRL, USD, EUR)
     ├── pages/
-    │   └── ProductListingPage/ # PLP com busca, filtros de categoria, ordenação e grid
+    │   └── ProductListingPage/ # PLP with search, category filters, sorting, and grid
     ├── services/
-    │   └── api.js         # Camada de API simulada frontend-only (busca, filtro, ordenação por final_price)
+    │   └── api.js         # Simulated frontend-only API (search, filter, sort by final_price)
     ├── store/
-    │   ├── index.js       # Configuração da store do Redux Toolkit
+    │   ├── index.js       # Redux Toolkit store configuration
     │   └── slices/
-    │       └── currencySlice.js # Slice de moeda com persistência em localStorage
+    │       └── currencySlice.js # Currency slice with localStorage persistence
     ├── utils/
-    │   ├── currency.js    # Motor de multi-moedas (taxas, conversão e formatação com Intl)
-    │   └── price.js       # Motor de cálculo de preços (calculatePrice e formatCurrency)
-    ├── App.css            # Estilos de layout (shell, content, footer)
-    ├── App.jsx            # Shell com BrowserRouter, HelmetProvider e rotas
-    ├── index.css          # Design system com tokens CSS (light/dark mode)
-    └── main.jsx           # Ponto de entrada React com Redux Provider
+    │   ├── currency.js    # Multi-currency engine (exchange rates, conversion, and Intl formatting)
+    │   └── price.js       # Pricing calculation engine (calculatePrice and formatCurrency)
+    ├── App.css            # Layout styles (shell, content, footer)
+    ├── App.jsx            # Shell with BrowserRouter, HelmetProvider, and routes
+    ├── index.css          # Design system with CSS tokens (light/dark mode)
+    └── main.jsx           # React entry point with Redux Provider
 ```
 
 ---
 
-## 🗺️ Roadmap de Evolução (Progressivo)
-1. **Fase 1:** Inicialização limpa do projeto (Vite + React JS + React Router + React Helmet) ✅
-2. **Fase 2:** Definição da estrutura de rotas e providers base (`BrowserRouter`, `HelmetProvider`) ✅
-3. **Fase 3 (Atual):** Construção da PLP, layout e componentes de apresentação (Navbar, ProductCard, PLP com filtros e grid) ✅
-4. **Fase 4:** Estado global e revisão de Hooks (`useState`, `useEffect`, `useContext` ou Reducer para carrinho e persistência).
-5. **Fase 5:** Migração incremental para TypeScript.
+## 🗺️ Progressive Evolution Roadmap
+1. **Phase 1:** Clean project initialization (Vite + React JS + React Router + React Helmet) ✅
+2. **Phase 2:** Base routing and providers (`BrowserRouter`, `HelmetProvider`, `Provider`) ✅
+3. **Phase 3 (Current):** PLP construction, layout, and presentation components (Navbar, Dropdown, PriceBox, ProductCard, PLP with filters and grid) ✅
+4. **Phase 4:** Global state and Hooks review (`useState`, `useEffect`, `useContext`, or Redux Toolkit for cart and persistence).
+5. **Phase 5:** Incremental migration to TypeScript.

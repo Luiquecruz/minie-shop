@@ -394,12 +394,12 @@ const RAW_PRODUCTS = [
 ];
 
 /**
- * Produtos processados pelo motor de preço.
- * Cada produto possui price com:
+ * Products processed by the pricing engine.
+ * Each product contains a price object with:
  * - regular_price
  * - special_price
- * - final_price (menor valor aplicável)
- * - discount_percentage (calculado com base na diferença final vs regular)
+ * - final_price (lowest applicable price)
+ * - discount_percentage (calculated based on difference between final vs regular price)
  */
 export const PRODUCTS_MOCK = RAW_PRODUCTS.map((product) => ({
   ...product,

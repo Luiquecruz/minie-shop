@@ -1,15 +1,15 @@
 /**
- * Motor de Preço da Minie Shop
- * Lógica reutilizável para cálculo de precedência de preços, descontos e formatação monetária.
+ * Minie Shop Pricing Engine
+ * Reusable logic for price precedence calculations, discounts, and currency formatting.
  */
 
 import { formatCurrencyWithCode, DEFAULT_CURRENCY } from './currency.js';
 
 /**
- * Formata um valor numérico para representação monetária.
- * Suporta multi-moedas (BRL, USD, EUR).
- * @param {number} value - Valor na moeda base (BRL)
- * @param {string} [currency='BRL'] - Moeda desejada ('BRL' | 'USD' | 'EUR')
+ * Formats a numeric value into a currency representation.
+ * Supports multi-currency (BRL, USD, EUR).
+ * @param {number} value - Base currency value (BRL)
+ * @param {string} [currency='BRL'] - Desired currency code ('BRL' | 'USD' | 'EUR')
  * @returns {string}
  */
 export const formatCurrency = (value, currency = DEFAULT_CURRENCY) => {
@@ -17,12 +17,12 @@ export const formatCurrency = (value, currency = DEFAULT_CURRENCY) => {
 };
 
 /**
- * Motor de cálculo de preço:
- * - Precedência: special_price é desconto. Se existir, for maior que zero e menor que regular_price:
- *   - final_price é o menor preço aplicável (special_price)
+ * Price calculation engine:
+ * - Precedence: special_price is a discount. If it exists, is greater than zero and less than regular_price:
+ *   - final_price is the lowest applicable price (special_price)
  *   - has_discount = true
  *   - discount_percentage = Math.round(((regular_price - final_price) / regular_price) * 100)
- * - Caso contrário:
+ * - Otherwise:
  *   - final_price = regular_price
  *   - has_discount = false
  *   - discount_percentage = 0
@@ -40,7 +40,7 @@ export const formatCurrency = (value, currency = DEFAULT_CURRENCY) => {
  * }}
  */
 export const calculatePrice = (rawPrice = {}) => {
-  // Retrocompatibilidade se receber apenas um número
+  // Backward compatibility if rawPrice is passed as a primitive number
   if (typeof rawPrice === 'number') {
     return {
       regular_price: rawPrice,
@@ -65,10 +65,10 @@ export const calculatePrice = (rawPrice = {}) => {
     specialPrice > 0 &&
     specialPrice < regularPrice;
 
-  // Encontra o menor valor aplicável
+  // Determine the lowest applicable price
   const finalPrice = hasDiscount ? specialPrice : regularPrice;
 
-  // Calcula porcentagem com base na diferença do preço final vs regular
+  // Calculate discount percentage relative to regular price
   const discountPercentage =
     hasDiscount && regularPrice > 0
       ? Math.round(((regularPrice - finalPrice) / regularPrice) * 100)

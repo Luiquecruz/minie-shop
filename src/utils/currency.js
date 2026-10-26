@@ -1,6 +1,6 @@
 /**
- * Motor de Currency (Multi-Moedas) da Minie Shop
- * Suporta BRL (base), USD e EUR com conversão e formatação localizada.
+ * Minie Shop Multi-Currency Engine
+ * Supports BRL (base currency), USD, and EUR with conversion and localized formatting.
  */
 
 export const SUPPORTED_CURRENCIES = {
@@ -8,21 +8,21 @@ export const SUPPORTED_CURRENCIES = {
     code: 'BRL',
     label: 'BRL (R$)',
     symbol: 'R$',
-    rate: 1.0, // Moeda base do catálogo
+    rate: 1.0, // Base catalog currency
     locale: 'pt-BR',
   },
   USD: {
     code: 'USD',
     label: 'USD ($)',
     symbol: '$',
-    rate: 0.18, // 1 BRL = 0.18 USD (ex: 1 USD ~ 5.55 BRL)
+    rate: 0.18, // 1 BRL = 0.18 USD (approx 1 USD ~ 5.55 BRL)
     locale: 'en-US',
   },
   EUR: {
     code: 'EUR',
     label: 'EUR (€)',
     symbol: '€',
-    rate: 0.16, // 1 BRL = 0.16 EUR (ex: 1 EUR ~ 6.25 BRL)
+    rate: 0.16, // 1 BRL = 0.16 EUR (approx 1 EUR ~ 6.25 BRL)
     locale: 'de-DE',
   },
 };
@@ -30,9 +30,9 @@ export const SUPPORTED_CURRENCIES = {
 export const DEFAULT_CURRENCY = 'BRL';
 
 /**
- * Converte um valor em BRL para a moeda de destino.
- * @param {number} valueInBrl - Valor na moeda base (BRL)
- * @param {string} [targetCurrency='BRL'] - Código da moeda ('BRL' | 'USD' | 'EUR')
+ * Converts a value from BRL to the target currency.
+ * @param {number} valueInBrl - Numeric value in base currency (BRL)
+ * @param {string} [targetCurrency='BRL'] - Currency code ('BRL' | 'USD' | 'EUR')
  * @returns {number}
  */
 export const convertCurrency = (valueInBrl, targetCurrency = DEFAULT_CURRENCY) => {
@@ -47,9 +47,9 @@ export const convertCurrency = (valueInBrl, targetCurrency = DEFAULT_CURRENCY) =
 };
 
 /**
- * Converte e formata um valor em BRL para a representação monetária na moeda alvo.
- * @param {number} valueInBrl - Valor na moeda base (BRL)
- * @param {string} [targetCurrency='BRL'] - Código da moeda ('BRL' | 'USD' | 'EUR')
+ * Converts and formats a value from BRL into a localized currency string.
+ * @param {number} valueInBrl - Numeric value in base currency (BRL)
+ * @param {string} [targetCurrency='BRL'] - Currency code ('BRL' | 'USD' | 'EUR')
  * @returns {string}
  */
 export const formatCurrencyWithCode = (

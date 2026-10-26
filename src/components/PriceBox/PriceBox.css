@@ -46,7 +46,7 @@
   line-height: 1.15;
 }
 
-/* Tamanhos configuráveis para reutilização nos cards e na futura PDP */
+/* Configurable size variants for cards and PDP */
 .price-box--sm .price-box__final-price {
   font-size: 1.1rem;
 }

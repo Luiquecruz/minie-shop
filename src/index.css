@@ -6,6 +6,7 @@
   --primary-border: rgba(124, 58, 237, 0.2);
 
   --text: #4b5563;
+  --text-color: #4b5563;
   --text-heading: #111827;
   --text-muted: #6b7280;
   
@@ -43,6 +44,7 @@
     --primary-border: rgba(168, 85, 247, 0.3);
 
     --text: #9ca3af;
+    --text-color: #9ca3af;
     --text-heading: #f3f4f6;
     --text-muted: #9ca3af;
 

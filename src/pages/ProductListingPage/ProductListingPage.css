@@ -40,7 +40,7 @@
   max-width: 600px;
 }
 
-/* Toolbar de Filtros e Busca */
+/* Filter and Search Toolbar */
 .plp-toolbar {
   display: flex;
   flex-direction: column;
@@ -126,7 +126,7 @@
   border-color: var(--primary, #7c3aed);
 }
 
-/* Categorias / Chips */
+/* Categories / Filter Chips */
 .plp-categories {
   display: flex;
   gap: 8px;
@@ -164,7 +164,7 @@
   color: #ffffff;
 }
 
-/* Informações de Contagem */
+/* Results Count */
 .plp-results-count {
   font-size: 0.9rem;
   color: var(--text-muted, #6b7280);
@@ -175,7 +175,7 @@
   color: var(--text-heading, #111827);
 }
 
-/* Grid de Produtos */
+/* Products Grid */
 .plp-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -239,7 +239,7 @@
   }
 }
 
-/* Estado Vazio */
+/* Empty State */
 .plp-empty {
   text-align: center;
   padding: 64px 20px;
