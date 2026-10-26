@@ -107,7 +107,7 @@
 
 .product-card__rating-value {
   font-weight: 700;
-  color: var(--text-color, #111827);
+  color: var(--text-heading, #111827);
 }
 
 .product-card__rating-count {
