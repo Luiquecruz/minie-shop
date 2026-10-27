@@ -2,8 +2,25 @@ import { PRODUCTS_MOCK } from '../data/products.js';
 
 const DEFAULT_DELAY_MS = 300;
 
-const delay = (ms = DEFAULT_DELAY_MS) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms = DEFAULT_DELAY_MS, signal) =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      return reject(
+        new DOMException('The user aborted a request.', 'AbortError'),
+      );
+    }
+
+    const timeoutId = setTimeout(() => {
+      resolve();
+    }, ms);
+
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timeoutId);
+      reject(
+        new DOMException('The user aborted a request.', 'AbortError'),
+      );
+    });
+  });
 
 /**
  * Simulated API Service (Frontend-only)
@@ -17,6 +34,7 @@ export const productsApi = {
    * @param {string} [options.sortBy] - 'price-asc' | 'price-desc' | 'rating' | 'name'
    * @param {number} [options.page] - Page number (1-based)
    * @param {number} [options.limit] - Items per page
+   * @param {AbortSignal} [options.signal] - AbortSignal for cancellation
    * @param {number} [options.delayMs] - Simulated network latency in milliseconds
    * @returns {Promise<{ products: Array, total: number, page?: number, totalPages?: number }>}
    */
@@ -26,9 +44,10 @@ export const productsApi = {
     sortBy,
     page,
     limit,
+    signal,
     delayMs = DEFAULT_DELAY_MS,
   } = {}) {
-    await delay(delayMs);
+    await delay(delayMs, signal);
 
     let result = [...PRODUCTS_MOCK];
 
@@ -147,6 +166,60 @@ export const productsApi = {
     }
 
     return related.slice(0, limit);
+  },
+
+  /**
+   * Dedicated search endpoint with AbortSignal support for autocomplete.
+   * @param {Object} options
+   * @param {string} options.query - Search query
+   * @param {number} [options.limit=6] - Max results to return
+   * @param {AbortSignal} [options.signal] - AbortSignal for request cancellation
+   * @param {number} [options.delayMs=200] - Simulated network latency
+   * @returns {Promise<Array>}
+   */
+  async searchProducts({ query = '', limit = 6, signal, delayMs = 200 } = {}) {
+    await delay(delayMs, signal);
+
+    if (!query || !query.trim()) {
+      return [];
+    }
+
+    const term = query.trim().toLowerCase();
+    const results = PRODUCTS_MOCK.filter(
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        p.category.toLowerCase().includes(term) ||
+        p.description.toLowerCase().includes(term),
+    );
+
+    return results.slice(0, limit);
+  },
+
+  /**
+   * Validates available stock for a product with AbortSignal support.
+   * Used by debounced quantity updates in mini-cart.
+   * @param {number|string} productId
+   * @param {number} requestedQuantity
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<{ available: boolean, maxStock: number, message: string|null }>}
+   */
+  async validateStock(productId, requestedQuantity, signal) {
+    await delay(150, signal);
+    const numericId = Number(productId);
+    const product = PRODUCTS_MOCK.find((p) => p.id === numericId);
+
+    if (!product) {
+      throw new Error(`Product with ID ${productId} not found.`);
+    }
+
+    const maxStock = typeof product.stock === 'number' ? product.stock : 99;
+    const available = requestedQuantity <= maxStock;
+
+    return {
+      available,
+      maxStock,
+      message: available ? null : `Only ${maxStock} units available in stock.`,
+    };
   },
 };
 

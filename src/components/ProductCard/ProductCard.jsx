@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
+import { useCart } from '../../hooks/useCart.js';
 import PriceBox from '../PriceBox/PriceBox.jsx';
 import './ProductCard.css';
 
 export function ProductCard({ product, onAddToCart }) {
+  const { addToCart } = useCart();
   if (!product) return null;
 
   const {
@@ -71,7 +73,13 @@ export function ProductCard({ product, onAddToCart }) {
           <button
             type="button"
             className="product-card__btn"
-            onClick={() => onAddToCart && onAddToCart(product)}
+            onClick={() => {
+              if (onAddToCart) {
+                onAddToCart(product);
+              } else {
+                addToCart(product);
+              }
+            }}
             aria-label={`Add ${name} to cart`}
           >
             <svg

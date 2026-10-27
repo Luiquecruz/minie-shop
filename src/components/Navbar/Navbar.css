@@ -24,7 +24,22 @@
 @media (max-width: 768px) {
   .navbar__inner {
     padding: 12px var(--container-padding-mobile, 16px);
+    flex-wrap: wrap;
+    row-gap: 12px;
   }
+
+  .navbar__search {
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+}
+
+.navbar__search {
+  flex: 1;
+  max-width: 480px;
+  margin: 0 24px;
 }
 
 .navbar__brand {

@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from '../../components/Navbar/Navbar.jsx';
+import MiniCart from '../../components/MiniCart/MiniCart.jsx';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -10,7 +11,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 export function RootLayout() {
   return (
     <div className="app-shell">
-      <Navbar cartCount={0} />
+      <Navbar />
       <main className="app-content">
         <Outlet />
       </main>
@@ -19,6 +20,7 @@ export function RootLayout() {
           <p>© {CURRENT_YEAR} Minie Shop</p>
         </div>
       </footer>
+      <MiniCart />
     </div>
   );
 }

@@ -10,7 +10,7 @@ Progressive **Minie Shop** application built from scratch to review fundamental 
 ---
 
 ## 📌 Current Status & Execution Guidelines
-- **Current Phase:** Phase 4 — PDP (Product Detail Page) implementation.
+- **Current Phase:** Phase 5 — Mini-Cart floating slide-over drawer with debounced quantity validation, stock guardrails, and persistent storage.
 - **Golden Rule (UI):** Emojis are strictly **forbidden** in the UI. Use vector SVG icons, proper typography, or equivalent graphic elements.
 - **Language for Documentation & Code:** All documentation, code comments, and annotations must strictly be written in English.
 - **Language/Stack:** **JavaScript (JSX)** exclusively in this initial phase.
@@ -53,23 +53,28 @@ react-minieshop/
     ├── assets/            # Static assets
     ├── components/
     │   ├── Dropdown/      # Reusable custom dropdown for cross-system visual unity
-    │   ├── Navbar/        # Navigation bar with custom currency selector and cart
+    │   ├── MiniCart/      # Floating slide-over drawer with item list, debounced qty, guardrails, totals & CTAs
+    │   ├── Navbar/        # Navigation bar with search, currency selector, and cart trigger with badge
     │   ├── PriceBox/      # Reusable price component connected to currency engine
-    │   └── ProductCard/   # Product card component (image, rating, price, actions)
+    │   ├── ProductCard/   # Product card component (image, rating, price, actions)
+    │   └── SearchBar/     # Search input with autocomplete dropdown, keyboard nav, and highlight
     ├── data/
     │   └── products.js    # Mock base of 30 products processed by the pricing engine
     ├── hooks/
-    │   └── useCurrency.js # Custom hook to consume and switch currencies (BRL, USD, EUR)
+    │   ├── useCart.js     # Custom hook for cart state and actions
+    │   ├── useCurrency.js # Custom hook to consume and switch currencies (BRL, USD, EUR)
+    │   └── useFetch.js    # Data fetching hook with AbortController, debounce, and effect cleanup
     ├── layouts/
-    │   └── RootLayout/    # Canonical Layout Route component with <Outlet /> (Navbar + footer shell)
+    │   └── RootLayout/    # Canonical Layout Route component with <Outlet /> (Navbar, footer, and MiniCart)
     ├── pages/
     │   ├── ProductDetailPage/ # PDP with open masonry gallery, dynamic Helmet, tabs, floating CTA
     │   └── ProductListingPage/# PLP with search, category filters, sorting, and grid
     ├── services/
-    │   └── api.js         # Simulated frontend-only API (search, filter, sort, related products)
+    │   └── api.js         # Simulated frontend-only API (search, filter, sort, related, stock validation)
     ├── store/
     │   ├── index.js       # Redux Toolkit store configuration
     │   └── slices/
+    │       ├── cartSlice.js     # Cart slice with localStorage persistence, stock guardrails, and warnings
     │       └── currencySlice.js # Currency slice with localStorage persistence
     ├── utils/
     │   ├── currency.js    # Multi-currency engine (exchange rates, conversion, and Intl formatting)
@@ -86,6 +91,7 @@ react-minieshop/
 1. **Phase 1:** Clean project initialization (Vite + React JS + React Router + React Helmet) ✅
 2. **Phase 2:** Base routing and providers (`BrowserRouter`, `HelmetProvider`, `Provider`) ✅
 3. **Phase 3:** PLP construction, layout, and presentation components (Navbar, Dropdown, PriceBox, ProductCard, PLP) ✅
-4. **Phase 4 (Current):** PDP construction (dynamic `/product/:id` route, Helmet metadata, open masonry gallery, mobile peek swipe, product info, priceBox, 3-tab system, floating action bar, related products) ✅
-5. **Phase 5:** Cart implementation & checkout flow.
-6. **Phase 6:** Incremental migration to TypeScript.
+4. **Phase 4:** PDP construction (dynamic `/product/:id` route, Helmet metadata, open masonry gallery, mobile peek swipe, product info, priceBox, 3-tab system, floating action bar, related products) ✅
+5. **Phase 5 (Current):** Mini-Cart drawer (floating drawer, item listing, qty controls with debounced validation and stock guardrails, localStorage persistence, subtotal/total calculation, checkout and full cart placeholder CTAs) ✅
+6. **Phase 6:** Dedicated Cart page & Checkout flow.
+7. **Phase 7:** Incremental migration to TypeScript.

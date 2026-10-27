@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { useCart } from '../../hooks/useCart.js';
 import { productsApi } from '../../services/api.js';
 import PriceBox from '../../components/PriceBox/PriceBox.jsx';
 import ProductCard from '../../components/ProductCard/ProductCard.jsx';
@@ -15,6 +16,7 @@ const TABS = [
 export function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
 
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -63,13 +65,19 @@ export function ProductDetailPage() {
   }, [id]);
 
   const handleAddToCart = () => {
-    setAddedNotice(`"${product?.name}" added to cart!`);
-    setTimeout(() => setAddedNotice(''), 3000);
+    if (product) {
+      addToCart(product);
+      setAddedNotice(`"${product.name}" added to cart!`);
+      setTimeout(() => setAddedNotice(''), 3000);
+    }
   };
 
   const handleBuyNow = () => {
-    setAddedNotice(`Proceeding to checkout with "${product?.name}"!`);
-    setTimeout(() => setAddedNotice(''), 3000);
+    if (product) {
+      addToCart(product);
+      setAddedNotice(`Proceeding to checkout with "${product.name}"!`);
+      setTimeout(() => setAddedNotice(''), 3000);
+    }
   };
 
   if (isLoading) {
@@ -380,6 +388,7 @@ export function ProductDetailPage() {
                   key={related.id}
                   product={related}
                   onAddToCart={(p) => {
+                    addToCart(p);
                     setAddedNotice(`"${p.name}" added to cart!`);
                     setTimeout(() => setAddedNotice(''), 3000);
                   }}

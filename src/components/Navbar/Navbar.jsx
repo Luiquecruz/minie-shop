@@ -1,9 +1,13 @@
+import { Link } from 'react-router-dom';
 import { useCurrency } from '../../hooks/useCurrency.js';
+import { useCart } from '../../hooks/useCart.js';
 import Dropdown from '../Dropdown/Dropdown.jsx';
+import SearchBar from '../SearchBar/SearchBar.jsx';
 import './Navbar.css';
 
-export function Navbar({ cartCount = 0 }) {
+export function Navbar() {
   const { currentCurrency, changeCurrency, supportedCurrencies } = useCurrency();
+  const { cartCount, toggleCart } = useCart();
 
   const currencyOptions = Object.values(supportedCurrencies).map((curr) => ({
     value: curr.code,
@@ -13,7 +17,7 @@ export function Navbar({ cartCount = 0 }) {
   return (
     <header className="navbar">
       <div className="navbar__inner">
-        <a href="/" className="navbar__brand" aria-label="Minie Shop Home">
+        <Link to="/" className="navbar__brand" aria-label="Minie Shop Home">
           <span className="navbar__brand-badge" aria-hidden="true">
             <svg
               fill="none"
@@ -30,7 +34,12 @@ export function Navbar({ cartCount = 0 }) {
           </span>
           <span>Minie Shop</span>
           <span className="navbar__tag">V1.0</span>
-        </a>
+        </Link>
+
+        {/* Global Autocomplete Search Bar */}
+        <div className="navbar__search">
+          <SearchBar />
+        </div>
 
         <div className="navbar__actions">
           {/* Custom Multi-Currency Dropdown */}
@@ -45,7 +54,8 @@ export function Navbar({ cartCount = 0 }) {
           <button
             type="button"
             className="navbar__cart-btn"
-            aria-label="Shopping cart"
+            onClick={toggleCart}
+            aria-label={`Shopping cart with ${cartCount} items`}
           >
             <svg
               width="20"
