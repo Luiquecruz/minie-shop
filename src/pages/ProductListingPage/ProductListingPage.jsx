@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useCart } from '../../hooks/useCart.js';
 import { productsApi } from '../../services/api.js';
 import ProductCard from '../../components/ProductCard/ProductCard.jsx';
 import Dropdown from '../../components/Dropdown/Dropdown.jsx';
@@ -14,10 +15,10 @@ const SORT_OPTIONS = [
 ];
 
 export function ProductListingPage() {
+  const { addToCart } = useCart();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,7 +50,6 @@ export function ProductListingPage() {
     productsApi
       .getProducts({
         category: selectedCategory === 'All' ? undefined : selectedCategory,
-        search: searchTerm,
         sortBy: sortBy || undefined,
         delayMs: 200,
       })
@@ -71,15 +71,10 @@ export function ProductListingPage() {
     return () => {
       ignore = true;
     };
-  }, [selectedCategory, searchTerm, sortBy, retryCount]);
+  }, [selectedCategory, sortBy, retryCount]);
 
   const handleCategoryChange = (category) => {
     setSelectedCategory(category);
-    setIsLoading(true);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
     setIsLoading(true);
   };
 
@@ -94,7 +89,6 @@ export function ProductListingPage() {
 
   const handleResetFilters = () => {
     setSelectedCategory('All');
-    setSearchTerm('');
     setSortBy('');
     setIsLoading(true);
   };
@@ -105,7 +99,7 @@ export function ProductListingPage() {
   };
 
   const handleAddToCart = (product) => {
-    alert(`"${product.name}" added to cart!`);
+    addToCart(product);
   };
 
   return (
@@ -144,47 +138,8 @@ export function ProductListingPage() {
         </p>
       </header>
 
-      {/* Filters and Search Toolbar */}
+      {/* Filters Toolbar: Categories Badges + Sort in a single line */}
       <section className="plp-toolbar" aria-label="Product filters">
-        <div className="plp-toolbar__top">
-          {/* Search Input */}
-          <div className="plp-search">
-            <svg
-              className="plp-search__icon"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="text"
-              className="plp-search__input"
-              placeholder="Search by name or description..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              aria-label="Search products"
-            />
-          </div>
-
-          {/* Sort Dropdown */}
-          <div className="plp-sort">
-            <span className="plp-sort__label">Sort by:</span>
-            <Dropdown
-              options={SORT_OPTIONS}
-              value={sortBy}
-              onChange={handleSortChange}
-              ariaLabel="Sort products"
-              align="right"
-            />
-          </div>
-        </div>
-
         {/* Category Chips */}
         {categories.length > 0 && (
           <div className="plp-categories" role="tablist" aria-label="Categories">
@@ -206,6 +161,18 @@ export function ProductListingPage() {
             })}
           </div>
         )}
+
+        {/* Sort Dropdown */}
+        <div className="plp-sort">
+          <span className="plp-sort__label">Sort by:</span>
+          <Dropdown
+            options={SORT_OPTIONS}
+            value={sortBy}
+            onChange={handleSortChange}
+            ariaLabel="Sort products"
+            align="right"
+          />
+        </div>
       </section>
 
       {/* Results Count */}
@@ -213,7 +180,6 @@ export function ProductListingPage() {
         <div className="plp-results-count">
           Showing <strong>{products.length}</strong> {products.length === 1 ? 'product' : 'products'}
           {selectedCategory !== 'All' && ` in "${selectedCategory}"`}
-          {searchTerm && ` for "${searchTerm}"`}
         </div>
       )}
 
