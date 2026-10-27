@@ -14,6 +14,22 @@
   text-align: left;
 }
 
+.product-card__image-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.product-card__title-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.product-card__title-link:hover .product-card__title {
+  color: var(--primary, #7c3aed);
+}
+
 .product-card:hover {
   transform: translateY(-6px);
   border-color: var(--primary-light, #c084fc);

@@ -10,13 +10,14 @@ Progressive **Minie Shop** application built from scratch to review fundamental 
 ---
 
 ## 📌 Current Status & Execution Guidelines
-- **Current Phase:** Phase 3 — PLP construction and product catalog.
+- **Current Phase:** Phase 4 — PDP (Product Detail Page) implementation.
 - **Golden Rule (UI):** Emojis are strictly **forbidden** in the UI. Use vector SVG icons, proper typography, or equivalent graphic elements.
 - **Language for Documentation & Code:** All documentation, code comments, and annotations must strictly be written in English.
 - **Language/Stack:** **JavaScript (JSX)** exclusively in this initial phase.
   - *Note:* Migration/adoption of **TypeScript** will be carried out subsequently upon explicit user command.
 - **Delivery Agility:** Fast and direct cycles. Avoid heavy browser subagents or redundant steps for targeted tasks. Focus on surgical edits, quick lint validation, and immediate feedback.
-- **Crucial Rule for Agents:** Do not anticipate components, pages, or business rules unless the user explicitly requests the next step. Proceed step-by-step.
+- **Browser Validation Cadence:** Browser validation must strictly be performed at the conclusion of each implemented flow, or whenever explicitly requested by the user.
+- **UI Quality Standard:** Dark mode support, visual identity consistency, design tokens (current CSS variables and future formal tokens), container layout boundaries, and full responsiveness (desktop, tablet, mobile) must ALWAYS be considered and verified in every UI implementation.
 - **Maintenance of this file:** Whenever new architecture decisions, dependencies, or conventions are introduced, update this `CLAUDE.md` file.
 
 ---
@@ -59,10 +60,13 @@ react-minieshop/
     │   └── products.js    # Mock base of 30 products processed by the pricing engine
     ├── hooks/
     │   └── useCurrency.js # Custom hook to consume and switch currencies (BRL, USD, EUR)
+    ├── layouts/
+    │   └── RootLayout/    # Canonical Layout Route component with <Outlet /> (Navbar + footer shell)
     ├── pages/
-    │   └── ProductListingPage/ # PLP with search, category filters, sorting, and grid
+    │   ├── ProductDetailPage/ # PDP with open masonry gallery, dynamic Helmet, tabs, floating CTA
+    │   └── ProductListingPage/# PLP with search, category filters, sorting, and grid
     ├── services/
-    │   └── api.js         # Simulated frontend-only API (search, filter, sort by final_price)
+    │   └── api.js         # Simulated frontend-only API (search, filter, sort, related products)
     ├── store/
     │   ├── index.js       # Redux Toolkit store configuration
     │   └── slices/
@@ -81,6 +85,7 @@ react-minieshop/
 ## 🗺️ Progressive Evolution Roadmap
 1. **Phase 1:** Clean project initialization (Vite + React JS + React Router + React Helmet) ✅
 2. **Phase 2:** Base routing and providers (`BrowserRouter`, `HelmetProvider`, `Provider`) ✅
-3. **Phase 3 (Current):** PLP construction, layout, and presentation components (Navbar, Dropdown, PriceBox, ProductCard, PLP with filters and grid) ✅
-4. **Phase 4:** Global state and Hooks review (`useState`, `useEffect`, `useContext`, or Redux Toolkit for cart and persistence).
-5. **Phase 5:** Incremental migration to TypeScript.
+3. **Phase 3:** PLP construction, layout, and presentation components (Navbar, Dropdown, PriceBox, ProductCard, PLP) ✅
+4. **Phase 4 (Current):** PDP construction (dynamic `/product/:id` route, Helmet metadata, open masonry gallery, mobile peek swipe, product info, priceBox, 3-tab system, floating action bar, related products) ✅
+5. **Phase 5:** Cart implementation & checkout flow.
+6. **Phase 6:** Incremental migration to TypeScript.

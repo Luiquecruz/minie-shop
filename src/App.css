@@ -13,12 +13,19 @@
   margin-top: auto;
   border-top: 1px solid var(--border-color, #e5e7eb);
   background: var(--card-bg, #ffffff);
-  padding: 32px 24px;
+  padding: 32px var(--container-padding, 24px);
   text-align: center;
 }
 
+@media (max-width: 768px) {
+  .app-footer {
+    padding: 24px var(--container-padding-mobile, 16px);
+  }
+}
+
 .app-footer__inner {
-  max-width: 1280px;
+  width: 100%;
+  max-width: var(--container-max-width, 1280px);
   margin: 0 auto;
   display: flex;
   flex-direction: column;

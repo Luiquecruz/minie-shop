@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import PriceBox from '../PriceBox/PriceBox.jsx';
 import './ProductCard.css';
 
@@ -17,20 +18,26 @@ export function ProductCard({ product, onAddToCart }) {
 
   return (
     <article className="product-card" data-product-id={id}>
-      <div className="product-card__image-container">
-        <span className="product-card__category">{category}</span>
-        {typeof stock === 'number' && (
-          <span className="product-card__stock-badge">
-            {stock > 0 ? `${stock} in stock` : 'Out of stock'}
-          </span>
-        )}
-        <img
-          src={image}
-          alt={name}
-          loading="lazy"
-          className="product-card__image"
-        />
-      </div>
+      <Link
+        to={`/product/${id}`}
+        className="product-card__image-link"
+        aria-label={`View ${name} details`}
+      >
+        <div className="product-card__image-container">
+          <span className="product-card__category">{category}</span>
+          {typeof stock === 'number' && (
+            <span className="product-card__stock-badge">
+              {stock > 0 ? `${stock} in stock` : 'Out of stock'}
+            </span>
+          )}
+          <img
+            src={image}
+            alt={name}
+            loading="lazy"
+            className="product-card__image"
+          />
+        </div>
+      </Link>
 
       <div className="product-card__content">
         <div className="product-card__rating" aria-label={`Rating ${rating.rate} out of 5 stars`}>
@@ -48,9 +55,11 @@ export function ProductCard({ product, onAddToCart }) {
           <span className="product-card__rating-count">({rating.count})</span>
         </div>
 
-        <h3 className="product-card__title" title={name}>
-          {name}
-        </h3>
+        <Link to={`/product/${id}`} className="product-card__title-link">
+          <h3 className="product-card__title" title={name}>
+            {name}
+          </h3>
+        </Link>
 
         <p className="product-card__description" title={description}>
           {description}

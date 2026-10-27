@@ -394,15 +394,59 @@ const RAW_PRODUCTS = [
 ];
 
 /**
+ * Generates an array of open gallery images for the masonry scroll view.
+ */
+const generateGalleryImages = (baseImage) => {
+  const cleanUrl = baseImage.replace(/&ar=[^&]*/g, '');
+  return [
+    cleanUrl,
+    `${cleanUrl}&ar=4:5`,
+    `${cleanUrl}&ar=1:1`,
+    `${cleanUrl}&ar=3:4`,
+  ];
+};
+
+/**
+ * Generates technical specifications in key-value pairs for two-column attribute display.
+ */
+const generateSpecs = (product) => [
+  { label: 'Category', value: product.category },
+  { label: 'Model / SKU', value: `MS-${String(product.id).padStart(5, '0')}` },
+  { label: 'Stock Status', value: product.stock > 0 ? `${product.stock} units available` : 'Out of Stock' },
+  { label: 'Official Warranty', value: '12 months manufacturer warranty' },
+  { label: 'Shipping Estimate', value: 'Ships within 24-48 business hours' },
+  { label: 'Quality Standard', value: 'ISO 9001, CE & RoHS Certified' },
+  { label: 'Packaging', value: '100% Recyclable protective box' },
+  { label: 'Customer Satisfaction', value: `${product.rating.rate} / 5.0 (${product.rating.count} verified reviews)` },
+];
+
+/**
+ * Generates manufacturer details for dedicated info tab.
+ */
+const generateManufacturerInfo = (product) => ({
+  brand: `Minie Certified Partner — ${product.category}`,
+  origin: 'Quality-inspected global distribution',
+  warrantyText: '12-Month Limited Warranty covering all technical manufacturing defects with quick replacement guarantee.',
+  sustainability: 'Engineered with eco-friendly components and minimal carbon-footprint logistics.',
+  support: 'Dedicated 24/7 technical customer support and 30-day free returns.',
+});
+
+/**
  * Products processed by the pricing engine.
  * Each product contains a price object with:
  * - regular_price
  * - special_price
  * - final_price (lowest applicable price)
  * - discount_percentage (calculated based on difference between final vs regular price)
+ * - images (gallery for open masonry scroll)
+ * - specs (two-column attributes)
+ * - manufacturer (generic manufacturer info)
  */
 export const PRODUCTS_MOCK = RAW_PRODUCTS.map((product) => ({
   ...product,
+  images: generateGalleryImages(product.image),
+  specs: generateSpecs(product),
+  manufacturer: generateManufacturerInfo(product),
   price: calculatePrice(product.price),
 }));
 

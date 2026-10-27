@@ -116,6 +116,38 @@ export const productsApi = {
     );
     return categories;
   },
+
+  /**
+   * Fetches related products by category excluding current product.
+   * @param {number|string} productId
+   * @param {string} category
+   * @param {number} [limit=4]
+   * @param {number} [delayMs]
+   * @returns {Promise<Array>}
+   */
+  async getRelatedProducts(
+    productId,
+    category,
+    limit = 4,
+    delayMs = DEFAULT_DELAY_MS,
+  ) {
+    await delay(delayMs);
+    const numericId = Number(productId);
+    let related = PRODUCTS_MOCK.filter(
+      (p) =>
+        p.id !== numericId &&
+        p.category.toLowerCase() === (category || '').toLowerCase(),
+    );
+
+    if (related.length < limit) {
+      const others = PRODUCTS_MOCK.filter(
+        (p) => p.id !== numericId && !related.some((r) => r.id === p.id),
+      );
+      related = [...related, ...others];
+    }
+
+    return related.slice(0, limit);
+  },
 };
 
 export default productsApi;
