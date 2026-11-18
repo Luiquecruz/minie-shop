@@ -35,7 +35,7 @@ export const DEFAULT_CURRENCY: CurrencyCode = 'BRL';
  * Type guard checking whether an arbitrary string is a supported CurrencyCode.
  */
 export const isCurrencyCode = (value: string): value is CurrencyCode =>
-  value in SUPPORTED_CURRENCIES;
+  value === 'BRL' || value === 'USD' || value === 'EUR';
 
 /**
  * Converts a value from BRL to the target currency.

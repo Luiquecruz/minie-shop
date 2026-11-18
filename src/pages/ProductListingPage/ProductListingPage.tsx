@@ -75,11 +75,15 @@ export function ProductListingPage() {
   }, [selectedCategory, sortBy, retryCount]);
 
   const handleCategoryChange = (category: string): void => {
+    if (category === selectedCategory) return;
+
     setSelectedCategory(category);
     setFetchState({ status: 'loading' });
   };
 
   const handleSortChange = (newValue: ProductSortOption): void => {
+    if (newValue === sortBy) return;
+
     setSortBy(newValue);
     setFetchState({ status: 'loading' });
   };

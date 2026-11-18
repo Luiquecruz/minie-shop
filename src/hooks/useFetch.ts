@@ -100,6 +100,12 @@ export function useFetch<T>(
   }, [fetcher, trimmedQuery, shouldFetch, debounceMs]);
 
   if (!shouldFetch) {
+    if (status !== 'idle') {
+      setData(() => initialData);
+      setStatus('idle');
+      setError(null);
+    }
+
     return {
       status: 'idle',
       data: initialData,

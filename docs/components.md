@@ -34,7 +34,13 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 - **Route:** `/` and `*`
 - **Dependencies:** `Helmet`, `useCart`, `productsApi`, `ProductCard`, `Dropdown<ProductSortOption>`.
 - **Local State:** `fetchState` (`AsyncRequestState<Product[]>`), `categories` (`string[]`), `selectedCategory` (`string`), `sortBy` (`ProductSortOption`), `retryCount` (`number`).
-- **Behavior:** Loads categories on mount and products on filter/sort/retry change using an `ignore` cleanup flag against stale promise resolution.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:26347ed956f9acdb3ab0d02a5ff733a800d4732360440457b65dd8e9e31bbc3c -->
+
+- **Behavior:** Loads categories on mount and products on filter/sort/retry change using an `ignore` cleanup flag against stale promise resolution. Selecting the current category or sort value leaves the request state unchanged.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ### `ProductDetailPage` (`src/pages/ProductDetailPage/ProductDetailPage.tsx`)
 - **Route:** `/product/:id`

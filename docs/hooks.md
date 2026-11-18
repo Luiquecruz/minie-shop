@@ -64,4 +64,11 @@ Tracks all custom React hooks in `src/hooks/`.
   - `{ status: 'loading'; data: T; error: null; isLoading: true }`
   - `{ status: 'success'; data: T; error: null; isLoading: false }`
   - `{ status: 'error'; data: T; error: Error; isLoading: false }`
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:a656dcbfe27855fcaedfa2391285caa4e4233fe5a2495f2c93ca3183f7a83ec1 -->
+
+- **Ineligible Queries:** Return idle with the current `initialData` and clear retained request data, status, and errors before a later eligible query.
 - **Cancellation & Error Behavior:** Clears pending `setTimeout` and invokes `controller.abort()` on cleanup; ignores `DOMException` (`AbortError`) or aborted signals; normalizes non-`Error` throws into `Error`.
+
+<!-- /coderabbit-ai-generated:v1 -->

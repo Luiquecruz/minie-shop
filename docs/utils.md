@@ -22,7 +22,13 @@ Tracks pure business logic modules in `src/utils/`.
   - `USD`: `{ code: 'USD', label: 'USD ($)', symbol: '$', rate: 0.18, locale: 'en-US' }`
   - `EUR`: `{ code: 'EUR', label: 'EUR (€)', symbol: '€', rate: 0.16, locale: 'de-DE' }`
 - **`isCurrencyCode(value: string): value is CurrencyCode`:**
-  - Type guard verifying whether a string key exists in `SUPPORTED_CURRENCIES`.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:95550b730e0b3c9200aa5dd0024d5db7e933f29f973701f416779b0a8dbb7e73 -->
+
+  - Type guard accepting exactly `BRL`, `USD`, and `EUR`, rejecting inherited object property names.
+
+<!-- /coderabbit-ai-generated:v1 -->
 - **`convertCurrency(valueInBrl: number, targetCurrency: CurrencyCode = 'BRL'): number`:**
   - Guards non-number / `Number.isNaN` inputs returning `0`.
   - Falls back to `BRL` if `targetCurrency` is unsupported.
