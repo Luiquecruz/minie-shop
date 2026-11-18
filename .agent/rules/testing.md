@@ -1,16 +1,17 @@
 ---
 trigger: model_decision
-description: "Linting, production build checks, browser validation cadence, and future automated testing standards."
+description: "Typechecking, linting, production build checks, browser validation cadence, and future automated testing standards."
 ---
 
 # Testing & Verification Rules
 
 ## 1. Current Verification Baseline
-At the current phase (Phase 5), no unit/integration test runner is installed in `package.json`. Every code change must be verified with the following baseline gates:
+At the current milestone (Pre-Phase 6 TypeScript Migration complete), no unit/integration test runner is installed in `package.json`. Every code change must be verified with the following baseline gates:
 
-1. **Static Linting (`npm run lint`):** Executes `oxlint` using `.oxlintrc.json`. Must finish with `0 warnings and 0 errors`.
-2. **Production Bundle (`npm run build`):** Executes `vite build` to verify module resolution, JSX compilation, and CSS bundling.
-3. **Browser Validation Cadence:** Perform end-to-end browser inspection at the conclusion of each implemented user flow or upon explicit user request. Avoid spawning heavy browser checks for purely documentation or non-UI edits.
+1. **Static Typechecking (`npm run typecheck`):** Executes `tsc --noEmit` using strict `tsconfig.json`. Must finish with `0 errors`.
+2. **Static Linting (`npm run lint`):** Executes `oxlint` using `.oxlintrc.json` (`react`, `oxc`, `typescript` plugins). Must finish with `0 warnings and 0 errors`.
+3. **Production Bundle (`npm run build`):** Executes `tsc --noEmit && vite build` to verify TypeScript compilation, module resolution, TSX compilation, and CSS bundling.
+4. **Browser Validation Cadence:** Perform end-to-end browser inspection at the conclusion of each implemented user flow or upon explicit user request. Avoid spawning heavy browser checks for purely documentation edits.
 
 ## 2. Browser Flow Validation Checklist
 When validating UI flows in the browser (`npm run dev` on `http://localhost:5199`):
@@ -24,7 +25,7 @@ When validating UI flows in the browser (`npm run dev` on `http://localhost:5199
 ## 3. Rules for Introducing Automated Tests (Future Incremental Phase)
 - Before installing a test runner (e.g., Vitest + React Testing Library + Playwright), record an ADR in `docs/adr/` defining the tool choice, folder convention, and `package.json` test scripts.
 - Prioritize the test pyramid incrementally:
-  1. **Unit tests:** `src/utils/price.js`, `src/utils/currency.js`, `src/store/slices/cartSlice.js`, `src/store/slices/currencySlice.js`, and `src/services/api.js`.
+  1. **Unit tests:** `src/utils/price.ts`, `src/utils/currency.ts`, `src/store/slices/cartSlice.ts`, `src/store/slices/currencySlice.ts`, and `src/services/api.ts`.
   2. **Hook & Component tests:** `useFetch` (`AbortController` + fake timers for debounce), `useCart`, `useCurrency`, `Dropdown`, `SearchBar`, `PriceBox`, and `MiniCart`.
   3. **E2E tests:** Critical shopping journeys (browse -> search -> PDP -> add to cart -> currency switch -> reload persistence).
 - Isolate `localStorage` and clean up fake timers between test cases so tests remain deterministic.

@@ -11,12 +11,13 @@ description: "Architectural boundaries, state management, routing, data access, 
 - `src/components/`: Self-contained reusable UI units (`Dropdown`, `MiniCart`, `Navbar`, `PriceBox`, `ProductCard`, `SearchBar`), each in its own `PascalCase/` folder with colocated `.jsx` and `.css`.
 - `src/hooks/`: Custom React hooks (`useCart`, `useCurrency`, `useFetch`) encapsulating Redux dispatch/selectors and async lifecycle management.
 - `src/store/`: Redux Toolkit `configureStore` (`src/store/index.js`) and domain slices (`src/store/slices/*`).
-- `src/services/`: Data access boundary (`src/services/api.js`). Components and pages must fetch catalog/stock data through `productsApi`, never importing `src/data/products.js` directly into UI components.
-- `src/utils/`: Pure, framework-agnostic business logic (`currency.js`, `price.js`) with zero React or Redux dependencies.
-- `src/data/`: Mock dataset (`products.js`) enriched at module load via `calculatePrice`.
+- `src/services/`: Data access boundary (`src/services/api.ts`). Components and pages must fetch catalog/stock data through `productsApi`, never importing `src/data/products.ts` directly into UI components.
+- `src/types/`: Centralized domain entities, API contracts, and async state discriminated unions (`currency.ts`, `product.ts`, `cart.ts`, `api.ts`, `index.ts`).
+- `src/utils/`: Pure, framework-agnostic business logic (`currency.ts`, `price.ts`) with zero React or Redux dependencies.
+- `src/data/`: Mock dataset (`products.ts`) enriched at module load via `calculatePrice`.
 
 ## 2. Routing & SEO Architecture
-- Use `BrowserRouter` with declarative `<Routes>` and `<Route>` inside `src/App.jsx`.
+- Use `BrowserRouter` with declarative `<Routes>` and `<Route>` inside `src/App.tsx`.
 - Wrap the application in `<HelmetProvider>` and define route-specific `<Helmet>` `<title>` and `<meta name="description">` inside page components.
 - Preserve the fallback route (`*`) and canonical `RootLayout` wrapper unless an ADR updates the routing topology.
 
@@ -27,9 +28,9 @@ description: "Architectural boundaries, state management, routing, data access, 
 
 ## 4. Async Cancellation & Pricing Precedence
 - Every debounced or async search/validation flow must support `AbortController` / `AbortSignal` and clean up pending timers and requests on unmount or dependency change.
-- Base catalog prices are stored in `BRL`. Always compute discount precedence (`special_price` < `regular_price`) through `calculatePrice()` in `src/utils/price.js` and format/convert through `src/utils/currency.js`.
+- Base catalog prices are stored in `BRL`. Always compute discount precedence (`special_price` < `regular_price`) through `calculatePrice()` in `src/utils/price.ts` and format/convert through `src/utils/currency.ts`.
 
 ## 5. Incremental Architecture Evolution (ADR & SDD)
 - **ADR First:** Any architectural change (new runtime dependency, state library change, test framework adoption, backend integration, TypeScript configuration, or new routing layer) requires a new sequential ADR in `docs/adr/` (`NNNN-slug.md`) and an entry in `docs/adr/README.md`.
-- **SDD Before Implementation:** Substantial features (such as Phase 6 Cart/Checkout or Phase 7 TypeScript migration) should start with a spec in `docs/sdd/` (`NNNN-slug.md`).
+- **SDD Before Implementation:** Substantial features (such as Phase 6 Cart/Checkout) should start with a spec in `docs/sdd/` (`NNNN-slug.md`).
 - **Incremental Docs Sync:** Whenever a feature, component, hook, slice, service method, or utility is added or changed, update the corresponding inventory under `docs/`.

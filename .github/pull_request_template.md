@@ -23,6 +23,7 @@
 
 ## Verification & Quality Checklist
 
+- [ ] Typecheck passes with 0 errors (`npm run typecheck`)
 - [ ] Lint passes with 0 warnings and 0 errors (`npm run lint`)
 - [ ] Build succeeds without errors (`npm run build`)
 - [ ] Browser validation performed for affected UI flows (desktop & mobile, Light & Dark modes)

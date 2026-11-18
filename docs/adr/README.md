@@ -23,8 +23,9 @@ This directory maintains an **incremental, append-only log** of architectural de
 
 | ID | Title | Phase | Status | Date |
 | :--- | :--- | :--- | :--- | :--- |
-| [ADR-0001](./0001-vite-react-js-baseline.md) | Vite 8 + React 19 (JavaScript/JSX) with Oxlint Baseline | Phase 1 | Accepted | 2026-10-23 |
+| [ADR-0001](./0001-vite-react-js-baseline.md) | Vite 8 + React 19 (JavaScript/JSX) with Oxlint Baseline | Phase 1 | Partially Superseded by ADR-0006 | 2026-10-23 |
 | [ADR-0002](./0002-declarative-routing-and-root-layout.md) | Declarative Routing with Canonical `RootLayout` and `react-helmet-async` | Phase 2–4 | Accepted | 2026-10-24 |
 | [ADR-0003](./0003-redux-toolkit-with-localstorage-persistence.md) | Redux Toolkit Store (`currency`, `cart`) with `localStorage` Persistence | Phase 3–5 | Accepted | 2026-10-27 |
 | [ADR-0004](./0004-custom-hooks-and-abortable-simulated-api.md) | Custom Hooks Facade and Abortable Frontend-Only Simulated API | Phase 3–5 | Accepted | 2026-10-27 |
 | [ADR-0005](./0005-css-tokens-dark-mode-and-svg-only-ui.md) | CSS Custom Properties Design System, Dark Mode, and SVG-Only UI | Phase 3–5 | Accepted | 2026-10-27 |
+| [ADR-0006](./0006-incremental-typescript-migration.md) | Strict TypeScript Baseline & Extensionless Bundler Resolution | Pre-Phase 6 | Accepted | 2026-11-18 |

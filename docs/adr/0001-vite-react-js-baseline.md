@@ -1,6 +1,6 @@
 # ADR-0001: Vite 8 + React 19 (JavaScript/JSX) with Oxlint Baseline
 
-- **Status:** Accepted
+- **Status:** Partially Superseded by [ADR-0006](./0006-incremental-typescript-migration.md)
 - **Date:** 2026-10-23
 - **Phase:** Phase 1
 
@@ -25,4 +25,4 @@ Progressive Minie Shop is an educational, incrementally developed e-commerce app
 - No compile-time type safety until Phase 7; compensated partially via JSDoc parameter annotations in utilities, hooks, services, and components.
 
 ## Incremental Evolution Notes
-Will be partially superseded in **Phase 7** when introducing `tsconfig.json`, TypeScript compiler checks, and incremental `.js`/`.jsx` -> `.ts`/`.tsx` migration.
+Partially superseded in the Pre-Phase 6 milestone by [ADR-0006](./0006-incremental-typescript-migration.md), which migrated all `.js`/`.jsx` source files to strict TypeScript (`.ts`/`.tsx`), added `tsconfig.json` / `tsconfig.node.json`, and switched relative imports to extensionless bundler resolution while keeping Vite 8, React 19, and Oxlint.

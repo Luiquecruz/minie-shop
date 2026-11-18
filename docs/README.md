@@ -10,7 +10,7 @@ Central, incremental documentation for the **react-minieshop** architecture, imp
 | :--- | :--- | :--- |
 | [architecture.md](./architecture.md) | High-level architecture, routing, state & data flow, design tokens, phase roadmap | Architectural shifts or new phases |
 | [features.md](./features.md) | End-to-end user-facing features and phase status | New or modified product features |
-| [components.md](./components.md) | Layouts, pages, and reusable UI components | New or modified JSX/CSS components |
+| [components.md](./components.md) | Layouts, pages, and reusable UI components | New or modified TSX/CSS components |
 | [hooks.md](./hooks.md) | Custom React hooks (`useCart`, `useCurrency`, `useFetch`) | New or modified hooks |
 | [store.md](./store.md) | Redux Toolkit store, slices, actions, selectors & persistence | Store or slice changes |
 | [services.md](./services.md) | Simulated API service (`productsApi`) and mock catalog dataset | API methods or data schema changes |

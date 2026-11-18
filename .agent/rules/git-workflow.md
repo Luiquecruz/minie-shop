@@ -44,8 +44,9 @@ Follow **Conventional Commits** matching the repository history:
 
 ## 4. Pre-Commit / Definition of Done Checklist
 Before considering any task complete:
-1. Run `npm run lint` -> 0 errors, 0 warnings.
-2. Run `npm run build` -> clean production bundle.
+1. Run `npm run typecheck` -> 0 errors.
+2. Run `npm run lint` -> 0 errors, 0 warnings.
+3. Run `npm run build` -> clean typecheck + production bundle.
 3. Update `docs/` inventories (`features.md`, `components.md`, `hooks.md`, `store.md`, `services.md`, `utils.md`) for any added or modified code.
 4. Add or update an incremental ADR in `docs/adr/` if an architectural decision was made.
 5. Update the corresponding SDD spec status in `docs/sdd/` when completing a specified feature.
