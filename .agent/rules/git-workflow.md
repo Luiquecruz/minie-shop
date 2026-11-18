@@ -38,7 +38,11 @@ Follow **Conventional Commits** matching the repository history:
   - `refactor/<scope-slug>`
   - `docs/<topic-slug>`
 
-## 3. Pre-Commit / Definition of Done Checklist
+## 3. Pull Request & Contribution Standard
+- Follow [`CONTRIBUTING.md`](../../CONTRIBUTING.md) for local setup, branching, Conventional Commits, and review readiness.
+- Use [`.github/pull_request_template.md`](../../.github/pull_request_template.md) for every Pull Request, with a Conventional Commit formatted PR title.
+
+## 4. Pre-Commit / Definition of Done Checklist
 Before considering any task complete:
 1. Run `npm run lint` -> 0 errors, 0 warnings.
 2. Run `npm run build` -> clean production bundle.
