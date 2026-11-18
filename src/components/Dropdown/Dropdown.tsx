@@ -1,20 +1,26 @@
 import { useState, useRef, useEffect } from 'react';
 import './Dropdown.css';
 
+export interface DropdownOption<T extends string | number = string> {
+  value: T;
+  label: string;
+}
+
+export interface DropdownProps<T extends string | number = string> {
+  options?: DropdownOption<T>[];
+  value: T;
+  onChange?: (value: T) => void;
+  placeholder?: string;
+  size?: 'sm' | 'md' | 'lg';
+  align?: 'left' | 'right';
+  className?: string;
+  ariaLabel?: string;
+}
+
 /**
  * Custom Dropdown component providing visual unity across operating systems and browsers.
- *
- * @param {Object} props
- * @param {Array<{ value: string|number, label: string }>} props.options - List of options
- * @param {string|number} props.value - Currently selected value
- * @param {(value: string|number) => void} props.onChange - Callback triggered on option select
- * @param {string} [props.placeholder='Select'] - Placeholder if no value is selected
- * @param {'sm'|'md'|'lg'} [props.size='md'] - Dropdown size variant
- * @param {'left'|'right'} [props.align='right'] - Alignment of the floating menu
- * @param {string} [props.className=''] - Additional CSS classes
- * @param {string} [props.ariaLabel='Selector'] - Accessibility label
  */
-export function Dropdown({
+export function Dropdown<T extends string | number = string>({
   options = [],
   value,
   onChange,
@@ -23,17 +29,18 @@ export function Dropdown({
   align = 'right',
   className = '',
   ariaLabel = 'Selector',
-}) {
+}: DropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
   // Close the menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: PointerEvent): void => {
       if (
         containerRef.current &&
+        event.target instanceof Node &&
         !containerRef.current.contains(event.target)
       ) {
         setIsOpen(false);
@@ -50,13 +57,13 @@ export function Dropdown({
   }, [isOpen]);
 
   // Close on Escape key press
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
     if (event.key === 'Escape' && isOpen) {
       setIsOpen(false);
     }
   };
 
-  const handleSelect = (optionValue) => {
+  const handleSelect = (optionValue: T): void => {
     if (onChange) {
       onChange(optionValue);
     }

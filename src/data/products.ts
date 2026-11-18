@@ -1,6 +1,12 @@
-import { calculatePrice } from '../utils/price.js';
+import type {
+  ManufacturerInfo,
+  Product,
+  ProductSpec,
+  RawProduct,
+} from '../types';
+import { calculatePrice } from '../utils/price';
 
-const RAW_PRODUCTS = [
+const RAW_PRODUCTS: RawProduct[] = [
   {
     id: 1,
     name: 'Fone de Ouvido Bluetooth Over-Ear Pro',
@@ -396,7 +402,7 @@ const RAW_PRODUCTS = [
 /**
  * Generates an array of open gallery images for the masonry scroll view.
  */
-const generateGalleryImages = (baseImage) => {
+const generateGalleryImages = (baseImage: string): string[] => {
   const cleanUrl = baseImage.replace(/&ar=[^&]*/g, '');
   return [
     cleanUrl,
@@ -409,7 +415,7 @@ const generateGalleryImages = (baseImage) => {
 /**
  * Generates technical specifications in key-value pairs for two-column attribute display.
  */
-const generateSpecs = (product) => [
+const generateSpecs = (product: RawProduct): ProductSpec[] => [
   { label: 'Category', value: product.category },
   { label: 'Model / SKU', value: `MS-${String(product.id).padStart(5, '0')}` },
   { label: 'Stock Status', value: product.stock > 0 ? `${product.stock} units available` : 'Out of Stock' },
@@ -423,7 +429,7 @@ const generateSpecs = (product) => [
 /**
  * Generates manufacturer details for dedicated info tab.
  */
-const generateManufacturerInfo = (product) => ({
+const generateManufacturerInfo = (product: RawProduct): ManufacturerInfo => ({
   brand: `Minie Certified Partner — ${product.category}`,
   origin: 'Quality-inspected global distribution',
   warrantyText: '12-Month Limited Warranty covering all technical manufacturing defects with quick replacement guarantee.',
@@ -442,7 +448,7 @@ const generateManufacturerInfo = (product) => ({
  * - specs (two-column attributes)
  * - manufacturer (generic manufacturer info)
  */
-export const PRODUCTS_MOCK = RAW_PRODUCTS.map((product) => ({
+export const PRODUCTS_MOCK: Product[] = RAW_PRODUCTS.map((product) => ({
   ...product,
   images: generateGalleryImages(product.image),
   specs: generateSpecs(product),

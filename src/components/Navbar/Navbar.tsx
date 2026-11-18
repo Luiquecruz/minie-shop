@@ -1,15 +1,18 @@
 import { Link } from 'react-router-dom';
-import { useCurrency } from '../../hooks/useCurrency.js';
-import { useCart } from '../../hooks/useCart.js';
-import Dropdown from '../Dropdown/Dropdown.jsx';
-import SearchBar from '../SearchBar/SearchBar.jsx';
+import type { CurrencyCode } from '../../types';
+import { useCurrency } from '../../hooks/useCurrency';
+import { useCart } from '../../hooks/useCart';
+import Dropdown, { type DropdownOption } from '../Dropdown/Dropdown';
+import SearchBar from '../SearchBar/SearchBar';
 import './Navbar.css';
 
 export function Navbar() {
   const { currentCurrency, changeCurrency, supportedCurrencies } = useCurrency();
   const { cartCount, toggleCart } = useCart();
 
-  const currencyOptions = Object.values(supportedCurrencies).map((curr) => ({
+  const currencyOptions: DropdownOption<CurrencyCode>[] = Object.values(
+    supportedCurrencies,
+  ).map((curr) => ({
     value: curr.code,
     label: curr.label,
   }));
@@ -43,7 +46,7 @@ export function Navbar() {
 
         <div className="navbar__actions">
           {/* Custom Multi-Currency Dropdown */}
-          <Dropdown
+          <Dropdown<CurrencyCode>
             options={currencyOptions}
             value={currentCurrency}
             onChange={changeCurrency}

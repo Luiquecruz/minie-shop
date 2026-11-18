@@ -1,48 +1,100 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type {
+  AddToCartPayload,
+  CalculatedPrice,
+  CartItem,
+  StockWarningsMap,
+} from '../../types';
+import type { RootState } from '../index';
 
 const STORAGE_KEY = 'minieshop_cart';
 
-const getInitialCart = () => {
+export interface CartState {
+  items: CartItem[];
+  isOpen: boolean;
+  stockWarnings: StockWarningsMap;
+}
+
+const isCalculatedPrice = (value: unknown): value is CalculatedPrice => {
+  if (typeof value !== 'object' || value === null) return false;
+  return (
+    'regular_price' in value &&
+    typeof value.regular_price === 'number' &&
+    'special_price' in value &&
+    (value.special_price === null || typeof value.special_price === 'number') &&
+    'final_price' in value &&
+    typeof value.final_price === 'number' &&
+    'discount_percentage' in value &&
+    typeof value.discount_percentage === 'number' &&
+    'has_discount' in value &&
+    typeof value.has_discount === 'boolean'
+  );
+};
+
+const isValidCartItem = (item: unknown): item is CartItem => {
+  if (typeof item !== 'object' || item === null) return false;
+  return (
+    'id' in item &&
+    typeof item.id === 'number' &&
+    'name' in item &&
+    typeof item.name === 'string' &&
+    'price' in item &&
+    isCalculatedPrice(item.price) &&
+    'image' in item &&
+    typeof item.image === 'string' &&
+    'category' in item &&
+    typeof item.category === 'string' &&
+    'stock' in item &&
+    typeof item.stock === 'number' &&
+    'quantity' in item &&
+    typeof item.quantity === 'number'
+  );
+};
+
+const getInitialCart = (): CartItem[] => {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
+        const parsed: unknown = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          return parsed;
+          return parsed.filter(isValidCartItem);
         }
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn('Failed to read cart from localStorage:', error);
   }
   return [];
 };
 
-const persistCart = (items) => {
+const persistCart = (items: CartItem[]): void => {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn('Failed to persist cart to localStorage:', error);
   }
 };
 
-const initialState = {
+const initialState: CartState = {
   items: getInitialCart(),
   isOpen: false,
-  stockWarnings: {}, // map of { [productId]: warningMessage }
+  stockWarnings: {},
 };
 
 export const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
-    addToCart: (state, action) => {
+    addToCart: (state, action: PayloadAction<AddToCartPayload>) => {
       const payload = action.payload;
-      const product = payload.product || payload;
-      const addQty = typeof payload.quantity === 'number' ? payload.quantity : 1;
+      const product = 'product' in payload ? payload.product : payload;
+      const addQty =
+        'product' in payload && typeof payload.quantity === 'number'
+          ? payload.quantity
+          : 1;
 
       if (!product || !product.id) return;
 
@@ -78,7 +130,10 @@ export const cartSlice = createSlice({
       persistCart(state.items);
     },
 
-    updateQuantity: (state, action) => {
+    updateQuantity: (
+      state,
+      action: PayloadAction<{ id: number; quantity: number }>,
+    ) => {
       const { id, quantity } = action.payload;
       const item = state.items.find((i) => i.id === id);
 
@@ -100,7 +155,10 @@ export const cartSlice = createSlice({
       persistCart(state.items);
     },
 
-    setStockWarning: (state, action) => {
+    setStockWarning: (
+      state,
+      action: PayloadAction<{ id: number; message: string | null }>,
+    ) => {
       const { id, message } = action.payload;
       if (message) {
         state.stockWarnings[id] = message;
@@ -109,7 +167,7 @@ export const cartSlice = createSlice({
       }
     },
 
-    removeFromCart: (state, action) => {
+    removeFromCart: (state, action: PayloadAction<number>) => {
       const id = action.payload;
       state.items = state.items.filter((item) => item.id !== id);
       delete state.stockWarnings[id];
@@ -147,14 +205,15 @@ export const {
   toggleCart,
 } = cartSlice.actions;
 
-export const selectCartItems = (state) => state.cart.items;
-export const selectIsCartOpen = (state) => state.cart.isOpen;
-export const selectCartStockWarnings = (state) => state.cart.stockWarnings;
+export const selectCartItems = (state: RootState): CartItem[] => state.cart.items;
+export const selectIsCartOpen = (state: RootState): boolean => state.cart.isOpen;
+export const selectCartStockWarnings = (state: RootState): StockWarningsMap =>
+  state.cart.stockWarnings;
 
-export const selectCartCount = (state) =>
+export const selectCartCount = (state: RootState): number =>
   state.cart.items.reduce((total, item) => total + item.quantity, 0);
 
-export const selectCartSubtotal = (state) =>
+export const selectCartSubtotal = (state: RootState): number =>
   state.cart.items.reduce(
     (total, item) => total + (item.price?.final_price || 0) * item.quantity,
     0,

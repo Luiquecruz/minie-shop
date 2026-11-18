@@ -1,18 +1,25 @@
-import { calculatePrice, formatCurrency } from '../../utils/price.js';
-import { useCurrency } from '../../hooks/useCurrency.js';
+import type { CalculatedPrice, CurrencyCode, RawPriceInput } from '../../types';
+import { calculatePrice, formatCurrency } from '../../utils/price';
+import { useCurrency } from '../../hooks/useCurrency';
 import './PriceBox.css';
+
+export interface PriceBoxProps {
+  price: CalculatedPrice | RawPriceInput | number;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+  currency?: CurrencyCode;
+}
 
 /**
  * Reusable PriceBox component for Cards, PDP, and any price display.
  * Integrated with the multi-currency engine and Redux Toolkit global store.
- *
- * @param {Object} props
- * @param {Object|number} props.price - Price structure ({ regular_price, special_price, final_price, discount_percentage })
- * @param {'sm'|'md'|'lg'} [props.size='md'] - Price box size variant
- * @param {string} [props.className=''] - Additional CSS classes
- * @param {string} [props.currency] - Optional currency override ('BRL' | 'USD' | 'EUR')
  */
-export function PriceBox({ price, size = 'md', className = '', currency }) {
+export function PriceBox({
+  price,
+  size = 'md',
+  className = '',
+  currency,
+}: PriceBoxProps) {
   const { currentCurrency } = useCurrency();
   const activeCurrency = currency || currentCurrency;
 

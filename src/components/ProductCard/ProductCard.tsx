@@ -1,9 +1,15 @@
 import { Link } from 'react-router-dom';
-import { useCart } from '../../hooks/useCart.js';
-import PriceBox from '../PriceBox/PriceBox.jsx';
+import type { Product } from '../../types';
+import { useCart } from '../../hooks/useCart';
+import PriceBox from '../PriceBox/PriceBox';
 import './ProductCard.css';
 
-export function ProductCard({ product, onAddToCart }) {
+export interface ProductCardProps {
+  product: Product | null | undefined;
+  onAddToCart?: (product: Product) => void;
+}
+
+export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const { addToCart } = useCart();
   if (!product) return null;
 
@@ -42,7 +48,10 @@ export function ProductCard({ product, onAddToCart }) {
       </Link>
 
       <div className="product-card__content">
-        <div className="product-card__rating" aria-label={`Rating ${rating.rate} out of 5 stars`}>
+        <div
+          className="product-card__rating"
+          aria-label={`Rating ${rating.rate} out of 5 stars`}
+        >
           <span className="product-card__stars" aria-hidden="true">
             <svg
               width="16"
@@ -53,7 +62,9 @@ export function ProductCard({ product, onAddToCart }) {
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
           </span>
-          <span className="product-card__rating-value">{rating.rate.toFixed(1)}</span>
+          <span className="product-card__rating-value">
+            {rating.rate.toFixed(1)}
+          </span>
           <span className="product-card__rating-count">({rating.count})</span>
         </div>
 
