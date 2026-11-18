@@ -18,9 +18,10 @@ npm run dev      # Starts Vite dev server at http://localhost:5199
 | Script | Purpose |
 | :--- | :--- |
 | `npm run dev` | Start local Vite dev server (port `5199`) |
-| `npm run build` | Build production bundle into `dist/` |
-| `npm run preview` | Preview the production bundle locally |
+| `npm run typecheck` | Run strict TypeScript checks (`tsc --noEmit`) |
 | `npm run lint` | Run Oxlint across the codebase (`0` warnings/errors required) |
+| `npm run build` | Typecheck and build production bundle into `dist/` |
+| `npm run preview` | Preview the production bundle locally |
 
 ---
 
@@ -41,7 +42,7 @@ npm run dev      # Starts Vite dev server at http://localhost:5199
 
 3. **Code & UI Standards:**
    - **English Only:** All code, comments, JSDoc blocks, commit messages, PR descriptions, and documentation must be written in English.
-   - **Language & Stack:** Write `.js` and `.jsx` files exclusively with explicit relative import extensions until the Phase 7 TypeScript migration.
+   - **Language & Stack:** Write strict `.ts` and `.tsx` files exclusively with extensionless relative imports (`moduleResolution: "bundler"`) and zero `any` types.
    - **Design Tokens & Dark Mode:** Use CSS custom properties from [`src/index.css`](./src/index.css) and verify both Light and Dark themes across desktop, tablet, and mobile viewports.
 
 4. **Commit Messages (Conventional Commits):**
@@ -59,6 +60,7 @@ npm run dev      # Starts Vite dev server at http://localhost:5199
    Keep [`docs/`](./docs/README.md), ADRs, and SDD specs updated when applicable, and update [`AGENTS.md`](./AGENTS.md) if the stack, scripts, or phase status changes.
 
 6. **Verify Before Opening a PR:**
+   - Typecheck passes with **0 errors** (`npm run typecheck`).
    - Lint passes with **0 warnings and 0 errors** (`npm run lint`).
    - Build succeeds without errors (`npm run build`).
    - Browser validation is performed for affected UI flows (desktop & mobile, Light & Dark modes).

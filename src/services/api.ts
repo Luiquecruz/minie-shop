@@ -1,13 +1,19 @@
-import { PRODUCTS_MOCK } from '../data/products.js';
+import type {
+  GetProductsParams,
+  PaginatedProductsResponse,
+  Product,
+  SearchProductsParams,
+  StockValidationResult,
+} from '../types';
+import { PRODUCTS_MOCK } from '../data/products';
 
 const DEFAULT_DELAY_MS = 300;
 
-const delay = (ms = DEFAULT_DELAY_MS, signal) =>
+const delay = (ms: number = DEFAULT_DELAY_MS, signal?: AbortSignal): Promise<void> =>
   new Promise((resolve, reject) => {
     if (signal?.aborted) {
-      return reject(
-        new DOMException('The user aborted a request.', 'AbortError'),
-      );
+      reject(new DOMException('The user aborted a request.', 'AbortError'));
+      return;
     }
 
     const timeoutId = setTimeout(() => {
@@ -16,9 +22,7 @@ const delay = (ms = DEFAULT_DELAY_MS, signal) =>
 
     signal?.addEventListener('abort', () => {
       clearTimeout(timeoutId);
-      reject(
-        new DOMException('The user aborted a request.', 'AbortError'),
-      );
+      reject(new DOMException('The user aborted a request.', 'AbortError'));
     });
   });
 
@@ -28,15 +32,6 @@ const delay = (ms = DEFAULT_DELAY_MS, signal) =>
 export const productsApi = {
   /**
    * Fetches the products list with optional search, category filter, sorting, and pagination.
-   * @param {Object} options
-   * @param {string} [options.category] - Category filter
-   * @param {string} [options.search] - Search term (matches name or description)
-   * @param {string} [options.sortBy] - 'price-asc' | 'price-desc' | 'rating' | 'name'
-   * @param {number} [options.page] - Page number (1-based)
-   * @param {number} [options.limit] - Items per page
-   * @param {AbortSignal} [options.signal] - AbortSignal for cancellation
-   * @param {number} [options.delayMs] - Simulated network latency in milliseconds
-   * @returns {Promise<{ products: Array, total: number, page?: number, totalPages?: number }>}
    */
   async getProducts({
     category,
@@ -46,7 +41,7 @@ export const productsApi = {
     limit,
     signal,
     delayMs = DEFAULT_DELAY_MS,
-  } = {}) {
+  }: GetProductsParams = {}): Promise<PaginatedProductsResponse> {
     await delay(delayMs, signal);
 
     let result = [...PRODUCTS_MOCK];
@@ -68,17 +63,9 @@ export const productsApi = {
 
     if (sortBy) {
       if (sortBy === 'price-asc') {
-        result.sort(
-          (a, b) =>
-            (a.price?.final_price ?? a.price) -
-            (b.price?.final_price ?? b.price),
-        );
+        result.sort((a, b) => a.price.final_price - b.price.final_price);
       } else if (sortBy === 'price-desc') {
-        result.sort(
-          (a, b) =>
-            (b.price?.final_price ?? b.price) -
-            (a.price?.final_price ?? a.price),
-        );
+        result.sort((a, b) => b.price.final_price - a.price.final_price);
       } else if (sortBy === 'rating') {
         result.sort((a, b) => b.rating.rate - a.rating.rate);
       } else if (sortBy === 'name') {
@@ -107,11 +94,11 @@ export const productsApi = {
 
   /**
    * Fetches a single product by ID.
-   * @param {number|string} id
-   * @param {number} [delayMs]
-   * @returns {Promise<Object>}
    */
-  async getProductById(id, delayMs = DEFAULT_DELAY_MS) {
+  async getProductById(
+    id: number | string,
+    delayMs: number = DEFAULT_DELAY_MS,
+  ): Promise<Product> {
     await delay(delayMs);
     const numericId = Number(id);
     const product = PRODUCTS_MOCK.find((p) => p.id === numericId);
@@ -125,10 +112,8 @@ export const productsApi = {
 
   /**
    * Returns list of unique available categories.
-   * @param {number} [delayMs]
-   * @returns {Promise<string[]>}
    */
-  async getCategories(delayMs = DEFAULT_DELAY_MS) {
+  async getCategories(delayMs: number = DEFAULT_DELAY_MS): Promise<string[]> {
     await delay(delayMs);
     const categories = Array.from(
       new Set(PRODUCTS_MOCK.map((p) => p.category)),
@@ -138,18 +123,13 @@ export const productsApi = {
 
   /**
    * Fetches related products by category excluding current product.
-   * @param {number|string} productId
-   * @param {string} category
-   * @param {number} [limit=4]
-   * @param {number} [delayMs]
-   * @returns {Promise<Array>}
    */
   async getRelatedProducts(
-    productId,
-    category,
-    limit = 4,
-    delayMs = DEFAULT_DELAY_MS,
-  ) {
+    productId: number | string,
+    category: string,
+    limit: number = 4,
+    delayMs: number = DEFAULT_DELAY_MS,
+  ): Promise<Product[]> {
     await delay(delayMs);
     const numericId = Number(productId);
     let related = PRODUCTS_MOCK.filter(
@@ -170,14 +150,13 @@ export const productsApi = {
 
   /**
    * Dedicated search endpoint with AbortSignal support for autocomplete.
-   * @param {Object} options
-   * @param {string} options.query - Search query
-   * @param {number} [options.limit=6] - Max results to return
-   * @param {AbortSignal} [options.signal] - AbortSignal for request cancellation
-   * @param {number} [options.delayMs=200] - Simulated network latency
-   * @returns {Promise<Array>}
    */
-  async searchProducts({ query = '', limit = 6, signal, delayMs = 200 } = {}) {
+  async searchProducts({
+    query = '',
+    limit = 6,
+    signal,
+    delayMs = 200,
+  }: SearchProductsParams = {}): Promise<Product[]> {
     await delay(delayMs, signal);
 
     if (!query || !query.trim()) {
@@ -198,12 +177,12 @@ export const productsApi = {
   /**
    * Validates available stock for a product with AbortSignal support.
    * Used by debounced quantity updates in mini-cart.
-   * @param {number|string} productId
-   * @param {number} requestedQuantity
-   * @param {AbortSignal} [signal]
-   * @returns {Promise<{ available: boolean, maxStock: number, message: string|null }>}
    */
-  async validateStock(productId, requestedQuantity, signal) {
+  async validateStock(
+    productId: number | string,
+    requestedQuantity: number,
+    signal?: AbortSignal,
+  ): Promise<StockValidationResult> {
     await delay(150, signal);
     const numericId = Number(productId);
     const product = PRODUCTS_MOCK.find((p) => p.id === numericId);

@@ -1,18 +1,19 @@
+import type { CalculatedPrice, CurrencyCode, RawPriceInput } from '../types';
+import { formatCurrencyWithCode, DEFAULT_CURRENCY } from './currency';
+
 /**
  * Minie Shop Pricing Engine
  * Reusable logic for price precedence calculations, discounts, and currency formatting.
  */
 
-import { formatCurrencyWithCode, DEFAULT_CURRENCY } from './currency.js';
-
 /**
  * Formats a numeric value into a currency representation.
  * Supports multi-currency (BRL, USD, EUR).
- * @param {number} value - Base currency value (BRL)
- * @param {string} [currency='BRL'] - Desired currency code ('BRL' | 'USD' | 'EUR')
- * @returns {string}
  */
-export const formatCurrency = (value, currency = DEFAULT_CURRENCY) => {
+export const formatCurrency = (
+  value: number,
+  currency: CurrencyCode = DEFAULT_CURRENCY,
+): string => {
   return formatCurrencyWithCode(value, currency);
 };
 
@@ -26,20 +27,10 @@ export const formatCurrency = (value, currency = DEFAULT_CURRENCY) => {
  *   - final_price = regular_price
  *   - has_discount = false
  *   - discount_percentage = 0
- *
- * @param {Object|number} rawPrice
- * @param {number} [rawPrice.regular_price]
- * @param {number|null} [rawPrice.special_price]
- * @param {number} [rawPrice.final_price]
- * @returns {{
- *   regular_price: number,
- *   special_price: number | null,
- *   final_price: number,
- *   discount_percentage: number,
- *   has_discount: boolean
- * }}
  */
-export const calculatePrice = (rawPrice = {}) => {
+export const calculatePrice = (
+  rawPrice: RawPriceInput | number = {},
+): CalculatedPrice => {
   // Backward compatibility if rawPrice is passed as a primitive number
   if (typeof rawPrice === 'number') {
     return {
@@ -61,12 +52,12 @@ export const calculatePrice = (rawPrice = {}) => {
 
   const hasDiscount =
     typeof specialPrice === 'number' &&
-    !isNaN(specialPrice) &&
+    !Number.isNaN(specialPrice) &&
     specialPrice > 0 &&
     specialPrice < regularPrice;
 
   // Determine the lowest applicable price
-  const finalPrice = hasDiscount ? specialPrice : regularPrice;
+  const finalPrice = hasDiscount && specialPrice !== null ? specialPrice : regularPrice;
 
   // Calculate discount percentage relative to regular price
   const discountPercentage =

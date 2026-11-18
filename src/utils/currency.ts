@@ -1,9 +1,11 @@
+import type { CurrencyCode, CurrencyConfig } from '../types';
+
 /**
  * Minie Shop Multi-Currency Engine
  * Supports BRL (base currency), USD, and EUR with conversion and localized formatting.
  */
 
-export const SUPPORTED_CURRENCIES = {
+export const SUPPORTED_CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
   BRL: {
     code: 'BRL',
     label: 'BRL (R$)',
@@ -27,16 +29,22 @@ export const SUPPORTED_CURRENCIES = {
   },
 };
 
-export const DEFAULT_CURRENCY = 'BRL';
+export const DEFAULT_CURRENCY: CurrencyCode = 'BRL';
+
+/**
+ * Type guard checking whether an arbitrary string is a supported CurrencyCode.
+ */
+export const isCurrencyCode = (value: string): value is CurrencyCode =>
+  value === 'BRL' || value === 'USD' || value === 'EUR';
 
 /**
  * Converts a value from BRL to the target currency.
- * @param {number} valueInBrl - Numeric value in base currency (BRL)
- * @param {string} [targetCurrency='BRL'] - Currency code ('BRL' | 'USD' | 'EUR')
- * @returns {number}
  */
-export const convertCurrency = (valueInBrl, targetCurrency = DEFAULT_CURRENCY) => {
-  if (typeof valueInBrl !== 'number' || isNaN(valueInBrl)) {
+export const convertCurrency = (
+  valueInBrl: number,
+  targetCurrency: CurrencyCode = DEFAULT_CURRENCY,
+): number => {
+  if (typeof valueInBrl !== 'number' || Number.isNaN(valueInBrl)) {
     return 0;
   }
 
@@ -48,15 +56,12 @@ export const convertCurrency = (valueInBrl, targetCurrency = DEFAULT_CURRENCY) =
 
 /**
  * Converts and formats a value from BRL into a localized currency string.
- * @param {number} valueInBrl - Numeric value in base currency (BRL)
- * @param {string} [targetCurrency='BRL'] - Currency code ('BRL' | 'USD' | 'EUR')
- * @returns {string}
  */
 export const formatCurrencyWithCode = (
-  valueInBrl,
-  targetCurrency = DEFAULT_CURRENCY,
-) => {
-  if (typeof valueInBrl !== 'number' || isNaN(valueInBrl)) {
+  valueInBrl: number,
+  targetCurrency: CurrencyCode = DEFAULT_CURRENCY,
+): string => {
+  if (typeof valueInBrl !== 'number' || Number.isNaN(valueInBrl)) {
     return 'R$ 0,00';
   }
 
@@ -74,6 +79,7 @@ export const formatCurrencyWithCode = (
 export default {
   SUPPORTED_CURRENCIES,
   DEFAULT_CURRENCY,
+  isCurrencyCode,
   convertCurrency,
   formatCurrencyWithCode,
 };

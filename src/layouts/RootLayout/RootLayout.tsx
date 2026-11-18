@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
-import Navbar from '../../components/Navbar/Navbar.jsx';
-import MiniCart from '../../components/MiniCart/MiniCart.jsx';
+import Navbar from '../../components/Navbar/Navbar';
+import MiniCart from '../../components/MiniCart/MiniCart';
 
 const CURRENT_YEAR = new Date().getFullYear();
 

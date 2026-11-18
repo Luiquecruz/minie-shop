@@ -1,14 +1,24 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFetch } from '../../hooks/useFetch.js';
-import { productsApi } from '../../services/api.js';
-import PriceBox from '../PriceBox/PriceBox.jsx';
+import type { Product } from '../../types';
+import { useFetch, type UseFetchFetcherOptions } from '../../hooks/useFetch';
+import { productsApi } from '../../services/api';
+import PriceBox from '../PriceBox/PriceBox';
 import './SearchBar.css';
+
+export interface SearchBarProps {
+  placeholder?: string;
+}
+
+interface HighlightMatchProps {
+  text: string;
+  query: string;
+}
 
 /**
  * Highlights matching substring within product title.
  */
-function HighlightMatch({ text, query }) {
+function HighlightMatch({ text, query }: HighlightMatchProps) {
   if (!query || !query.trim()) return <span>{text}</span>;
 
   const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -29,35 +39,50 @@ function HighlightMatch({ text, query }) {
   );
 }
 
-export function SearchBar({ placeholder = 'Search products by name or category...' }) {
+export function SearchBar({
+  placeholder = 'Search products by name or category...',
+}: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const containerRef = useRef(null);
-  const inputRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
 
   // Stable fetcher with AbortSignal passed to API
   const searchFetcher = useCallback(
-    (searchQuery, { signal }) =>
-      productsApi.searchProducts({ query: searchQuery, limit: 6, signal, delayMs: 220 }),
+    (searchQuery: string, { signal }: UseFetchFetcherOptions): Promise<Product[]> =>
+      productsApi.searchProducts({
+        query: searchQuery,
+        limit: 6,
+        signal,
+        delayMs: 220,
+      }),
     [],
   );
 
   // useFetch hook with AbortController, debounce, and effect cleanup
-  const { data: results, isLoading } = useFetch(searchFetcher, query, {
-    debounceMs: 300,
-    minQueryLength: 1,
-    initialData: [],
-  });
+  const { data: results, isLoading } = useFetch<Product[]>(
+    searchFetcher,
+    query,
+    {
+      debounceMs: 300,
+      minQueryLength: 1,
+      initialData: [],
+    },
+  );
 
   const hasQuery = query.trim().length > 0;
   const showDropdown = isOpen && hasQuery;
 
   // Handle click outside to close dropdown
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+    const handleClickOutside = (e: MouseEvent): void => {
+      if (
+        containerRef.current &&
+        e.target instanceof Node &&
+        !containerRef.current.contains(e.target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -68,13 +93,13 @@ export function SearchBar({ placeholder = 'Search products by name or category..
     };
   }, []);
 
-  const handleSelectProduct = (productId) => {
+  const handleSelectProduct = (productId: number): void => {
     setIsOpen(false);
     setQuery('');
     navigate(`/product/${productId}`);
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (!showDropdown) {
       if (e.key === 'ArrowDown' && hasQuery) {
         setIsOpen(true);
@@ -108,7 +133,7 @@ export function SearchBar({ placeholder = 'Search products by name or category..
     }
   };
 
-  const handleClear = () => {
+  const handleClear = (): void => {
     setQuery('');
     setIsOpen(false);
     inputRef.current?.focus();
@@ -119,8 +144,19 @@ export function SearchBar({ placeholder = 'Search products by name or category..
       <div className="search-bar__input-wrapper">
         {/* Search Icon */}
         <span className="search-bar__icon" aria-hidden="true">
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <svg
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         </span>
 
@@ -151,8 +187,19 @@ export function SearchBar({ placeholder = 'Search products by name or category..
         {isLoading && (
           <span className="search-bar__spinner" aria-label="Searching...">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <circle className="search-bar__spinner-track" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-              <path className="search-bar__spinner-head" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <circle
+                className="search-bar__spinner-track"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="3"
+              />
+              <path
+                className="search-bar__spinner-head"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
             </svg>
           </span>
         )}
@@ -165,8 +212,19 @@ export function SearchBar({ placeholder = 'Search products by name or category..
             onClick={handleClear}
             aria-label="Clear search input"
           >
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}
@@ -202,7 +260,9 @@ export function SearchBar({ placeholder = 'Search products by name or category..
                 <span className="search-bar__header-title">
                   {results.length} product{results.length > 1 ? 's' : ''} found
                 </span>
-                <span className="search-bar__header-hint">Press Enter to view</span>
+                <span className="search-bar__header-hint">
+                  Press Enter to view
+                </span>
               </div>
               <ul className="search-bar__results" role="none">
                 {results.map((product, index) => {
@@ -225,11 +285,17 @@ export function SearchBar({ placeholder = 'Search products by name or category..
                       />
                       <div className="search-bar__item-details">
                         <div className="search-bar__item-meta">
-                          <span className="search-bar__item-category">{product.category}</span>
+                          <span className="search-bar__item-category">
+                            {product.category}
+                          </span>
                           {product.stock > 0 ? (
-                            <span className="search-bar__item-stock">In stock</span>
+                            <span className="search-bar__item-stock">
+                              In stock
+                            </span>
                           ) : (
-                            <span className="search-bar__item-stock search-bar__item-stock--out">Out of stock</span>
+                            <span className="search-bar__item-stock search-bar__item-stock--out">
+                              Out of stock
+                            </span>
                           )}
                         </div>
                         <h4 className="search-bar__item-title">
@@ -246,10 +312,23 @@ export function SearchBar({ placeholder = 'Search products by name or category..
             </>
           ) : (
             <div className="search-bar__empty">
-              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 16.318A4.486 4.486 0 0012.016 15a4.486 4.486 0 00-3.198 1.318M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm6 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75z" />
+              <svg
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.182 16.318A4.486 4.486 0 0012.016 15a4.486 4.486 0 00-3.198 1.318M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm6 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75z"
+                />
               </svg>
-              <p>No products found for &ldquo;<strong>{query}</strong>&rdquo;</p>
+              <p>
+                No products found for &ldquo;<strong>{query}</strong>&rdquo;
+              </p>
               <span>Try checking for typos or searching by category name</span>
             </div>
           )}

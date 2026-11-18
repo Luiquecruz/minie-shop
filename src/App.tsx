@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import RootLayout from './layouts/RootLayout/RootLayout.jsx';
-import ProductListingPage from './pages/ProductListingPage/ProductListingPage.jsx';
-import ProductDetailPage from './pages/ProductDetailPage/ProductDetailPage.jsx';
+import RootLayout from './layouts/RootLayout/RootLayout';
+import ProductListingPage from './pages/ProductListingPage/ProductListingPage';
+import ProductDetailPage from './pages/ProductDetailPage/ProductDetailPage';
 import './App.css';
 
 function App() {
