@@ -34,8 +34,8 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 
 ### `ProductListingPage` (`src/pages/ProductListingPage/ProductListingPage.tsx`)
 - **Route:** `/` and `*`
-- **Dependencies:** `useSearchParams`, `Helmet`, `useCart`, `useFavorites`, `useCategoriesQuery`, `useProductsQuery`, `ProductCard`, `Dropdown<ProductSortOption>`, `Pagination`.
-- **Behavior:** Syncs `category`, `sort`, and `page` (`PAGE_SIZE = 12`) in URL search params; includes `"Favorites"` filter chip with live count; keeps previous grid visible during page changes (`keepPreviousData`); clamps out-of-bounds pages; renders retryable error UI and optimistic rollback toast.
+- **Dependencies:** `useSearchParams`, `Helmet`, `useCart`, `useFavoritesQuery`, `useCategoriesQuery`, `useProductsQuery`, `ProductCard`, `Dropdown<ProductSortOption>`, `Pagination`.
+- **Behavior:** Syncs `category`, `sort`, and `page` (`PAGE_SIZE = 12`) in URL search params; includes `"Favorites"` filter chip with live count; keeps previous grid visible during page changes (`keepPreviousData`); clamps out-of-bounds pages using data for the current query; renders retryable error UI and displays card mutation errors in a dismissible toast.
 
 ### `ProductDetailPage` (`src/pages/ProductDetailPage/ProductDetailPage.tsx`)
 - **Route:** `/product/:id`
@@ -49,7 +49,7 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 ### `ApiDebugFab` (`src/components/ApiDebugFab/ApiDebugFab.tsx`)
 - **Purpose:** Discreet bottom-left floating debug simulator for testing React Query retries, error states, cache invalidation, and optimistic mutation rollbacks.
 - **Dependencies:** `useMatch('/product/:id')`, `useQueryClient`, `apiErrorSimulator`.
-- **Behavior:** Shifts upward (`api-debug-fab--pdp`) on PDP routes to avoid overlapping `.pdp-floating-bar`; supports `Escape` and click-outside dismissal; toggles `failQueries` and `failFavoritesMutation` and triggers `queryClient.invalidateQueries()`.
+- **Behavior:** Shifts upward (`api-debug-fab--pdp`) on PDP routes to avoid overlapping `.pdp-floating-bar`; focuses the close button on open, restores trigger focus on panel dismissal via the close button or Escape, and preserves outside click focus; toggles `failQueries` and `failFavoritesMutation` and triggers `queryClient.invalidateQueries()`.
 
 ### `Dropdown` (`src/components/Dropdown/Dropdown.tsx`)
 - **Purpose:** Generic cross-browser styled replacement for native `<select>`.
@@ -72,16 +72,16 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 
 ### `ProductCard` (`src/components/ProductCard/ProductCard.tsx`)
 - **Purpose:** Catalog card used in PLP and PDP related products.
-- **Exported Interface (`ProductCardProps`):** `product`, `onAddToCart?`.
+- **Exported Interface (`ProductCardProps`):** `product`, `onAddToCart?`, `onFavoriteError?`.
 - **Behavior:** Wraps image `<Link>` and optimistic favorite heart `<button>` in `.product-card__media` (avoiding nested interactive elements), shows category and stock badges, star rating, description, `PriceBox`, and `Add to Cart` button.
 
 ### `SearchBar` (`src/components/SearchBar/SearchBar.tsx`)
 - **Purpose:** Global autocomplete search widget in `Navbar`.
 - **Dependencies:** `useNavigate`, `useDebounce`, `useProductSearchQuery`, `PriceBox`.
-- **Behavior:** Implements ARIA `combobox`/`listbox`, `300ms` debounced React Query search with 1-minute cache, inline error + `"Try Again"` retry inside dropdown, skeleton loading rows, keyboard navigation, match highlighting (`<mark>`), clear button, and navigation to `/product/:id`.
+- **Behavior:** Implements ARIA `combobox`/`listbox`, `300ms` debounced React Query search with 1-minute cache, inline error + `"Try Again"` retry inside dropdown, skeleton loading rows, keyboard navigation for visible suggestions, match highlighting (`<mark>`), clear button, and navigation to `/product/:id`.
 
 ### `MiniCart` (`src/components/MiniCart/MiniCart.tsx`)
 - **Purpose:** Global slide-over shopping cart drawer.
-- **Internal Subcomponent:** `CartItem` (`CartItemProps`) — manages per-item `300ms` debounced `useStockValidationQuery` via `useDebounce`, numeric input clamping (`1..maxStock`), increment/decrement buttons, stock warnings, and unit/line totals.
+- **Internal Subcomponent:** `CartItem` (`CartItemProps`) — manages per-item `300ms` debounced `useStockValidationQuery` via `useDebounce`, numeric input clamping (`1..maxStock`), increment/decrement buttons, stock warnings for the current quantity, and unit/line totals.
 - **Dependencies:** `Link`, `useCart`, `useCurrency`, `useDebounce`, `useStockValidationQuery`.
 - **Behavior:** Renders `null` when `!isOpen`; locks body scroll when open; supports `Escape` and overlay click to close; shows empty state, item list, subtotal/total, and placeholder notices for Checkout and View Full Cart.

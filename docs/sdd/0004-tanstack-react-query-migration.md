@@ -34,7 +34,7 @@ This specification defines the complete migration of all asynchronous server/cat
 3. **FR-3 — Non-Flickering URL-Synced Pagination:** `ProductListingPage` must paginate products (`12` per page) using `useSearchParams` (`page`, `category`, `sort`) and `placeholderData: keepPreviousData`, keeping previously rendered cards visible while the next page fetches.
 4. **FR-4 — PDP Dependent Queries & Error Recovery:** `ProductDetailPage` must fetch the product detail (`useProductQuery`) and dependent related products (`useRelatedProductsQuery`) via React Query, distinguishing `ProductNotFoundError` ("Product Not Found") from transient API errors (offering a **"Try Again"** button wired to `refetch()`).
 5. **FR-5 — SearchBar & MiniCart Migration:** `SearchBar` must use `useDebounce` + `useProductSearchQuery` (including inline error + retry UI inside the dropdown) and `MiniCart` item quantity validation must use `useDebounce` + `useStockValidationQuery`. `src/hooks/useFetch.ts` must be removed.
-6. **FR-6 — Optimistic Favorites Mutation & Rollback:** Users can toggle favorites via a heart SVG button on `ProductCard` and `ProductDetailPage` and filter by `"Favorites"` on `ProductListingPage`. `useToggleFavoriteMutation` must optimistically update `queryKeys.favorites.all` in `onMutate`, roll back to the snapshot in `onError`, and invalidate `favorites` and `products.lists()` in `onSettled`.
+6. **FR-6 — Optimistic Favorites Mutation & Rollback:** Users can toggle favorites via a heart SVG button on `ProductCard` and `ProductDetailPage` and filter by `"Favorites"` on `ProductListingPage`. `useToggleFavoriteMutation` must optimistically update `queryKeys.favorites.all` in `onMutate`, reconcile each settled toggle against confirmed IDs while retaining pending toggles, and invalidate favorite product lists in `onSettled`. Refetch favorite IDs once no toggles are pending.
 7. **FR-7 — Simulated Error Controls (`ApiDebugFab`):** A discreet FAB in the bottom-left corner lets developers/testers toggle **Simulate Query Error**, **Simulate Favorite Error**, and trigger **Invalidate Cache** (`queryClient.invalidateQueries()`).
 
 ## 4. UI, Accessibility & Dark Mode Requirements
@@ -67,7 +67,7 @@ This specification defines the complete migration of all asynchronous server/cat
 ### State & API Contracts
 - `productsApi.getProducts(params: GetProductsParams): Promise<PaginatedProductsResponse>` supports `favoritesOnly?: boolean` and `signal?: AbortSignal`.
 - `productsApi.getProductById(id, delayMs?, signal?)`, `productsApi.getCategories(delayMs?, signal?)`, `productsApi.getRelatedProducts(productId, category, limit?, delayMs?, signal?)` accept `AbortSignal`.
-- `productsApi.getFavorites(signal?: AbortSignal): Promise<number[]>` and `productsApi.toggleFavorite(productId: number): Promise<number[]>` persist favorite IDs in `localStorage` under `'minieshop_favorites'`.
+- `productsApi.getFavorites(delayMs?: number, signal?: AbortSignal): Promise<number[]>` and `productsApi.toggleFavorite(productId: number): Promise<number[]>` persist favorite IDs in `localStorage` under `'minieshop_favorites'`.
 - `apiErrorSimulator` exposes `getSnapshot()`, `subscribe(listener)`, `setFailQueries(enabled)`, `setFailFavoritesMutation(enabled)`, and `reset()`.
 
 ## 6. Edge Cases & Guardrails

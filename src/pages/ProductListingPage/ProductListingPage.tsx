@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import type { Product, ProductSortOption } from '../../types';
 import { useCart } from '../../hooks/useCart';
-import { useFavorites } from '../../hooks/useFavorites';
+import { useFavoritesQuery } from '../../hooks/useFavorites';
 import { useCategoriesQuery, useProductsQuery } from '../../hooks/useProducts';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import Dropdown, { type DropdownOption } from '../../components/Dropdown/Dropdown';
@@ -53,11 +53,8 @@ export function ProductListingPage() {
   const currentPage = parsePageParam(searchParams.get('page'));
   const isFavoritesFilter = selectedCategory === FAVORITES_FILTER;
 
-  const {
-    favoritesCount,
-    error: favoriteError,
-    resetError: resetFavoriteError,
-  } = useFavorites();
+  const [favoriteError, setFavoriteError] = useState<Error | null>(null);
+  const favoritesCount = useFavoritesQuery().data?.length ?? 0;
 
   const categoriesQuery = useCategoriesQuery();
 
@@ -90,13 +87,14 @@ export function ProductListingPage() {
   useEffect(() => {
     if (!favoriteError) return;
     const timer = setTimeout(() => {
-      resetFavoriteError();
+      setFavoriteError(null);
     }, 4000);
     return () => clearTimeout(timer);
-  }, [favoriteError, resetFavoriteError]);
+  }, [favoriteError]);
 
   // Clamp out-of-bounds page parameter when filtered results shrink
   useEffect(() => {
+    if (!productsQuery.data || productsQuery.isPlaceholderData) return;
     if (totalPages > 0 && currentPage > totalPages) {
       setSearchParams(
         (prev) => {
@@ -111,7 +109,13 @@ export function ProductListingPage() {
         { replace: true },
       );
     }
-  }, [totalPages, currentPage, setSearchParams]);
+  }, [
+    productsQuery.data,
+    productsQuery.isPlaceholderData,
+    totalPages,
+    currentPage,
+    setSearchParams,
+  ]);
 
   const updateFilters = (updates: {
     category?: string;
@@ -210,7 +214,7 @@ export function ProductListingPage() {
           <button
             type="button"
             className="plp-toast__close"
-            onClick={resetFavoriteError}
+            onClick={() => setFavoriteError(null)}
             aria-label="Dismiss notification"
           >
             <svg
@@ -398,6 +402,7 @@ export function ProductListingPage() {
                 key={product.id}
                 product={product}
                 onAddToCart={handleAddToCart}
+                onFavoriteError={setFavoriteError}
               />
             ))}
           </div>

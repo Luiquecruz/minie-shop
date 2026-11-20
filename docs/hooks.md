@@ -45,5 +45,5 @@ Tracks all custom React hooks in `src/hooks/`.
 
 ### Favorites Hooks (`src/hooks/useFavorites.ts`)
 - `useFavoritesQuery()`: Reads persisted favorite IDs under `queryKeys.favorites.all`.
-- `useToggleFavoriteMutation()`: Optimistically toggles `productId` in `onMutate` (cancelling in-flight queries and snapshotting `previousFavorites`), rolls back in `onError`, and invalidates `queryKeys.favorites.all` plus `favoritesOnly: true` product lists in `onSettled`.
-- `useFavorites()`: Facade returning `{ favoriteIds, favoritesCount, isFavorite, toggleFavorite, isPending, error, resetError }`.
+- `useToggleFavoriteMutation()`: Optimistically toggles `productId` in `onMutate` after cancelling in-flight reads. Writes run in order, and settlement projects pending toggles over the latest confirmed IDs. It invalidates `favoritesOnly: true` product lists on settlement and refetches `queryKeys.favorites.all` once the queue drains.
+- `useFavorites(onFavoriteError?)`: Facade returning `{ favoriteIds, favoritesCount, isFavorite, toggleFavorite, isPending, error, resetError }`.

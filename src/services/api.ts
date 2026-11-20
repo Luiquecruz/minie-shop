@@ -12,6 +12,7 @@ const DEFAULT_DELAY_MS = 300;
 const FAVORITES_STORAGE_KEY = 'minieshop_favorites';
 
 let memoryFavoritesFallback: number[] = [];
+let useMemoryFavorites = false;
 
 /**
  * Domain error thrown when a requested product ID does not exist in the catalog.
@@ -71,7 +72,7 @@ class ApiErrorSimulator {
 export const apiErrorSimulator = new ApiErrorSimulator();
 
 function readPersistedFavorites(): number[] {
-  if (typeof window === 'undefined') {
+  if (useMemoryFavorites || typeof window === 'undefined') {
     return memoryFavoritesFallback;
   }
 
@@ -99,8 +100,10 @@ function writePersistedFavorites(favoriteIds: number[]): void {
       FAVORITES_STORAGE_KEY,
       JSON.stringify(favoriteIds),
     );
+    useMemoryFavorites = false;
   } catch {
-    // Keep in-memory fallback if storage is full or disabled
+    // Storage may still be readable but contain stale IDs.
+    useMemoryFavorites = true;
   }
 }
 

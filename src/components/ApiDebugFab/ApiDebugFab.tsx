@@ -12,6 +12,8 @@ export function ApiDebugFab() {
   const [isOpen, setIsOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const popoverId = useId();
   const isPdpRoute = Boolean(useMatch('/product/:id'));
   const queryClient = useQueryClient();
@@ -25,12 +27,22 @@ export function ApiDebugFab() {
   const hasActiveSimulation =
     simState.failQueries || simState.failFavoritesMutation;
 
+  const closeAndRestoreFocus = (): void => {
+    setIsOpen(false);
+    triggerRef.current?.focus();
+  };
+
   useEffect(() => {
     if (!isOpen) return;
+    closeButtonRef.current?.focus();
 
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
-        setIsOpen(false);
+        if (containerRef.current?.contains(document.activeElement)) {
+          closeAndRestoreFocus();
+        } else {
+          setIsOpen(false);
+        }
       }
     };
 
@@ -76,9 +88,10 @@ export function ApiDebugFab() {
           <header className="api-debug-fab__header">
             <span className="api-debug-fab__title">API Debug Simulator</span>
             <button
+              ref={closeButtonRef}
               type="button"
               className="api-debug-fab__close"
-              onClick={() => setIsOpen(false)}
+              onClick={closeAndRestoreFocus}
               aria-label="Close API simulator"
             >
               <svg
@@ -168,6 +181,7 @@ export function ApiDebugFab() {
       )}
 
       <button
+        ref={triggerRef}
         type="button"
         className={`api-debug-fab__trigger ${
           hasActiveSimulation ? 'api-debug-fab__trigger--active' : ''

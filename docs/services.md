@@ -18,7 +18,7 @@ Exports `productsApi` (named and default export), `ProductNotFoundError`, and `a
 | `getRelatedProducts` | `(productId: number \| string, category: string, limit?: number, delayMs?: number, signal?: AbortSignal)` | `Promise<Product[]>` | Filters same-category items excluding `productId`, backfills with other products if `< limit` |
 | `searchProducts` | `SearchProductsParams = {}` | `Promise<Product[]>` | Matches `name`, `category`, or `description` (case-insensitive); supports `AbortSignal` |
 | `validateStock` | `(productId: number \| string, requestedQuantity: number, signal?: AbortSignal)` | `Promise<StockValidationResult>` | `150ms` simulated delay; supports `AbortSignal`; defaults `maxStock` to `99` if non-numeric |
-| `getFavorites` | `(delayMs?: number, signal?: AbortSignal)` | `Promise<number[]>` | Reads validated integer IDs from `localStorage` (`minieshop_favorites`) with in-memory fallback |
+| `getFavorites` | `(delayMs?: number, signal?: AbortSignal)` | `Promise<number[]>` | Reads validated integer IDs from `localStorage` (`minieshop_favorites`); after a write fails, reads use session memory until storage is successfully written again |
 | `toggleFavorite` | `(productId: number)` | `Promise<number[]>` | `280ms` delay; persists toggle to `localStorage`; throws if `failFavoritesMutation` is enabled |
 
 ### `apiErrorSimulator`

@@ -7,12 +7,13 @@ import './ProductCard.css';
 
 export interface ProductCardProps {
   product: Product | null | undefined;
+  onFavoriteError?: (error: Error) => void;
   onAddToCart?: (product: Product) => void;
 }
 
-export function ProductCard({ product, onAddToCart }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, onFavoriteError }: ProductCardProps) {
   const { addToCart } = useCart();
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite } = useFavorites(onFavoriteError);
 
   if (!product) return null;
 

@@ -62,6 +62,7 @@ export function SearchBar({
   const isWaitingDebounce = hasQuery && query.trim() !== debouncedQuery.trim();
   const showSpinner = isLoading || isFetching || isWaitingDebounce;
   const showDropdown = isOpen && hasQuery;
+  const showSuggestions = showDropdown && !isError && results.length > 0;
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -101,16 +102,16 @@ export function SearchBar({
       return;
     }
 
+    if (!showSuggestions) return;
+
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      if (results.length === 0) return;
       setActiveIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
       return;
     }
 
     if (e.key === 'ArrowUp') {
       e.preventDefault();
-      if (results.length === 0) return;
       setActiveIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
       return;
     }
@@ -262,7 +263,7 @@ export function SearchBar({
                 </div>
               </div>
             </div>
-          ) : results.length > 0 ? (
+          ) : showSuggestions ? (
             <>
               <div className="search-bar__header">
                 <span className="search-bar__header-title">

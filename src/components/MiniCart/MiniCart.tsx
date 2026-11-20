@@ -23,22 +23,23 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
   const [hasEditedQuantity, setHasEditedQuantity] = useState(false);
 
   const debouncedQuantity = useDebounce(item.quantity, 300);
+  const shouldValidate = hasEditedQuantity && debouncedQuantity === item.quantity;
   const stockQuery = useStockValidationQuery(
     item.id,
     debouncedQuantity,
-    hasEditedQuantity,
+    shouldValidate,
   );
 
   const apiStockWarning =
-    hasEditedQuantity && stockQuery.data && !stockQuery.data.available
+    shouldValidate && stockQuery.data && !stockQuery.data.available
       ? stockQuery.data.message
-      : hasEditedQuantity && stockQuery.isError
+      : shouldValidate && stockQuery.isError
         ? 'Could not validate stock right now.'
         : null;
 
   // Active warning derived from local guardrail, React Query stock validation, or store warning
   const activeWarning = localWarning ?? apiStockWarning ?? warning ?? null;
-  const isValidating = hasEditedQuantity && stockQuery.isFetching;
+  const isValidating = shouldValidate && stockQuery.isFetching;
 
   const maxStock = typeof item.stock === 'number' ? item.stock : 99;
 
