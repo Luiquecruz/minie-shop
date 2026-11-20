@@ -168,6 +168,40 @@
   gap: 10px;
 }
 
+.pdp-info__header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pdp-favorite-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--card-subtle, #f8fafc);
+  color: var(--text-muted, #6b7280);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.pdp-favorite-btn:hover {
+  border-color: rgba(225, 29, 72, 0.35);
+  color: #e11d48;
+}
+
+.pdp-favorite-btn--active {
+  border-color: rgba(225, 29, 72, 0.4);
+  background: rgba(255, 241, 242, 0.9);
+  color: #e11d48;
+}
+
 .pdp-info__category {
   display: inline-block;
   align-self: flex-start;
@@ -676,6 +710,19 @@
   }
 }
 
+.pdp-toast--error {
+  background: #dc2626;
+  box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.4);
+}
+
+.pdp-error-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 /* --------------------------------------------------------------------------
    Loading Skeletons & Error State
    -------------------------------------------------------------------------- */
@@ -756,6 +803,11 @@
    Dark Mode Explicit Adjustments
    -------------------------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
+  .pdp-favorite-btn--active {
+    background: rgba(136, 19, 55, 0.45);
+    color: #fb7185;
+  }
+
   .pdp-stock-badge--available {
     background: rgba(16, 185, 129, 0.18);
     color: #34d399;
