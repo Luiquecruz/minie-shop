@@ -9,6 +9,7 @@ export interface GetProductsParams {
   sortBy?: ProductSortOption;
   page?: number;
   limit?: number;
+  favoritesOnly?: boolean;
   signal?: AbortSignal;
   delayMs?: number;
 }
@@ -43,9 +44,9 @@ export interface StockValidationResult {
 }
 
 /**
- * Discriminated union representing page-level asynchronous request states.
+ * Observable error simulation flags used by `ApiDebugFab` and `productsApi`.
  */
-export type AsyncRequestState<T> =
-  | { status: 'loading' }
-  | { status: 'success'; data: T }
-  | { status: 'error'; error: string };
+export interface ApiErrorSimulationState {
+  failQueries: boolean;
+  failFavoritesMutation: boolean;
+}

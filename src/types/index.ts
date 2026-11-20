@@ -15,5 +15,5 @@ export type {
   PaginatedProductsResponse,
   SearchProductsParams,
   StockValidationResult,
-  AsyncRequestState,
+  ApiErrorSimulationState,
 } from './api';
