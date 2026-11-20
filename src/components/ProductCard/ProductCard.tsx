@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '../../types';
 import { useCart } from '../../hooks/useCart';
+import { useFavorites } from '../../hooks/useFavorites';
 import PriceBox from '../PriceBox/PriceBox';
 import './ProductCard.css';
 
@@ -11,6 +12,8 @@ export interface ProductCardProps {
 
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const { addToCart } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
+
   if (!product) return null;
 
   const {
@@ -24,28 +27,63 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
     stock,
   } = product;
 
+  const favorited = isFavorite(id);
+
   return (
     <article className="product-card" data-product-id={id}>
-      <Link
-        to={`/product/${id}`}
-        className="product-card__image-link"
-        aria-label={`View ${name} details`}
-      >
-        <div className="product-card__image-container">
-          <span className="product-card__category">{category}</span>
-          {typeof stock === 'number' && (
-            <span className="product-card__stock-badge">
-              {stock > 0 ? `${stock} in stock` : 'Out of stock'}
-            </span>
-          )}
-          <img
-            src={image}
-            alt={name}
-            loading="lazy"
-            className="product-card__image"
-          />
-        </div>
-      </Link>
+      <div className="product-card__media">
+        <Link
+          to={`/product/${id}`}
+          className="product-card__image-link"
+          aria-label={`View ${name} details`}
+        >
+          <div className="product-card__image-container">
+            <span className="product-card__category">{category}</span>
+            {typeof stock === 'number' && (
+              <span className="product-card__stock-badge">
+                {stock > 0 ? `${stock} in stock` : 'Out of stock'}
+              </span>
+            )}
+            <img
+              src={image}
+              alt={name}
+              loading="lazy"
+              className="product-card__image"
+            />
+          </div>
+        </Link>
+
+        <button
+          type="button"
+          className={`product-card__favorite-btn ${
+            favorited ? 'product-card__favorite-btn--active' : ''
+          }`}
+          onClick={() => toggleFavorite(id)}
+          aria-pressed={favorited}
+          aria-label={
+            favorited
+              ? `Remove ${name} from favorites`
+              : `Add ${name} to favorites`
+          }
+          title={favorited ? 'Remove from favorites' : 'Save to favorites'}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill={favorited ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+            />
+          </svg>
+        </button>
+      </div>
 
       <div className="product-card__content">
         <div
