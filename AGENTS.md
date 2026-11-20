@@ -8,7 +8,7 @@ Project constitution, context, and operational guidelines for AI agents and deve
 
 **Progressive Minie Shop** is an incremental e-commerce web application built from scratch with React, TypeScript, and Vite to explore and apply fundamental and advanced React patterns in structured phases.
 
-- **Current Phase:** Phase 5 + Pre-Phase 6 Milestone completed — Floating Mini-Cart slide-over drawer with debounced stock validation, `localStorage` persistence, and full strict TypeScript migration (`SDD-0003` / `ADR-0006`).
+- **Current Phase:** Post-Phase 5 / Pre-Phase 6 Milestone — TanStack React Query server-state migration (`SDD-0004` / `ADR-0007`), URL-synced pagination (`keepPreviousData`), optimistic Favorites mutation, and `ApiDebugFab` simulator (building on strict TypeScript migration `SDD-0003` / `ADR-0006`).
 - **Next Planned Phase:**
   - **Phase 6:** Dedicated Cart page & Checkout flow (authored directly in strict TypeScript).
 
@@ -21,7 +21,8 @@ Project constitution, context, and operational guidelines for AI agents and deve
 | **Build Tool** | Vite (`@vitejs/plugin-react`) | `^8.3.4` (`^6.1.2`) | Dev server on port `5199` (`vite.config.ts`) |
 | **Language** | TypeScript | `^7.0.2` | Strict mode (`"strict": true`, `"allowJs": false`), extensionless bundler imports |
 | **UI Library** | React & React DOM | `^19.3.1` | Authored strictly in `.ts` / `.tsx` |
-| **Global State** | `@reduxjs/toolkit` & `react-redux` | `^2.13.0` / `^9.3.0` | Multi-currency engine, shopping cart with `localStorage`, typed `store/hooks.ts` |
+| **Server State** | `@tanstack/react-query` | `^5.x` | Query caching (`staleTime`, `gcTime`), `keepPreviousData`, retries, optimistic Favorites mutation, Devtools (`DEV`) |
+| **Global Client State** | `@reduxjs/toolkit` & `react-redux` | `^2.13.0` / `^9.3.0` | Multi-currency engine, shopping cart with `localStorage`, typed `store/hooks.ts` |
 | **Routing** | `react-router-dom` | `^7.18.4` | Declarative routing with `BrowserRouter` and `RootLayout` `<Outlet />` |
 | **SEO / Head** | `react-helmet-async` | `^3.0.0` | Dynamic `<title>` and `<meta>` per route |
 | **Linter** | Oxlint | `^1.88.0` | Configured via `.oxlintrc.json` (`react`, `oxc`, `typescript` plugins, `typescript/no-explicit-any: "error"`) |
@@ -71,18 +72,19 @@ react-minieshop/
 │   └── sdd/                     # Spec-Driven Development feature specifications
 └── src/
     ├── assets/                  # Static image assets
-    ├── components/              # Reusable UI components (Dropdown, MiniCart, Navbar, PriceBox, ProductCard, SearchBar)
+    ├── components/              # Reusable UI components (ApiDebugFab, Dropdown, MiniCart, Navbar, Pagination, PriceBox, ProductCard, SearchBar)
     ├── data/                    # Mock dataset (products.ts)
-    ├── hooks/                   # Custom hooks (useCart, useCurrency, useFetch)
+    ├── hooks/                   # Custom hooks (useCart, useCurrency, useDebounce, useFavorites, useProducts)
     ├── layouts/                 # Route layout shells (RootLayout)
     ├── pages/                   # Route pages (ProductListingPage, ProductDetailPage)
-    ├── services/                # Frontend-only simulated API (api.ts)
+    ├── query/                   # TanStack Query client & typed key factory (queryClient.ts, queryKeys.ts)
+    ├── services/                # Frontend-only simulated API & error simulator (api.ts)
     ├── store/                   # Redux store, typed hooks & slices (hooks.ts, cartSlice.ts, currencySlice.ts)
     ├── types/                   # Shared domain types & interfaces (api.ts, cart.ts, currency.ts, product.ts, index.ts)
     ├── utils/                   # Pure business engines (currency.ts, price.ts)
     ├── App.tsx / App.css        # Router shell & app layout styles
     ├── index.css                # Design tokens (light/dark mode) & base styles
-    ├── main.tsx                 # Entry point with Redux Provider
+    ├── main.tsx                 # Entry point with QueryClientProvider & Redux Provider
     └── vite-env.d.ts            # Vite client ambient type declarations
 ```
 
