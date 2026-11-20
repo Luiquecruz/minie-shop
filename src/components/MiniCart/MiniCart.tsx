@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CartItem as CartItemType } from '../../types';
 import { useCart } from '../../hooks/useCart';
 import { useCurrency } from '../../hooks/useCurrency';
-import { productsApi } from '../../services/api';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useStockValidationQuery } from '../../hooks/useProducts';
 import './MiniCart.css';
 
 interface CartItemProps {
@@ -14,79 +15,42 @@ interface CartItemProps {
 }
 
 /**
- * Individual Cart Item with debounced stock validation and guardrails.
+ * Individual Cart Item with debounced React Query stock validation and guardrails.
  */
 function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) {
   const { formatPrice } = useCurrency();
   const [localWarning, setLocalWarning] = useState<string | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [hasEditedQuantity, setHasEditedQuantity] = useState(false);
 
-  // Active warning derived from local validation override or parent store warning
-  const activeWarning = localWarning !== null ? localWarning : (warning || null);
-
-  const maxStock = typeof item.stock === 'number' ? item.stock : 99;
-
-  // Debounced stock validation
-  const validateQuantity = useCallback(
-    (targetQty: number) => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      setIsValidating(true);
-
-      debounceRef.current = setTimeout(async () => {
-        try {
-          const res = await productsApi.validateStock(
-            item.id,
-            targetQty,
-            controller.signal,
-          );
-          if (!controller.signal.aborted) {
-            setIsValidating(false);
-            if (!res.available) {
-              setLocalWarning(res.message);
-            } else {
-              setLocalWarning(null);
-            }
-          }
-        } catch (err: unknown) {
-          if (
-            !(err instanceof DOMException && err.name === 'AbortError') &&
-            !controller.signal.aborted
-          ) {
-            setIsValidating(false);
-          }
-        }
-      }, 300);
-    },
-    [item.id],
+  const debouncedQuantity = useDebounce(item.quantity, 300);
+  const shouldValidate = hasEditedQuantity && debouncedQuantity === item.quantity;
+  const stockQuery = useStockValidationQuery(
+    item.id,
+    debouncedQuantity,
+    shouldValidate,
   );
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      if (abortControllerRef.current) abortControllerRef.current.abort();
-    };
-  }, []);
+  const apiStockWarning =
+    shouldValidate && stockQuery.data && !stockQuery.data.available
+      ? stockQuery.data.message
+      : shouldValidate && stockQuery.isError
+        ? 'Could not validate stock right now.'
+        : null;
+
+  // Active warning derived from local guardrail, React Query stock validation, or store warning
+  const activeWarning = localWarning ?? apiStockWarning ?? warning ?? null;
+  const isValidating = shouldValidate && stockQuery.isFetching;
+
+  const maxStock = typeof item.stock === 'number' ? item.stock : 99;
 
   const handleIncrement = (): void => {
     if (item.quantity >= maxStock) {
       setLocalWarning(`Maximum stock reached (${maxStock} units).`);
       return;
     }
-    const nextQty = item.quantity + 1;
-    onUpdateQuantity(item.id, nextQty);
-    validateQuantity(nextQty);
+    setLocalWarning(null);
+    setHasEditedQuantity(true);
+    onUpdateQuantity(item.id, item.quantity + 1);
   };
 
   const handleDecrement = (): void => {
@@ -94,9 +58,9 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
     if (item.quantity <= 1) {
       return;
     }
-    const nextQty = item.quantity - 1;
-    onUpdateQuantity(item.id, nextQty);
-    validateQuantity(nextQty);
+    setLocalWarning(null);
+    setHasEditedQuantity(true);
+    onUpdateQuantity(item.id, item.quantity - 1);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -106,20 +70,22 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
     const parsed = parseInt(rawValue, 10);
     if (Number.isNaN(parsed) || parsed < 1) {
       // Guardrail: enforce minimum of 1
+      setLocalWarning(null);
+      setHasEditedQuantity(true);
       onUpdateQuantity(item.id, 1);
-      validateQuantity(1);
       return;
     }
 
     if (parsed > maxStock) {
+      setHasEditedQuantity(true);
       onUpdateQuantity(item.id, maxStock);
       setLocalWarning(`Only ${maxStock} units available in stock.`);
-      validateQuantity(maxStock);
       return;
     }
 
+    setLocalWarning(null);
+    setHasEditedQuantity(true);
     onUpdateQuantity(item.id, parsed);
-    validateQuantity(parsed);
   };
 
   const itemTotal = (item.price?.final_price || 0) * item.quantity;

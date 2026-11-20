@@ -8,15 +8,17 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 
 | Category | Name | Path | Phase |
 | :--- | :--- | :--- | :--- |
-| **Layout** | `RootLayout` | `src/layouts/RootLayout/RootLayout.tsx` | Phase 2 / 5 |
-| **Page** | `ProductListingPage` | `src/pages/ProductListingPage/ProductListingPage.tsx` | Phase 3 / Pre-Phase 6 |
-| **Page** | `ProductDetailPage` | `src/pages/ProductDetailPage/ProductDetailPage.tsx` | Phase 4 / Pre-Phase 6 |
+| **Layout** | `RootLayout` | `src/layouts/RootLayout/RootLayout.tsx` | Phase 2 / 5 / Post-Phase 5 |
+| **Page** | `ProductListingPage` | `src/pages/ProductListingPage/ProductListingPage.tsx` | Phase 3 / Post-Phase 5 |
+| **Page** | `ProductDetailPage` | `src/pages/ProductDetailPage/ProductDetailPage.tsx` | Phase 4 / Post-Phase 5 |
+| **Component** | `ApiDebugFab` | `src/components/ApiDebugFab/ApiDebugFab.tsx` | Post-Phase 5 |
 | **Component** | `Dropdown` | `src/components/Dropdown/Dropdown.tsx` | Phase 3 / Pre-Phase 6 |
 | **Component** | `Navbar` | `src/components/Navbar/Navbar.tsx` | Phase 3 / 4 / 5 |
+| **Component** | `Pagination` | `src/components/Pagination/Pagination.tsx` | Post-Phase 5 |
 | **Component** | `PriceBox` | `src/components/PriceBox/PriceBox.tsx` | Phase 3 |
-| **Component** | `ProductCard` | `src/components/ProductCard/ProductCard.tsx` | Phase 3 / 4 / 5 |
-| **Component** | `SearchBar` | `src/components/SearchBar/SearchBar.tsx` | Phase 4 |
-| **Component** | `MiniCart` | `src/components/MiniCart/MiniCart.tsx` | Phase 5 |
+| **Component** | `ProductCard` | `src/components/ProductCard/ProductCard.tsx` | Phase 3 / 4 / 5 / Post-Phase 5 |
+| **Component** | `SearchBar` | `src/components/SearchBar/SearchBar.tsx` | Phase 4 / Post-Phase 5 |
+| **Component** | `MiniCart` | `src/components/MiniCart/MiniCart.tsx` | Phase 5 / Post-Phase 5 |
 
 ---
 
@@ -24,7 +26,7 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 
 ### `RootLayout` (`src/layouts/RootLayout/RootLayout.tsx`)
 - **Purpose:** Canonical React Router Layout Route shell wrapping all pages.
-- **Renders:** `.app-shell` containing `<Navbar />`, `<main className="app-content"><Outlet /></main>`, `<footer className="app-footer">` (copyright `Minie Shop`), and `<MiniCart />`.
+- **Renders:** `.app-shell` containing `<Navbar />`, `<main className="app-content"><Outlet /></main>`, `<footer className="app-footer">` (copyright `Minie Shop`), `<MiniCart />`, and `<ApiDebugFab />`.
 
 ---
 
@@ -32,68 +34,54 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 
 ### `ProductListingPage` (`src/pages/ProductListingPage/ProductListingPage.tsx`)
 - **Route:** `/` and `*`
-- **Dependencies:** `Helmet`, `useCart`, `productsApi`, `ProductCard`, `Dropdown<ProductSortOption>`.
-- **Local State:** `fetchState` (`AsyncRequestState<Product[]>`), `categories` (`string[]`), `selectedCategory` (`string`), `sortBy` (`ProductSortOption`), `retryCount` (`number`).
-<!-- coderabbit-ai-generated:v1 -->
-
-<!-- coderabbit-ai-generated-section:v1:26347ed956f9acdb3ab0d02a5ff733a800d4732360440457b65dd8e9e31bbc3c -->
-
-- **Behavior:** Loads categories on mount and products on filter/sort/retry change using an `ignore` cleanup flag against stale promise resolution. Selecting the current category or sort value leaves the request state unchanged.
-
-<!-- /coderabbit-ai-generated:v1 -->
+- **Dependencies:** `useSearchParams`, `Helmet`, `useCart`, `useFavoritesQuery`, `useCategoriesQuery`, `useProductsQuery`, `ProductCard`, `Dropdown<ProductSortOption>`, `Pagination`.
+- **Behavior:** Syncs `category`, `sort`, and `page` (`PAGE_SIZE = 12`) in URL search params; includes `"Favorites"` filter chip with live count; keeps previous grid visible during page changes (`keepPreviousData`); clamps out-of-bounds pages using data for the current query; renders retryable error UI and displays card mutation errors in a dismissible toast.
 
 ### `ProductDetailPage` (`src/pages/ProductDetailPage/ProductDetailPage.tsx`)
 - **Route:** `/product/:id`
-- **Dependencies:** `useParams<{ id: string }>`, `Link`, `useNavigate`, `Helmet`, `useCart`, `productsApi`, `PriceBox`, `ProductCard`.
-- **Local State:** `productState` (`AsyncRequestState<Product>`), `relatedProducts` (`Product[]`), `activeTab` (`DetailTab`: `'description' | 'manufacturer' | 'specs'`), `addedNotice` (`string`).
-- **Behavior:** Guards missing `id` during render, smooth-scrolls to top on `:id` change, loads product and up to 4 related products, renders masonry gallery, 3 ARIA tabs, inline + floating CTA bars, and toast notifications.
+- **Dependencies:** `useParams<{ id: string }>`, `Link`, `useNavigate`, `Helmet`, `useCart`, `useFavorites`, `useProductQuery`, `useRelatedProductsQuery`, `ProductNotFoundError`, `PriceBox`, `ProductCard`.
+- **Behavior:** Smooth-scrolls to top on `:id` change, resets tab selection per `id`, loads product and dependent related products via React Query, includes optimistic `Save` / `Saved` heart button, distinguishes `ProductNotFoundError` from retryable transient errors, and renders masonry gallery, 3 ARIA tabs, inline + floating CTA bars, and toast notifications.
 
 ---
 
 ## Reusable Components
 
+### `ApiDebugFab` (`src/components/ApiDebugFab/ApiDebugFab.tsx`)
+- **Purpose:** Discreet bottom-left floating debug simulator for testing React Query retries, error states, cache invalidation, and optimistic mutation rollbacks.
+- **Dependencies:** `useMatch('/product/:id')`, `useQueryClient`, `apiErrorSimulator`.
+- **Behavior:** Shifts upward (`api-debug-fab--pdp`) on PDP routes to avoid overlapping `.pdp-floating-bar`; focuses the close button on open, restores trigger focus on panel dismissal via the close button or Escape, and preserves outside click focus; toggles `failQueries` and `failFavoritesMutation` and triggers `queryClient.invalidateQueries()`.
+
 ### `Dropdown` (`src/components/Dropdown/Dropdown.tsx`)
 - **Purpose:** Generic cross-browser styled replacement for native `<select>`.
 - **Exported Interfaces:** `DropdownOption<T extends string | number = string>`, `DropdownProps<T extends string | number = string>`
-  - `options?: DropdownOption<T>[]` (default `[]`)
-  - `value: T`
-  - `onChange?: (value: T) => void`
-  - `placeholder?: string` (default `'Select'`)
-  - `size?: 'sm' | 'md' | 'lg'` (default `'md'`)
-  - `align?: 'left' | 'right'` (default `'right'`)
-  - `className?: string` (default `''`)
-  - `ariaLabel?: string` (default `'Selector'`)
-- **Behavior:** Uses typed `pointerdown` outside-click listener (`event.target instanceof Node`) and `React.KeyboardEvent<HTMLDivElement>` `Escape` dismissal; implements `aria-haspopup="listbox"` and `role="option"`.
+- **Behavior:** Uses typed `pointerdown` outside-click listener and `Escape` dismissal; implements `aria-haspopup="listbox"` and `role="option"`.
 
 ### `Navbar` (`src/components/Navbar/Navbar.tsx`)
 - **Purpose:** Top sticky navigation bar across all routes.
 - **Dependencies:** `Link`, `useCurrency`, `useCart`, `Dropdown<CurrencyCode>`, `SearchBar`.
 - **Behavior:** Displays brand link (`/`), global `SearchBar`, multi-currency `Dropdown` (`BRL`, `USD`, `EUR`), and cart toggle button displaying live `cartCount`.
 
+### `Pagination` (`src/components/Pagination/Pagination.tsx`)
+- **Purpose:** Numbered catalog pagination bar.
+- **Exported Interface (`PaginationProps`):** `currentPage`, `totalPages`, `onPageChange`, `isFetching?`.
+- **Behavior:** Renders `Previous`, numbered page buttons (`aria-current="page"`), `Next`, and an `Updating...` live status label during background transitions; returns `null` when `totalPages <= 1`.
+
 ### `PriceBox` (`src/components/PriceBox/PriceBox.tsx`)
 - **Purpose:** Standardized price and discount presentation connected to `useCurrency` and `calculatePrice`.
-- **Exported Interface (`PriceBoxProps`):**
-  - `price: CalculatedPrice | RawPriceInput | number`
-  - `size?: 'sm' | 'md' | 'lg'` (default `'md'`)
-  - `className?: string` (default `''`)
-  - `currency?: CurrencyCode` (optional override; defaults to Redux `currentCurrency`)
+- **Exported Interface (`PriceBoxProps`):** `price`, `size?`, `className?`, `currency?`.
 
 ### `ProductCard` (`src/components/ProductCard/ProductCard.tsx`)
 - **Purpose:** Catalog card used in PLP and PDP related products.
-- **Exported Interface (`ProductCardProps`):**
-  - `product: Product | null | undefined` (returns `null` if falsy)
-  - `onAddToCart?: (product: Product) => void` (optional override; falls back to `useCart().addToCart`)
-- **Behavior:** Links image and title to `/product/${id}`, shows category and stock badge, star rating, description, `PriceBox`, and `Add to Cart` button.
+- **Exported Interface (`ProductCardProps`):** `product`, `onAddToCart?`, `onFavoriteError?`.
+- **Behavior:** Wraps image `<Link>` and optimistic favorite heart `<button>` in `.product-card__media` (avoiding nested interactive elements), shows category and stock badges, star rating, description, `PriceBox`, and `Add to Cart` button.
 
 ### `SearchBar` (`src/components/SearchBar/SearchBar.tsx`)
 - **Purpose:** Global autocomplete search widget in `Navbar`.
-- **Internal Helpers:** `HighlightMatch` (`HighlightMatchProps`) — escapes regex special chars and wraps matches in `<mark>`.
-- **Exported Interface (`SearchBarProps`):** `placeholder?: string` (default `'Search products by name or category...'`).
-- **Dependencies:** `useNavigate`, `useFetch<Product[]>`, `productsApi.searchProducts`, `PriceBox`.
-- **Behavior:** Implements ARIA `combobox`/`listbox`, `300ms` debounced fetching, skeleton loading rows, keyboard navigation (`ArrowDown`, `ArrowUp`, `Enter`, `Escape`), clear button, and navigation to `/product/:id`.
+- **Dependencies:** `useNavigate`, `useDebounce`, `useProductSearchQuery`, `PriceBox`.
+- **Behavior:** Implements ARIA `combobox`/`listbox`, `300ms` debounced React Query search with 1-minute cache, inline error + `"Try Again"` retry inside dropdown, skeleton loading rows, keyboard navigation for visible suggestions, match highlighting (`<mark>`), clear button, and navigation to `/product/:id`.
 
 ### `MiniCart` (`src/components/MiniCart/MiniCart.tsx`)
 - **Purpose:** Global slide-over shopping cart drawer.
-- **Internal Subcomponent:** `CartItem` (`CartItemProps`) — manages per-item `300ms` debounced `productsApi.validateStock()` with `AbortController` cleanup, numeric input clamping (`1..maxStock`), increment/decrement buttons, stock warnings, and unit/line totals.
-- **Dependencies:** `Link`, `useCart`, `useCurrency`, `productsApi.validateStock`.
+- **Internal Subcomponent:** `CartItem` (`CartItemProps`) — manages per-item `300ms` debounced `useStockValidationQuery` via `useDebounce`, numeric input clamping (`1..maxStock`), increment/decrement buttons, stock warnings for the current quantity, and unit/line totals.
+- **Dependencies:** `Link`, `useCart`, `useCurrency`, `useDebounce`, `useStockValidationQuery`.
 - **Behavior:** Renders `null` when `!isOpen`; locks body scroll when open; supports `Escape` and overlay click to close; shows empty state, item list, subtotal/total, and placeholder notices for Checkout and View Full Cart.

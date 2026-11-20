@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import type { AsyncRequestState, Product } from '../../types';
 import { useCart } from '../../hooks/useCart';
-import { productsApi } from '../../services/api';
+import { useFavorites } from '../../hooks/useFavorites';
+import {
+  useProductQuery,
+  useRelatedProductsQuery,
+} from '../../hooks/useProducts';
+import { ProductNotFoundError } from '../../services/api';
 import PriceBox from '../../components/PriceBox/PriceBox';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import './ProductDetailPage.css';
@@ -20,99 +24,61 @@ export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const {
+    isFavorite,
+    toggleFavorite,
+    error: favoriteError,
+    resetError: resetFavoriteError,
+  } = useFavorites();
 
-  const [productState, setProductState] = useState<AsyncRequestState<Product>>({
-    status: 'loading',
-  });
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [activeTab, setActiveTab] = useState<DetailTab>('description');
+  const [tabSelection, setTabSelection] = useState<{
+    productId: string | undefined;
+    tab: DetailTab;
+  }>({ productId: id, tab: 'description' });
   const [addedNotice, setAddedNotice] = useState<string>('');
 
-  // Scroll to top and fetch product on id change
+  const activeTab: DetailTab =
+    tabSelection.productId === id ? tabSelection.tab : 'description';
+
+  const productQuery = useProductQuery(id);
+  const product = productQuery.data;
+
+  const relatedQuery = useRelatedProductsQuery(
+    product?.id,
+    product?.category,
+    4,
+  );
+  const relatedProducts = relatedQuery.data ?? [];
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (!id) {
-      return;
-    }
-
-    let ignore = false;
-
-    productsApi
-      .getProductById(id, 200)
-      .then((data) => {
-        if (!ignore) {
-          setProductState({ status: 'success', data });
-          setActiveTab('description');
-
-          // Fetch related products based on category
-          productsApi
-            .getRelatedProducts(data.id, data.category, 4, 150)
-            .then((related) => {
-              if (!ignore) {
-                setRelatedProducts(related);
-              }
-            })
-            .catch((err: unknown) => {
-              console.error('Failed to load related products:', err);
-            });
-        }
-      })
-      .catch((err: unknown) => {
-        if (!ignore) {
-          const message =
-            err instanceof Error ? err.message : 'Product not found';
-          setProductState({ status: 'error', error: message });
-        }
-      });
-
-    return () => {
-      ignore = true;
-    };
   }, [id]);
 
-  const effectiveState: AsyncRequestState<Product> = !id
-    ? { status: 'error', error: 'Product not found' }
-    : productState;
-
-  const currentProduct =
-    effectiveState.status === 'success' ? effectiveState.data : null;
+  useEffect(() => {
+    if (!favoriteError) return;
+    const timer = setTimeout(() => {
+      resetFavoriteError();
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [favoriteError, resetFavoriteError]);
 
   const handleAddToCart = (): void => {
-    if (currentProduct) {
-      addToCart(currentProduct);
-      setAddedNotice(`"${currentProduct.name}" added to cart!`);
+    if (product) {
+      addToCart(product);
+      setAddedNotice(`"${product.name}" added to cart!`);
       setTimeout(() => setAddedNotice(''), 3000);
     }
   };
 
   const handleBuyNow = (): void => {
-    if (currentProduct) {
-      addToCart(currentProduct);
-      setAddedNotice(`Proceeding to checkout with "${currentProduct.name}"!`);
+    if (product) {
+      addToCart(product);
+      setAddedNotice(`Proceeding to checkout with "${product.name}"!`);
       setTimeout(() => setAddedNotice(''), 3000);
     }
   };
 
-  if (effectiveState.status === 'loading') {
-    return (
-      <div className="pdp-container">
-        <div className="pdp-skeleton">
-          <div className="pdp-skeleton__gallery">
-            <div className="pdp-skeleton__box pdp-skeleton__box--tall" />
-            <div className="pdp-skeleton__box pdp-skeleton__box--medium" />
-          </div>
-          <div className="pdp-skeleton__details">
-            <div className="pdp-skeleton__line pdp-skeleton__line--sm" />
-            <div className="pdp-skeleton__line pdp-skeleton__line--lg" />
-            <div className="pdp-skeleton__line pdp-skeleton__line--md" />
-            <div className="pdp-skeleton__line pdp-skeleton__line--xl" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (effectiveState.status === 'error') {
+  if (!id) {
     return (
       <div className="pdp-container pdp-error-state">
         <Helmet>
@@ -140,10 +106,7 @@ export function ProductDetailPage() {
             </svg>
           </div>
           <h2>Product Not Found</h2>
-          <p>
-            {effectiveState.error ||
-              'We could not find the product you were looking for.'}
-          </p>
+          <p>We could not find the product you were looking for.</p>
           <button
             type="button"
             className="pdp-btn pdp-btn--primary"
@@ -156,7 +119,92 @@ export function ProductDetailPage() {
     );
   }
 
-  const product = effectiveState.data;
+  if (productQuery.isPending) {
+    return (
+      <div className="pdp-container">
+        <div className="pdp-skeleton">
+          <div className="pdp-skeleton__gallery">
+            <div className="pdp-skeleton__box pdp-skeleton__box--tall" />
+            <div className="pdp-skeleton__box pdp-skeleton__box--medium" />
+          </div>
+          <div className="pdp-skeleton__details">
+            <div className="pdp-skeleton__line pdp-skeleton__line--sm" />
+            <div className="pdp-skeleton__line pdp-skeleton__line--lg" />
+            <div className="pdp-skeleton__line pdp-skeleton__line--md" />
+            <div className="pdp-skeleton__line pdp-skeleton__line--xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (productQuery.isError || !product) {
+    const isNotFound = productQuery.error instanceof ProductNotFoundError;
+    const errorMessage =
+      productQuery.error instanceof Error
+        ? productQuery.error.message
+        : 'We could not load this product right now.';
+
+    return (
+      <div className="pdp-container pdp-error-state" role="alert">
+        <Helmet>
+          <title>
+            {isNotFound
+              ? 'Product Not Found | Minie Shop'
+              : 'Error Loading Product | Minie Shop'}
+          </title>
+          <meta
+            name="description"
+            content="The requested product could not be loaded."
+          />
+        </Helmet>
+        <div className="pdp-error-content">
+          <div className="pdp-error-icon">
+            <svg
+              width="48"
+              height="48"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+              />
+            </svg>
+          </div>
+          <h2>{isNotFound ? 'Product Not Found' : 'Could Not Load Product'}</h2>
+          <p>{errorMessage}</p>
+          <div className="pdp-error-actions">
+            {!isNotFound && (
+              <button
+                type="button"
+                className="pdp-btn pdp-btn--primary"
+                onClick={() => {
+                  void productQuery.refetch();
+                }}
+                disabled={productQuery.isFetching}
+              >
+                {productQuery.isFetching ? 'Retrying...' : 'Try Again'}
+              </button>
+            )}
+            <button
+              type="button"
+              className={`pdp-btn ${
+                isNotFound ? 'pdp-btn--primary' : 'pdp-btn--secondary'
+              }`}
+              onClick={() => navigate('/')}
+            >
+              Back to Catalog
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const {
     name,
     category,
@@ -168,6 +216,8 @@ export function ProductDetailPage() {
     specs = [],
     manufacturer,
   } = product;
+
+  const favorited = isFavorite(product.id);
 
   return (
     <div className="pdp-wrapper">
@@ -182,7 +232,7 @@ export function ProductDetailPage() {
         />
       </Helmet>
 
-      {/* Floating alert notification */}
+      {/* Floating alert notifications */}
       {addedNotice && (
         <div className="pdp-toast" role="alert">
           <svg
@@ -200,6 +250,26 @@ export function ProductDetailPage() {
             />
           </svg>
           <span>{addedNotice}</span>
+        </div>
+      )}
+
+      {favoriteError && (
+        <div className="pdp-toast pdp-toast--error" role="alert">
+          <svg
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+            />
+          </svg>
+          <span>{favoriteError.message}</span>
         </div>
       )}
 
@@ -259,7 +329,40 @@ export function ProductDetailPage() {
           {/* Right Column: Product Information & Interactive Tabs */}
           <section className="pdp-info" aria-label="Product Details">
             <div className="pdp-info__header">
-              <span className="pdp-info__category">{category}</span>
+              <div className="pdp-info__header-top">
+                <span className="pdp-info__category">{category}</span>
+                <button
+                  type="button"
+                  className={`pdp-favorite-btn ${
+                    favorited ? 'pdp-favorite-btn--active' : ''
+                  }`}
+                  onClick={() => toggleFavorite(product.id)}
+                  aria-pressed={favorited}
+                  aria-label={
+                    favorited
+                      ? `Remove ${name} from favorites`
+                      : `Save ${name} to favorites`
+                  }
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill={favorited ? 'currentColor' : 'none'}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                    />
+                  </svg>
+                  <span>{favorited ? 'Saved' : 'Save'}</span>
+                </button>
+              </div>
+
               <h1 className="pdp-info__title">{name}</h1>
 
               {/* Rating & Stock row */}
@@ -422,7 +525,9 @@ export function ProductDetailPage() {
                     aria-controls={`panel-${tab.id}`}
                     aria-selected={activeTab === tab.id}
                     className={`pdp-tabs__tab ${activeTab === tab.id ? 'pdp-tabs__tab--active' : ''}`}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() =>
+                      setTabSelection({ productId: id, tab: tab.id })
+                    }
                   >
                     {tab.label}
                   </button>

@@ -1,6 +1,6 @@
 # ADR-0004: Custom Hooks Facade and Abortable Frontend-Only Simulated API
 
-- **Status:** Accepted
+- **Status:** Partially Superseded by [ADR-0007](./0007-tanstack-react-query-server-state.md) (`useFetch` replaced by TanStack React Query)
 - **Date:** 2026-10-27
 - **Phase:** Phase 3–5
 

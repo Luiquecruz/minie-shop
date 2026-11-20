@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Product } from '../../types';
-import { useFetch, type UseFetchFetcherOptions } from '../../hooks/useFetch';
-import { productsApi } from '../../services/api';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useProductSearchQuery } from '../../hooks/useProducts';
 import PriceBox from '../PriceBox/PriceBox';
 import './SearchBar.css';
 
@@ -49,31 +48,21 @@ export function SearchBar({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
 
-  // Stable fetcher with AbortSignal passed to API
-  const searchFetcher = useCallback(
-    (searchQuery: string, { signal }: UseFetchFetcherOptions): Promise<Product[]> =>
-      productsApi.searchProducts({
-        query: searchQuery,
-        limit: 6,
-        signal,
-        delayMs: 220,
-      }),
-    [],
-  );
-
-  // useFetch hook with AbortController, debounce, and effect cleanup
-  const { data: results, isLoading } = useFetch<Product[]>(
-    searchFetcher,
-    query,
-    {
-      debounceMs: 300,
-      minQueryLength: 1,
-      initialData: [],
-    },
-  );
+  const debouncedQuery = useDebounce(query, 300);
+  const {
+    data: results = [],
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useProductSearchQuery(debouncedQuery, 6);
 
   const hasQuery = query.trim().length > 0;
+  const isWaitingDebounce = hasQuery && query.trim() !== debouncedQuery.trim();
+  const showSpinner = isLoading || isFetching || isWaitingDebounce;
   const showDropdown = isOpen && hasQuery;
+  const showSuggestions = showDropdown && !isError && results.length > 0;
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -112,6 +101,8 @@ export function SearchBar({
       setIsOpen(false);
       return;
     }
+
+    if (!showSuggestions) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -184,7 +175,7 @@ export function SearchBar({
         />
 
         {/* Loading Spinner */}
-        {isLoading && (
+        {showSpinner && (
           <span className="search-bar__spinner" aria-label="Searching...">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <circle
@@ -237,7 +228,25 @@ export function SearchBar({
           role="listbox"
           aria-label="Search suggestions"
         >
-          {isLoading && results.length === 0 ? (
+          {isError ? (
+            <div className="search-bar__error" role="alert">
+              <p className="search-bar__error-title">Search request failed</p>
+              <span className="search-bar__error-text">
+                {error instanceof Error
+                  ? error.message
+                  : 'Unable to fetch suggestions right now.'}
+              </span>
+              <button
+                type="button"
+                className="search-bar__retry-btn"
+                onClick={() => {
+                  void refetch();
+                }}
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (isLoading || isWaitingDebounce) && results.length === 0 ? (
             <div className="search-bar__status">
               <div className="search-bar__skeleton-item">
                 <div className="search-bar__skeleton-thumb" />
@@ -254,7 +263,7 @@ export function SearchBar({
                 </div>
               </div>
             </div>
-          ) : results.length > 0 ? (
+          ) : showSuggestions ? (
             <>
               <div className="search-bar__header">
                 <span className="search-bar__header-title">

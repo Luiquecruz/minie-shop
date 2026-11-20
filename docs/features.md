@@ -8,26 +8,28 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
 
 | ID | Feature | Phase | Primary Files | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `F-01` | Product Catalog & Filtering (PLP) | Phase 3 | `ProductListingPage.tsx`, `ProductCard.tsx`, `Dropdown.tsx` | Implemented |
+| `F-01` | Product Catalog, Filtering & Pagination (PLP) | Phase 3 / Post-Phase 5 | `ProductListingPage.tsx`, `Pagination.tsx`, `ProductCard.tsx`, `Dropdown.tsx` | Implemented |
 | `F-02` | Pricing & Discount Precedence Engine | Phase 3 | `utils/price.ts`, `PriceBox.tsx` | Implemented |
 | `F-03` | Multi-Currency Engine & Persistence | Phase 3 | `utils/currency.ts`, `currencySlice.ts`, `useCurrency.ts`, `Navbar.tsx` | Implemented |
-| `F-04` | Product Detail Page (PDP) & SEO | Phase 4 | `ProductDetailPage.tsx`, `App.tsx` | Implemented |
-| `F-05` | Global Autocomplete Search | Phase 4 | `SearchBar.tsx`, `useFetch.ts`, `api.ts` | Implemented |
-| `F-06` | Floating Mini-Cart & Stock Guardrails | Phase 5 | `MiniCart.tsx`, `cartSlice.ts`, `useCart.ts`, `api.ts` | Implemented |
+| `F-04` | Product Detail Page (PDP) & SEO | Phase 4 / Post-Phase 5 | `ProductDetailPage.tsx`, `useProducts.ts`, `App.tsx` | Implemented |
+| `F-05` | Global Autocomplete Search | Phase 4 / Post-Phase 5 | `SearchBar.tsx`, `useDebounce.ts`, `useProducts.ts`, `api.ts` | Implemented |
+| `F-06` | Floating Mini-Cart & Stock Guardrails | Phase 5 / Post-Phase 5 | `MiniCart.tsx`, `cartSlice.ts`, `useCart.ts`, `useProducts.ts` | Implemented |
 | `F-07` | Incremental TypeScript Migration | Pre-Phase 6 | `tsconfig.json`, `src/types/*`, `src/store/hooks.ts`, all `src/**/*.ts(x)` | Implemented |
-| `F-08` | Dedicated Cart Page & Checkout Flow | Phase 6 | — | Planned |
+| `F-08` | React Query Caching, Optimistic Favorites & API Simulator | Post-Phase 5 | `src/query/*`, `useProducts.ts`, `useFavorites.ts`, `ApiDebugFab.tsx` | Implemented |
+| `F-09` | Dedicated Cart Page & Checkout Flow | Phase 6 | — | Planned |
 
 ---
 
 ## Feature Details
 
-### F-01: Product Catalog & Filtering (PLP)
+### F-01: Product Catalog, Filtering & Pagination (PLP)
 - **Route:** `/` (and fallback `*`)
 - **Capabilities:**
-  - Displays 30 mock catalog products fetched asynchronously via `productsApi.getProducts()`.
-  - Dynamic category chip filters loaded via `productsApi.getCategories()` (`All` plus catalog categories).
+  - Displays 30 mock catalog products paginated (`12` per page) via `useProductsQuery` with `placeholderData: keepPreviousData` so page transitions do not flash skeletons.
+  - Synchronizes `?page=&category=&sort=` in URL search parameters via `useSearchParams` so returning from a PDP preserves filters and reads directly from React Query cache.
+  - Dynamic category chip filters loaded via `useCategoriesQuery()` (`All`, `Favorites` with live badge count, plus catalog categories).
   - Sorting via generic `Dropdown<ProductSortOption>` (`Default (Featured)`, `Lowest Price`, `Highest Price`, `Top Rated`, `Name (A - Z)`).
-  - Discriminated union request state (`AsyncRequestState<Product[]>`), 8-card skeleton loading state, error alert with retry trigger, empty state with filter reset, and direct `Add to Cart` action.
+  - Initial 8-card skeleton loading state, error alert with React Query `refetch()` ("Try Again"), empty state with filter reset, and direct `Add to Cart` action.
 
 ### F-02: Pricing & Discount Precedence Engine
 - **Capabilities:**
@@ -44,18 +46,20 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
 ### F-04: Product Detail Page (PDP) & SEO
 - **Route:** `/product/:id`
 - **Capabilities:**
-  - Dynamic `<title>` and `<meta name="description">` via `react-helmet-async` (including "Product Not Found" state).
+  - Dynamic `<title>` and `<meta name="description">` via `react-helmet-async` (including "Product Not Found" and transient error states).
   - Breadcrumb navigation (`Catalog / <category> / <name>`).
   - Open masonry image gallery (4 aspect-ratio views per product) with mobile swipe hint.
+  - Optimistic Favorite toggle button (`Save` / `Saved`) in the details header.
   - 3 accessible tabs (`Description`, `Manufacturer`, `Technical Specs` key-value grid).
   - Inline action buttons + sticky floating bottom action bar (`Add to Cart`, `Buy Now`) with toast feedback.
-  - Related products grid (`limit = 4`) fetched via `productsApi.getRelatedProducts()`.
+  - Related products grid (`limit = 4`) fetched via dependent `useRelatedProductsQuery()`.
+  - Distinguishes `ProductNotFoundError` from transient/simulated errors, offering a **"Try Again"** (`refetch()`) button for recoverable errors.
 
 ### F-05: Global Autocomplete Search
 - **Location:** `Navbar`
 - **Capabilities:**
-  - Uses generic `useFetch<Product[]>` (`debounceMs: 300`, `minQueryLength: 1`) backed by `productsApi.searchProducts({ query, limit: 6, signal, delayMs: 220 })`.
-  - Cancels stale requests with `AbortController`.
+  - Uses `useDebounce(query, 300)` + `useProductSearchQuery(debouncedQuery, 6)` backed by `productsApi.searchProducts` with `AbortSignal` support.
+  - Caches search results per normalized query term for 1 minute and shows inline error + **"Try Again"** recovery inside the dropdown on failure.
   - ARIA combobox pattern with `ArrowUp`, `ArrowDown`, `Enter`, `Escape` keyboard support, click-outside dismissal, match highlighting (`<mark>`), skeleton loading, and direct route navigation to `/product/:id`.
 
 ### F-06: Floating Mini-Cart & Stock Guardrails
@@ -64,7 +68,7 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
   - Automatically opens when an item is added (`addToCart` sets `isOpen = true`).
   - Persists cart items under `localStorage` key `minieshop_cart` with runtime schema validation (`isValidCartItem`).
   - Enforces min (`1`) and max (`product.stock`) bounds in both Redux reducers and UI controls.
-  - Performs debounced (`300ms`) async stock validation via `productsApi.validateStock()` with `AbortController` cleanup per cart item.
+  - Performs debounced (`300ms`) async stock validation via `useDebounce` + `useStockValidationQuery` per cart item.
   - Locks `document.body.style.overflow` while open, closes on `Escape` or backdrop click, and displays placeholder feedback notices for `Proceed to Checkout` and `View Full Cart` until Phase 6.
 
 ### F-07: Incremental TypeScript Migration
@@ -72,3 +76,9 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
   - Strict TypeScript (`"strict": true`, `"allowJs": false`, `"noUnusedLocals": true`, `"noUnusedParameters": true`, `"noFallthroughCasesInSwitch": true`) enforced via `npm run typecheck` and `npm run build`.
   - Zero explicit or implicit `any` enforced by Oxlint (`typescript/no-explicit-any: "error"`) and `tsconfig.json`.
   - Shared domain entities in `src/types/` (`currency.ts`, `product.ts`, `cart.ts`, `api.ts`) and co-located component prop interfaces.
+
+### F-08: React Query Caching, Optimistic Favorites & API Simulator
+- **Capabilities:**
+  - Configured `QueryClient` (`staleTime: 2m`, `gcTime: 10m`, `refetchOnWindowFocus: false`, smart `retry: 2` with exponential backoff) and `ReactQueryDevtools` (`DEV` only, bottom-right).
+  - Optimistic Favorites toggle (`useToggleFavoriteMutation`) on `ProductCard` and `ProductDetailPage`, persisted in `localStorage` (`minieshop_favorites`), with automatic cache rollback on mutation failure and targeted invalidation of `favorites` and `favoritesOnly` product lists.
+  - Discreet bottom-left `ApiDebugFab` popover allowing live toggling of **Simulate Query Error**, **Simulate Favorite Error**, and **Invalidate Cache**.

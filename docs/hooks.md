@@ -10,7 +10,14 @@ Tracks all custom React hooks in `src/hooks/`.
 | :--- | :--- | :--- | :--- |
 | `useCart` | `src/hooks/useCart.ts` | Cart state & actions facade | `store/hooks`, `cartSlice` |
 | `useCurrency` | `src/hooks/useCurrency.ts` | Currency state, switching & formatting | `store/hooks`, `currencySlice`, `utils/currency` |
-| `useFetch<T>` | `src/hooks/useFetch.ts` | Generic debounced async fetching with `AbortController` | React `useState`, `useEffect` |
+| `useDebounce<T>` | `src/hooks/useDebounce.ts` | Generic value debouncing with timer cleanup | React `useState`, `useEffect` |
+| `useProductsQuery` | `src/hooks/useProducts.ts` | Paginated, filtered catalog query (`keepPreviousData`) | `@tanstack/react-query`, `queryKeys`, `productsApi` |
+| `useCategoriesQuery` | `src/hooks/useProducts.ts` | Cached catalog categories query (`5m` staleTime) | `@tanstack/react-query`, `queryKeys`, `productsApi` |
+| `useProductQuery` | `src/hooks/useProducts.ts` | Single PDP product detail query | `@tanstack/react-query`, `queryKeys`, `productsApi` |
+| `useRelatedProductsQuery` | `src/hooks/useProducts.ts` | Dependent PDP related products query | `@tanstack/react-query`, `queryKeys`, `productsApi` |
+| `useProductSearchQuery` | `src/hooks/useProducts.ts` | Cached SearchBar autocomplete query (`1m` staleTime) | `@tanstack/react-query`, `queryKeys`, `productsApi` |
+| `useStockValidationQuery` | `src/hooks/useProducts.ts` | MiniCart stock validation query (`30s` staleTime) | `@tanstack/react-query`, `queryKeys`, `productsApi` |
+| `useFavorites` | `src/hooks/useFavorites.ts` | Favorites query, optimistic toggle & rollback facade | `@tanstack/react-query`, `queryKeys`, `productsApi` |
 
 ---
 
@@ -18,57 +25,25 @@ Tracks all custom React hooks in `src/hooks/`.
 
 ### `useCart` (`src/hooks/useCart.ts`)
 - **Purpose:** Encapsulates Redux `cart` selectors (`useAppSelector`) and typed action dispatchers (`useAppDispatch`) behind `UseCartReturn`.
-- **Returns (`UseCartReturn`):**
-  - `items`: `CartItem[]`
-  - `isOpen`: `boolean`
-  - `cartCount`: `number`
-  - `subtotal`: `number` (in `BRL`)
-  - `stockWarnings`: `StockWarningsMap` (`Record<number, string>`)
-  - `addToCart(product: Product, quantity?: number): void`
-  - `updateQuantity(id: number, quantity: number): void`
-  - `setStockWarning(id: number, message: string | null): void`
-  - `removeFromCart(id: number): void`
-  - `clearCart(): void`
-  - `openCart(): void`
-  - `closeCart(): void`
-  - `toggleCart(): void`
+- **Returns (`UseCartReturn`):** `items`, `isOpen`, `cartCount`, `subtotal`, `stockWarnings`, `addToCart`, `updateQuantity`, `setStockWarning`, `removeFromCart`, `clearCart`, `openCart`, `closeCart`, `toggleCart`.
 
 ### `useCurrency` (`src/hooks/useCurrency.ts`)
 - **Purpose:** Exposes active store currency, configuration, switcher, and BRL-to-target formatting helpers via `UseCurrencyReturn`.
-- **Returns (`UseCurrencyReturn`):**
-  - `currentCurrency`: `CurrencyCode` (`'BRL' | 'USD' | 'EUR'`)
-  - `currencyConfig`: `CurrencyConfig`
-  - `changeCurrency(currencyCode: CurrencyCode): void`
-  - `formatPrice(valueInBrl: number): string` (via `formatCurrencyWithCode`)
-  - `convertPrice(valueInBrl: number): number` (via `convertCurrency`)
-  - `supportedCurrencies`: `Record<CurrencyCode, CurrencyConfig>`
+- **Returns (`UseCurrencyReturn`):** `currentCurrency`, `currencyConfig`, `changeCurrency`, `formatPrice`, `convertPrice`, `supportedCurrencies`.
 
-### `useFetch<T>` (`src/hooks/useFetch.ts`)
-- **Purpose:** Generic debounced async data fetching hook preventing race conditions via `AbortController` and `useEffect` cleanup.
-- **Overloaded Signatures:**
-  ```ts
-  export function useFetch<T>(
-    fetcher: UseFetchFetcher<T>,
-    query: string,
-    options: UseFetchOptionsWithInitial<T>,
-  ): AsyncFetchState<T>;
+### `useDebounce<T>` (`src/hooks/useDebounce.ts`)
+- **Signature:** `useDebounce<T>(value: T, delayMs: number = 300): T`
+- **Purpose:** Delays propagation of rapidly changing values (such as search input or cart item quantity) and cleans up pending timers on change or unmount.
 
-  export function useFetch<T>(
-    fetcher: UseFetchFetcher<T>,
-    query: string,
-    options?: UseFetchOptionsOptional<T>,
-  ): AsyncFetchState<T | undefined>;
-  ```
-- **Return Type (`AsyncFetchState<T>`):** Hybrid discriminated union supporting both `status` narrowing and `{ data, isLoading, error }` destructuring:
-  - `{ status: 'idle'; data: T; error: null; isLoading: false }`
-  - `{ status: 'loading'; data: T; error: null; isLoading: true }`
-  - `{ status: 'success'; data: T; error: null; isLoading: false }`
-  - `{ status: 'error'; data: T; error: Error; isLoading: false }`
-<!-- coderabbit-ai-generated:v1 -->
+### Catalog & Product Query Hooks (`src/hooks/useProducts.ts`)
+- `useProductsQuery(filters: ProductListFilters)`: Uses `queryKeys.products.list(filters)`, `placeholderData: keepPreviousData`, and forwards `signal` to `productsApi.getProducts`.
+- `useCategoriesQuery()`: Uses `queryKeys.categories.all` with `staleTime: 5 * 60 * 1000`.
+- `useProductQuery(id: string | undefined)`: Uses `queryKeys.products.detail(id ?? '')` with `enabled: Boolean(id)`.
+- `useRelatedProductsQuery(productId, category, limit = 4)`: Dependent query enabled when both `productId` and `category` are resolved.
+- `useProductSearchQuery(debouncedQuery, limit = 6)`: Enabled when `debouncedQuery.trim().length >= 1` with `staleTime: 60 * 1000`.
+- `useStockValidationQuery(productId, debouncedQuantity, enabled)`: Enabled when `enabled && debouncedQuantity >= 1`, `staleTime: 30 * 1000`, `retry: 0`.
 
-<!-- coderabbit-ai-generated-section:v1:a656dcbfe27855fcaedfa2391285caa4e4233fe5a2495f2c93ca3183f7a83ec1 -->
-
-- **Ineligible Queries:** Return idle with the current `initialData` and clear retained request data, status, and errors before a later eligible query.
-- **Cancellation & Error Behavior:** Clears pending `setTimeout` and invokes `controller.abort()` on cleanup; ignores `DOMException` (`AbortError`) or aborted signals; normalizes non-`Error` throws into `Error`.
-
-<!-- /coderabbit-ai-generated:v1 -->
+### Favorites Hooks (`src/hooks/useFavorites.ts`)
+- `useFavoritesQuery()`: Reads persisted favorite IDs under `queryKeys.favorites.all`.
+- `useToggleFavoriteMutation()`: Optimistically toggles `productId` in `onMutate` after cancelling in-flight reads. Writes run in order, and settlement projects pending toggles over the latest confirmed IDs. It invalidates `favoritesOnly: true` product lists on settlement and refetches `queryKeys.favorites.all` once the queue drains.
+- `useFavorites(onFavoriteError?)`: Facade returning `{ favoriteIds, favoritesCount, isFavorite, toggleFavorite, isPending, error, resetError }`.
