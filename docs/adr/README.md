@@ -30,3 +30,6 @@ This directory maintains an **incremental, append-only log** of architectural de
 | [ADR-0005](./0005-css-tokens-dark-mode-and-svg-only-ui.md) | CSS Custom Properties Design System, Dark Mode, and SVG-Only UI | Phase 3–5 | Accepted | 2026-10-27 |
 | [ADR-0006](./0006-incremental-typescript-migration.md) | Strict TypeScript Baseline & Extensionless Bundler Resolution | Pre-Phase 6 | Accepted | 2026-11-18 |
 | [ADR-0007](./0007-tanstack-react-query-server-state.md) | TanStack React Query for Server & Async Data State | Post-Phase 5 | Accepted | 2026-11-20 |
+| [ADR-0008](./0008-cart-page-context-reducer-baseline.md) | Dedicated Cart Page Baseline with Monolithic React Context and `useReducer` | Phase 6 (Inc. 1) | Superseded by ADR-0010 | 2026-11-20 |
+| [ADR-0009](./0009-vitest-and-react-testing-library.md) | Vitest & React Testing Library Adoption | Phase 6 (Inc. 2) | Accepted | 2026-11-21 |
+| [ADR-0010](./0010-cart-page-redux-memoized-selectors.md) | Migrate CartPage to Pure Functional Redux Toolkit Slice & Memoized `createSelector` | Phase 6 (Inc. 2) | Accepted | 2026-11-21 |

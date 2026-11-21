@@ -9,14 +9,16 @@ flowchart TD
     App --> Layout["RootLayout (Navbar + Outlet + Footer + MiniCart + ApiDebugFab)"]
     Layout --> PLP["ProductListingPage (/?page=&category=&sort=)"]
     Layout --> PDP["ProductDetailPage (/product/:id)"]
+    Layout --> Cart["CartPage (/cart)"]
+    Cart --> Hooks
     Navbar["Navbar (SearchBar + Currency Dropdown + Cart Trigger)"] --> Hooks
     PLP --> Hooks
     PDP --> Hooks
     MiniCart["MiniCart Drawer"] --> Hooks
     Hooks["Custom Hooks (useProducts, useFavorites, useDebounce, useCart, useCurrency)"] --> RQ["TanStack QueryClient (src/query/)"]
-    Hooks --> Store["Redux Store (cartSlice, currencySlice, store/hooks.ts)"]
+    Hooks --> Store["Redux Store (cartSlice, cartSelectors, currencySlice, listenerMiddleware)"]
     RQ --> API["Simulated API & Error Simulator (src/services/api.ts)"]
-    Store --> LS["window.localStorage (minieshop_cart, minieshop_currency)"]
+    Store --> LS["window.localStorage (minieshop_cart, minieshop_cart_prefs, minieshop_currency)"]
     API --> FavLS["window.localStorage (minieshop_favorites)"]
     API --> Mock["Mock Catalog (src/data/products.ts)"]
     Mock --> PriceEngine["Price Engine (src/utils/price.ts)"]
@@ -37,6 +39,7 @@ flowchart TD
   - Parent `<Route element={<RootLayout />}>`
     - `index` (`/`) -> `ProductListingPage`
     - `path="product/:id"` -> `ProductDetailPage`
+    - `path="cart"` -> `CartPage`
     - `path="*"` -> `ProductListingPage` (fallback)
 
 ---
@@ -66,5 +69,7 @@ Defined in `src/index.css` and `src/App.css`:
 | **Phase 4** | PDP (`/product/:id`), dynamic `Helmet`, masonry gallery, 3-tab system, floating CTA, related products, `SearchBar` | Completed |
 | **Phase 5** | `MiniCart` slide-over drawer, debounced stock validation, `cartSlice` guardrails & `localStorage` persistence | Completed |
 | **Pre-Phase 6** | Incremental TypeScript migration (`SDD-0003` / `ADR-0006`) | Completed |
-| **Post-Phase 5** | TanStack React Query migration (`SDD-0004` / `ADR-0007`), URL pagination, optimistic Favorites, `ApiDebugFab` | Implemented (Browser flow check pending Chrome DevTools connection) |
-| **Phase 6** | Dedicated Cart page & Checkout flow (authored directly in strict TypeScript) | Planned |
+| **Post-Phase 5** | TanStack React Query migration (`SDD-0004` / `ADR-0007`), URL pagination, optimistic Favorites, `ApiDebugFab` | Completed |
+| **Phase 6 (Inc. 1)** | Dedicated Cart page (`/cart`) with monolithic Context + `useReducer` (`SDD-0001` / `ADR-0008`) | Superseded by Inc. 2 |
+| **Phase 6 (Inc. 2)** | Pure Redux Toolkit `cartSlice`, memoized `createSelector`, `localStorage` listener, Vitest + React `<Profiler>` (`SDD-0001` / `ADR-0009` / `ADR-0010`) | Implemented |
+| **Phase 6 (Inc. 3)** | Checkout flow & order confirmation (`SDD-0001`) | Planned |

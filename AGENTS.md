@@ -8,9 +8,9 @@ Project constitution, context, and operational guidelines for AI agents and deve
 
 **Progressive Minie Shop** is an incremental e-commerce web application built from scratch with React, TypeScript, and Vite to explore and apply fundamental and advanced React patterns in structured phases.
 
-- **Current Phase:** Post-Phase 5 / Pre-Phase 6 Milestone — TanStack React Query server-state migration (`SDD-0004` / `ADR-0007`), URL-synced pagination (`keepPreviousData`), optimistic Favorites mutation, and `ApiDebugFab` simulator (building on strict TypeScript migration `SDD-0003` / `ADR-0006`).
+- **Current Phase:** Phase 6 — Increment 2 (`SDD-0001` / `ADR-0009` / `ADR-0010`): Dedicated Cart Page (`/cart`) migrated from monolithic Context + `useReducer` to pure immutable Redux Toolkit `cartSlice` reducers, memoized `createSelector` selectors, listener-based `localStorage` persistence, and Vitest + React `<Profiler>` verification.
 - **Next Planned Phase:**
-  - **Phase 6:** Dedicated Cart page & Checkout flow (authored directly in strict TypeScript).
+  - **Phase 6 (Inc. 3):** Checkout flow & order confirmation.
 
 ---
 
@@ -26,7 +26,7 @@ Project constitution, context, and operational guidelines for AI agents and deve
 | **Routing** | `react-router-dom` | `^7.18.4` | Declarative routing with `BrowserRouter` and `RootLayout` `<Outlet />` |
 | **SEO / Head** | `react-helmet-async` | `^3.0.0` | Dynamic `<title>` and `<meta>` per route |
 | **Linter** | Oxlint | `^1.88.0` | Configured via `.oxlintrc.json` (`react`, `oxc`, `typescript` plugins, `typescript/no-explicit-any: "error"`) |
-| **Tests** | Not yet configured | — | Pending ADR before introducing test runner |
+| **Tests** | Vitest + Testing Library | `^5.1.1` (`jsdom`) | Reducer, `createSelector` memoization & React `<Profiler>` tests (`npm test`) |
 
 ---
 
@@ -34,6 +34,8 @@ Project constitution, context, and operational guidelines for AI agents and deve
 
 ```bash
 npm run dev        # Start Vite local dev server (http://localhost:5199, auto-open)
+npm test           # Run Vitest unit, selector, and React Profiler tests (vitest run)
+npm run test:watch # Run Vitest in interactive watch mode
 npm run typecheck  # Run strict TypeScript compiler checks (tsc --noEmit)
 npm run lint       # Run Oxlint checks across the codebase
 npm run build      # Typecheck and build production bundle into dist/ (tsc --noEmit && vite build)
@@ -73,13 +75,11 @@ react-minieshop/
 └── src/
     ├── assets/                  # Static image assets
     ├── components/              # Reusable UI components (ApiDebugFab, Dropdown, MiniCart, Navbar, Pagination, PriceBox, ProductCard, SearchBar)
-    ├── data/                    # Mock dataset (products.ts)
-    ├── hooks/                   # Custom hooks (useCart, useCurrency, useDebounce, useFavorites, useProducts)
-    ├── layouts/                 # Route layout shells (RootLayout)
-    ├── pages/                   # Route pages (ProductListingPage, ProductDetailPage)
+    ├── pages/                   # Route pages (ProductListingPage, ProductDetailPage, CartPage)
     ├── query/                   # TanStack Query client & typed key factory (queryClient.ts, queryKeys.ts)
     ├── services/                # Frontend-only simulated API & error simulator (api.ts)
-    ├── store/                   # Redux store, typed hooks & slices (hooks.ts, cartSlice.ts, currencySlice.ts)
+    ├── store/                   # Redux store, typed hooks, pure slices, memoized selectors & persistence (hooks.ts, persistence/, selectors/, slices/)
+    ├── test/                    # Vitest test setup (setup.ts)
     ├── types/                   # Shared domain types & interfaces (api.ts, cart.ts, currency.ts, product.ts, index.ts)
     ├── utils/                   # Pure business engines (currency.ts, price.ts)
     ├── App.tsx / App.css        # Router shell & app layout styles
@@ -101,3 +101,7 @@ react-minieshop/
    - New features or significant refactors should be preceded by an SDD specification in `docs/sdd/`.
    - New architectural choices (dependencies, state boundaries, test frameworks, routing shifts) must be recorded as an incremental ADR in `docs/adr/`.
    - Any addition or change to features, components, hooks, store slices, services, or utils must update the corresponding file in `docs/` and keep this `AGENTS.md` current.
+7. **Mandatory Branch-per-Spec Rule:**
+   - Every SDD specification or feature increment **must** have its own dedicated Git branch (`feat/<slug>`, `fix/<slug>`, `refactor/<slug>`).
+   - **Clean Branch Names (No SDD IDs):** Branch names must be clear, concise, and domain-focused (e.g., `feat/dedicated-cart-page`). Never include SDD prefixes or numbers (such as `sdd-0001`) in branch names.
+   - Never start implementing a new spec on `main` or on another spec's existing branch. Check `git branch --show-current` first: continue on the spec's dedicated branch if already checked out, otherwise create/checkout a new dedicated branch before writing code.

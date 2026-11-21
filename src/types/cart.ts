@@ -22,3 +22,28 @@ export type StockWarningsMap = Record<number, string>;
  * Supported payload shapes for `addToCart` action.
  */
 export type AddToCartPayload = { product: Product; quantity?: number } | Product;
+
+/**
+ * Supported shipping method identifiers for CartPage.
+ */
+export type ShippingMethodId = 'standard' | 'express' | 'pickup';
+
+/**
+ * Shipping option metadata priced in base BRL currency.
+ */
+export interface ShippingOption {
+  id: ShippingMethodId;
+  name: string;
+  eta: string;
+  basePriceBrl: number;
+}
+
+/**
+ * Applied promo coupon definition.
+ */
+export interface AppliedCoupon {
+  code: string;
+  label: string;
+  discountPercent?: number;
+  freeShipping?: boolean;
+}

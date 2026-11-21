@@ -1,196 +1,310 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   AddToCartPayload,
-  CalculatedPrice,
+  AppliedCoupon,
   CartItem,
+  ShippingMethodId,
   StockWarningsMap,
 } from '../../types';
-import type { RootState } from '../index';
+import {
+  DEFAULT_FALLBACK_STOCK,
+  FREE_SHIPPING_THRESHOLD_BRL,
+  MAX_ORDER_NOTE_LENGTH,
+  PROMO_COUPONS,
+  SHIPPING_OPTIONS,
+} from './cartConstants';
 
-const STORAGE_KEY = 'minieshop_cart';
+export {
+  FREE_SHIPPING_THRESHOLD_BRL,
+  MAX_ORDER_NOTE_LENGTH,
+  PROMO_COUPONS,
+  SHIPPING_OPTIONS,
+};
 
 export interface CartState {
   items: CartItem[];
   isOpen: boolean;
   stockWarnings: StockWarningsMap;
+  couponInput: string;
+  appliedCoupon: AppliedCoupon | null;
+  couponError: string | null;
+  shippingMethod: ShippingMethodId;
+  orderNote: string;
 }
 
-const isCalculatedPrice = (value: unknown): value is CalculatedPrice => {
-  if (typeof value !== 'object' || value === null) return false;
-  return (
-    'regular_price' in value &&
-    typeof value.regular_price === 'number' &&
-    'special_price' in value &&
-    (value.special_price === null || typeof value.special_price === 'number') &&
-    'final_price' in value &&
-    typeof value.final_price === 'number' &&
-    'discount_percentage' in value &&
-    typeof value.discount_percentage === 'number' &&
-    'has_discount' in value &&
-    typeof value.has_discount === 'boolean'
-  );
-};
-
-const isValidCartItem = (item: unknown): item is CartItem => {
-  if (typeof item !== 'object' || item === null) return false;
-  return (
-    'id' in item &&
-    typeof item.id === 'number' &&
-    'name' in item &&
-    typeof item.name === 'string' &&
-    'price' in item &&
-    isCalculatedPrice(item.price) &&
-    'image' in item &&
-    typeof item.image === 'string' &&
-    'category' in item &&
-    typeof item.category === 'string' &&
-    'stock' in item &&
-    typeof item.stock === 'number' &&
-    'quantity' in item &&
-    typeof item.quantity === 'number'
-  );
-};
-
-const getInitialCart = (): CartItem[] => {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed: unknown = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(isValidCartItem);
-        }
-      }
-    }
-  } catch (error: unknown) {
-    console.warn('Failed to read cart from localStorage:', error);
-  }
-  return [];
-};
-
-const persistCart = (items: CartItem[]): void => {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    }
-  } catch (error: unknown) {
-    console.warn('Failed to persist cart to localStorage:', error);
-  }
-};
-
-const initialState: CartState = {
-  items: getInitialCart(),
+export const initialCartState: CartState = {
+  items: [],
   isOpen: false,
   stockWarnings: {},
+  couponInput: '',
+  appliedCoupon: null,
+  couponError: null,
+  shippingMethod: 'standard',
+  orderNote: '',
 };
 
+/**
+ * Resolves valid upper stock bound, retaining fallback 99 only when stock is
+ * unknown/non-numeric. Zero or negative numeric stock means unavailable.
+ */
+export const resolveMaxStock = (stock: unknown): number => {
+  if (typeof stock === 'number' && Number.isFinite(stock)) {
+    return Math.max(0, Math.floor(stock));
+  }
+  return DEFAULT_FALLBACK_STOCK;
+};
+
+const sanitizeQuantity = (raw: unknown): number | null => {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return null;
+  return Math.floor(raw);
+};
+
+const setWarningImmutable = (
+  warnings: StockWarningsMap,
+  id: number,
+  message: string | null,
+): StockWarningsMap => {
+  if (message) {
+    if (warnings[id] === message) return warnings;
+    return { ...warnings, [id]: message };
+  }
+  if (!(id in warnings)) return warnings;
+  const nextWarnings: StockWarningsMap = {};
+  Object.entries(warnings).forEach(([key, value]) => {
+    const numericKey = Number(key);
+    if (numericKey !== id) {
+      nextWarnings[numericKey] = value;
+    }
+  });
+  return nextWarnings;
+};
+
+/**
+ * Pure immutable cart slice: reducers perform zero side effects and return new
+ * state snapshots preserving structural sharing for unchanged line items.
+ */
 export const cartSlice = createSlice({
   name: 'cart',
-  initialState,
+  initialState: initialCartState,
   reducers: {
-    addToCart: (state, action: PayloadAction<AddToCartPayload>) => {
+    addToCart: (state, action: PayloadAction<AddToCartPayload>): CartState => {
       const payload = action.payload;
       const product = 'product' in payload ? payload.product : payload;
-      const addQty =
-        'product' in payload && typeof payload.quantity === 'number'
-          ? payload.quantity
-          : 1;
+      const rawAddQty = 'product' in payload ? payload.quantity : 1;
+      const parsedQty = sanitizeQuantity(rawAddQty);
+      const safeAddQty = parsedQty === null ? 1 : Math.max(1, parsedQty);
 
-      if (!product || !product.id) return;
+      if (!product || !product.id) return state;
 
-      const maxStock = typeof product.stock === 'number' ? product.stock : 99;
-      const existing = state.items.find((item) => item.id === product.id);
-
-      if (existing) {
-        const targetQty = existing.quantity + addQty;
-        if (targetQty > maxStock) {
-          existing.quantity = maxStock;
-          state.stockWarnings[product.id] = `Max stock reached (${maxStock} units).`;
-        } else {
-          existing.quantity = targetQty;
-          delete state.stockWarnings[product.id];
-        }
-      } else {
-        const initialQty = Math.min(Math.max(addQty, 1), maxStock);
-        state.items.push({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-          category: product.category,
-          stock: maxStock,
-          quantity: initialQty,
-        });
-        if (addQty > maxStock) {
-          state.stockWarnings[product.id] = `Only ${maxStock} units available.`;
-        }
+      const maxStock = resolveMaxStock(product.stock);
+      if (maxStock <= 0) {
+        return state;
       }
 
-      state.isOpen = true; // Automatically open mini-cart upon adding item
-      persistCart(state.items);
+      const existingIndex = state.items.findIndex((item) => item.id === product.id);
+
+      if (existingIndex >= 0) {
+        const existing = state.items[existingIndex];
+        const targetQty = existing.quantity + safeAddQty;
+        const clampedQty = targetQty > maxStock ? maxStock : targetQty;
+        const warningMsg =
+          targetQty > maxStock ? `Max stock reached (${maxStock} units).` : null;
+
+        const nextItems =
+          clampedQty === existing.quantity && maxStock === existing.stock
+            ? state.items
+            : state.items.map((item, idx) =>
+                idx === existingIndex
+                  ? { ...item, quantity: clampedQty, stock: maxStock }
+                  : item,
+              );
+
+        return {
+          ...state,
+          items: nextItems,
+          stockWarnings: setWarningImmutable(
+            state.stockWarnings,
+            product.id,
+            warningMsg,
+          ),
+          isOpen: true,
+        };
+      }
+
+      const initialQty = Math.min(safeAddQty, maxStock);
+      const newItem: CartItem = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        category: product.category,
+        stock: maxStock,
+        quantity: initialQty,
+      };
+      const warningMsg =
+        safeAddQty > maxStock ? `Only ${maxStock} units available.` : null;
+
+      return {
+        ...state,
+        items: [...state.items, newItem],
+        stockWarnings: setWarningImmutable(
+          state.stockWarnings,
+          product.id,
+          warningMsg,
+        ),
+        isOpen: true,
+      };
     },
 
     updateQuantity: (
       state,
       action: PayloadAction<{ id: number; quantity: number }>,
-    ) => {
+    ): CartState => {
       const { id, quantity } = action.payload;
-      const item = state.items.find((i) => i.id === id);
+      const parsedQty = sanitizeQuantity(quantity);
+      if (parsedQty === null) return state;
 
-      if (!item) return;
+      const targetIndex = state.items.findIndex((item) => item.id === id);
+      if (targetIndex < 0) return state;
 
-      const maxStock = typeof item.stock === 'number' ? item.stock : 99;
+      const target = state.items[targetIndex];
+      const maxStock = Math.max(1, resolveMaxStock(target.stock));
+      const clampedQty = Math.min(Math.max(parsedQty, 1), maxStock);
+      const warningMsg =
+        parsedQty > maxStock ? `Only ${maxStock} units in stock.` : null;
 
-      if (quantity < 1) {
-        item.quantity = 1;
-        delete state.stockWarnings[id];
-      } else if (quantity > maxStock) {
-        item.quantity = maxStock;
-        state.stockWarnings[id] = `Only ${maxStock} units in stock.`;
-      } else {
-        item.quantity = quantity;
-        delete state.stockWarnings[id];
+      const nextWarnings = setWarningImmutable(state.stockWarnings, id, warningMsg);
+      if (target.quantity === clampedQty && nextWarnings === state.stockWarnings) {
+        return state;
       }
 
-      persistCart(state.items);
+      const nextItems =
+        target.quantity === clampedQty
+          ? state.items
+          : state.items.map((item, idx) =>
+              idx === targetIndex ? { ...item, quantity: clampedQty } : item,
+            );
+
+      return {
+        ...state,
+        items: nextItems,
+        stockWarnings: nextWarnings,
+      };
     },
 
     setStockWarning: (
       state,
       action: PayloadAction<{ id: number; message: string | null }>,
-    ) => {
+    ): CartState => {
       const { id, message } = action.payload;
-      if (message) {
-        state.stockWarnings[id] = message;
-      } else {
-        delete state.stockWarnings[id];
-      }
+      const nextWarnings = setWarningImmutable(state.stockWarnings, id, message);
+      if (nextWarnings === state.stockWarnings) return state;
+      return {
+        ...state,
+        stockWarnings: nextWarnings,
+      };
     },
 
-    removeFromCart: (state, action: PayloadAction<number>) => {
+    removeFromCart: (state, action: PayloadAction<number>): CartState => {
       const id = action.payload;
-      state.items = state.items.filter((item) => item.id !== id);
-      delete state.stockWarnings[id];
-      persistCart(state.items);
+      if (!state.items.some((item) => item.id === id)) return state;
+      return {
+        ...state,
+        items: state.items.filter((item) => item.id !== id),
+        stockWarnings: setWarningImmutable(state.stockWarnings, id, null),
+      };
     },
 
-    clearCart: (state) => {
-      state.items = [];
-      state.stockWarnings = {};
-      persistCart(state.items);
+    clearCart: (state): CartState => ({
+      ...state,
+      items: [],
+      stockWarnings: {},
+      appliedCoupon: null,
+      couponError: null,
+      couponInput: '',
+      orderNote: '',
+    }),
+
+    setCouponInput: (state, action: PayloadAction<string>): CartState => {
+      if (state.couponInput === action.payload && state.couponError === null) {
+        return state;
+      }
+      return {
+        ...state,
+        couponInput: action.payload,
+        couponError: null,
+      };
     },
 
-    openCart: (state) => {
-      state.isOpen = true;
+    applyCoupon: (state, action: PayloadAction<string | undefined>): CartState => {
+      const rawCode = (action.payload ?? state.couponInput).trim().toUpperCase();
+      if (!rawCode) {
+        return {
+          ...state,
+          couponError: 'Enter a promo code to apply.',
+        };
+      }
+
+      const matched = Object.hasOwn(PROMO_COUPONS, rawCode)
+        ? PROMO_COUPONS[rawCode]
+        : undefined;
+      if (!matched) {
+        return {
+          ...state,
+          couponError: `Promo code "${rawCode}" is invalid. Try MINIE10, MINIE20, or FREESHIP.`,
+        };
+      }
+
+      return {
+        ...state,
+        couponInput: rawCode,
+        appliedCoupon: matched,
+        couponError: null,
+      };
     },
 
-    closeCart: (state) => {
-      state.isOpen = false;
+    removeCoupon: (state): CartState => {
+      if (!state.appliedCoupon && !state.couponError && state.couponInput === '') {
+        return state;
+      }
+      return {
+        ...state,
+        appliedCoupon: null,
+        couponError: null,
+        couponInput: '',
+      };
     },
 
-    toggleCart: (state) => {
-      state.isOpen = !state.isOpen;
+    setShippingMethod: (
+      state,
+      action: PayloadAction<ShippingMethodId>,
+    ): CartState => {
+      if (state.shippingMethod === action.payload) return state;
+      return {
+        ...state,
+        shippingMethod: action.payload,
+      };
     },
+
+    setOrderNote: (state, action: PayloadAction<string>): CartState => {
+      const clampedNote = action.payload.slice(0, MAX_ORDER_NOTE_LENGTH);
+      if (state.orderNote === clampedNote) return state;
+      return {
+        ...state,
+        orderNote: clampedNote,
+      };
+    },
+
+    openCart: (state): CartState =>
+      state.isOpen ? state : { ...state, isOpen: true },
+
+    closeCart: (state): CartState =>
+      state.isOpen ? { ...state, isOpen: false } : state,
+
+    toggleCart: (state): CartState => ({
+      ...state,
+      isOpen: !state.isOpen,
+    }),
   },
 });
 
@@ -200,23 +314,14 @@ export const {
   setStockWarning,
   removeFromCart,
   clearCart,
+  setCouponInput,
+  applyCoupon,
+  removeCoupon,
+  setShippingMethod,
+  setOrderNote,
   openCart,
   closeCart,
   toggleCart,
 } = cartSlice.actions;
-
-export const selectCartItems = (state: RootState): CartItem[] => state.cart.items;
-export const selectIsCartOpen = (state: RootState): boolean => state.cart.isOpen;
-export const selectCartStockWarnings = (state: RootState): StockWarningsMap =>
-  state.cart.stockWarnings;
-
-export const selectCartCount = (state: RootState): number =>
-  state.cart.items.reduce((total, item) => total + item.quantity, 0);
-
-export const selectCartSubtotal = (state: RootState): number =>
-  state.cart.items.reduce(
-    (total, item) => total + (item.price?.final_price || 0) * item.quantity,
-    0,
-  );
 
 export default cartSlice.reducer;
