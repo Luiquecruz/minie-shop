@@ -9,6 +9,8 @@ flowchart TD
     App --> Layout["RootLayout (Navbar + Outlet + Footer + MiniCart + ApiDebugFab)"]
     Layout --> PLP["ProductListingPage (/?page=&category=&sort=)"]
     Layout --> PDP["ProductDetailPage (/product/:id)"]
+    Layout --> Cart["CartPage (/cart) - CartPageProvider (Context + useReducer)"]
+    Cart --> Hooks
     Navbar["Navbar (SearchBar + Currency Dropdown + Cart Trigger)"] --> Hooks
     PLP --> Hooks
     PDP --> Hooks
@@ -37,6 +39,7 @@ flowchart TD
   - Parent `<Route element={<RootLayout />}>`
     - `index` (`/`) -> `ProductListingPage`
     - `path="product/:id"` -> `ProductDetailPage`
+    - `path="cart"` -> `CartPage`
     - `path="*"` -> `ProductListingPage` (fallback)
 
 ---
@@ -66,5 +69,6 @@ Defined in `src/index.css` and `src/App.css`:
 | **Phase 4** | PDP (`/product/:id`), dynamic `Helmet`, masonry gallery, 3-tab system, floating CTA, related products, `SearchBar` | Completed |
 | **Phase 5** | `MiniCart` slide-over drawer, debounced stock validation, `cartSlice` guardrails & `localStorage` persistence | Completed |
 | **Pre-Phase 6** | Incremental TypeScript migration (`SDD-0003` / `ADR-0006`) | Completed |
-| **Post-Phase 5** | TanStack React Query migration (`SDD-0004` / `ADR-0007`), URL pagination, optimistic Favorites, `ApiDebugFab` | Implemented (Browser flow check pending Chrome DevTools connection) |
-| **Phase 6** | Dedicated Cart page & Checkout flow (authored directly in strict TypeScript) | Planned |
+| **Post-Phase 5** | TanStack React Query migration (`SDD-0004` / `ADR-0007`), URL pagination, optimistic Favorites, `ApiDebugFab` | Completed |
+| **Phase 6 (Inc. 1)** | Dedicated Cart page (`/cart`) with monolithic Context + `useReducer` (`SDD-0001` / `ADR-0008`) | Implemented |
+| **Phase 6 (Inc. 2+)** | Context optimization comparison & Checkout flow (`SDD-0001`) | Planned |

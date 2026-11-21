@@ -25,7 +25,7 @@ Tracks all custom React hooks in `src/hooks/`.
 
 ### `useCart` (`src/hooks/useCart.ts`)
 - **Purpose:** Encapsulates Redux `cart` selectors (`useAppSelector`) and typed action dispatchers (`useAppDispatch`) behind `UseCartReturn`.
-- **Returns (`UseCartReturn`):** `items`, `isOpen`, `cartCount`, `subtotal`, `stockWarnings`, `addToCart`, `updateQuantity`, `setStockWarning`, `removeFromCart`, `clearCart`, `openCart`, `closeCart`, `toggleCart`.
+- **Returns (`UseCartReturn`):** `items`, `isOpen`, `cartCount`, `subtotal`, `stockWarnings`, `addToCart`, `updateQuantity`, `setStockWarning`, `removeFromCart`, `clearCart`, `replaceCartItems`, `openCart`, `closeCart`, `toggleCart`.
 
 ### `useCurrency` (`src/hooks/useCurrency.ts`)
 - **Purpose:** Exposes active store currency, configuration, switcher, and BRL-to-target formatting helpers via `UseCurrencyReturn`.

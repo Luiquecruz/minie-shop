@@ -8,9 +8,9 @@ Project constitution, context, and operational guidelines for AI agents and deve
 
 **Progressive Minie Shop** is an incremental e-commerce web application built from scratch with React, TypeScript, and Vite to explore and apply fundamental and advanced React patterns in structured phases.
 
-- **Current Phase:** Post-Phase 5 / Pre-Phase 6 Milestone — TanStack React Query server-state migration (`SDD-0004` / `ADR-0007`), URL-synced pagination (`keepPreviousData`), optimistic Favorites mutation, and `ApiDebugFab` simulator (building on strict TypeScript migration `SDD-0003` / `ADR-0006`).
+- **Current Phase:** Phase 6 — Increment 1 (`SDD-0001` / `ADR-0008`): Dedicated Cart Page (`/cart`) built first with monolithic React Context + `useReducer` (`CartPageProvider`) to observe Context re-renders via React DevTools, building on TanStack React Query (`SDD-0004` / `ADR-0007`) and strict TypeScript (`SDD-0003` / `ADR-0006`).
 - **Next Planned Phase:**
-  - **Phase 6:** Dedicated Cart page & Checkout flow (authored directly in strict TypeScript).
+  - **Phase 6 (Inc. 2+):** Cart Context optimization / Redux comparison & Checkout flow.
 
 ---
 
@@ -73,10 +73,11 @@ react-minieshop/
 └── src/
     ├── assets/                  # Static image assets
     ├── components/              # Reusable UI components (ApiDebugFab, Dropdown, MiniCart, Navbar, Pagination, PriceBox, ProductCard, SearchBar)
+    ├── context/                 # CartPageContext + useReducer state and provider (cartPageState.ts, CartPageProvider.tsx)
     ├── data/                    # Mock dataset (products.ts)
     ├── hooks/                   # Custom hooks (useCart, useCurrency, useDebounce, useFavorites, useProducts)
     ├── layouts/                 # Route layout shells (RootLayout)
-    ├── pages/                   # Route pages (ProductListingPage, ProductDetailPage)
+    ├── pages/                   # Route pages (ProductListingPage, ProductDetailPage, CartPage)
     ├── query/                   # TanStack Query client & typed key factory (queryClient.ts, queryKeys.ts)
     ├── services/                # Frontend-only simulated API & error simulator (api.ts)
     ├── store/                   # Redux store, typed hooks & slices (hooks.ts, cartSlice.ts, currencySlice.ts)
@@ -101,3 +102,6 @@ react-minieshop/
    - New features or significant refactors should be preceded by an SDD specification in `docs/sdd/`.
    - New architectural choices (dependencies, state boundaries, test frameworks, routing shifts) must be recorded as an incremental ADR in `docs/adr/`.
    - Any addition or change to features, components, hooks, store slices, services, or utils must update the corresponding file in `docs/` and keep this `AGENTS.md` current.
+7. **Mandatory Branch-per-Spec Rule:**
+   - Every SDD specification or feature increment **must** have its own dedicated Git branch (`feat/<slug>`, `fix/<slug>`, `refactor/<slug>`).
+   - Never start implementing a new spec on `main` or on another spec's existing branch. Always check `git branch --show-current` and create/checkout the spec's branch before writing code.

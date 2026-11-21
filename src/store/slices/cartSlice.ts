@@ -180,6 +180,18 @@ export const cartSlice = createSlice({
       persistCart(state.items);
     },
 
+    replaceCartItems: (state, action: PayloadAction<CartItem[]>) => {
+      state.items = action.payload;
+      const activeIds = new Set(action.payload.map((item) => item.id));
+      Object.keys(state.stockWarnings).forEach((key) => {
+        const numericId = Number(key);
+        if (!activeIds.has(numericId)) {
+          delete state.stockWarnings[numericId];
+        }
+      });
+      persistCart(state.items);
+    },
+
     openCart: (state) => {
       state.isOpen = true;
     },
@@ -200,6 +212,7 @@ export const {
   setStockWarning,
   removeFromCart,
   clearCart,
+  replaceCartItems,
   openCart,
   closeCart,
   toggleCart,

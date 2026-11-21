@@ -16,7 +16,8 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
 | `F-06` | Floating Mini-Cart & Stock Guardrails | Phase 5 / Post-Phase 5 | `MiniCart.tsx`, `cartSlice.ts`, `useCart.ts`, `useProducts.ts` | Implemented |
 | `F-07` | Incremental TypeScript Migration | Pre-Phase 6 | `tsconfig.json`, `src/types/*`, `src/store/hooks.ts`, all `src/**/*.ts(x)` | Implemented |
 | `F-08` | React Query Caching, Optimistic Favorites & API Simulator | Post-Phase 5 | `src/query/*`, `useProducts.ts`, `useFavorites.ts`, `ApiDebugFab.tsx` | Implemented |
-| `F-09` | Dedicated Cart Page & Checkout Flow | Phase 6 | — | Planned |
+| `F-09` | Dedicated Cart Page (Increment 1: Context + `useReducer`) | Phase 6 (Inc. 1) | `CartPage.tsx`, `CartPageProvider.tsx`, `cartPageState.ts` | Implemented |
+| `F-10` | Cart Optimization & Checkout Flow | Phase 6 (Inc. 2+) | — | Planned |
 
 ---
 
@@ -69,7 +70,7 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
   - Persists cart items under `localStorage` key `minieshop_cart` with runtime schema validation (`isValidCartItem`).
   - Enforces min (`1`) and max (`product.stock`) bounds in both Redux reducers and UI controls.
   - Performs debounced (`300ms`) async stock validation via `useDebounce` + `useStockValidationQuery` per cart item.
-  - Locks `document.body.style.overflow` while open, closes on `Escape` or backdrop click, and displays placeholder feedback notices for `Proceed to Checkout` and `View Full Cart` until Phase 6.
+  - Locks `document.body.style.overflow` while open, closes on `Escape` or backdrop click, and navigates to `/cart` on **View Full Cart** (keeping placeholder notice for **Proceed to Checkout** until Increment 2+).
 
 ### F-07: Incremental TypeScript Migration
 - **Capabilities:**
@@ -82,3 +83,10 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
   - Configured `QueryClient` (`staleTime: 2m`, `gcTime: 10m`, `refetchOnWindowFocus: false`, smart `retry: 2` with exponential backoff) and `ReactQueryDevtools` (`DEV` only, bottom-right).
   - Optimistic Favorites toggle (`useToggleFavoriteMutation`) on `ProductCard` and `ProductDetailPage`, persisted in `localStorage` (`minieshop_favorites`), with automatic cache rollback on mutation failure and targeted invalidation of `favorites` and `favoritesOnly` product lists.
   - Discreet bottom-left `ApiDebugFab` popover allowing live toggling of **Simulate Query Error**, **Simulate Favorite Error**, and **Invalidate Cache**.
+
+### F-09: Dedicated Cart Page (Increment 1: Context + `useReducer`)
+- **Route:** `/cart`
+- **Capabilities:**
+  - Powered by a single monolithic `CartPageContext` + `cartPageReducer` (`CartPageProvider`) with bi-directional item synchronization to Redux `cartSlice` (`replaceCartItems`) and `localStorage` (`minieshop_cart`).
+  - Displays cart line items with quantity steppers, numeric bounds (`1..stock`), debounced stock validation (`useStockValidationQuery`), item removal, and Clear Cart.
+  - Supports promo coupons (`MINIE10`, `MINIE20`, `FREESHIP`), shipping method selection (`Standard Delivery`, `Express Courier`, `Store Pickup`), free-shipping threshold progress (`>= 500 BRL`), order/delivery notes (`maxLength = 200`), and multi-currency conversion (`useCurrency`).

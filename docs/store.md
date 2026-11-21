@@ -49,6 +49,7 @@ export const useAppSelector = useSelector.withTypes<RootState>();
   - `setStockWarning(PayloadAction<{ id: number; message: string | null }>)`: Sets or deletes `stockWarnings[id]`.
   - `removeFromCart(PayloadAction<number>)`: Filters item out, clears warning, and persists `items`.
   - `clearCart()`: Empties `items`, resets `stockWarnings`, and persists `[]`.
+  - `replaceCartItems(PayloadAction<CartItem[]>)`: Replaces `items`, prunes stale `stockWarnings`, and persists `items` (used to sync `CartPageProvider` changes back to Redux).
   - `openCart()`, `closeCart()`, `toggleCart()`: Controls `state.isOpen`.
 - **Selectors (accepting `RootState`):**
   - `selectCartItems` -> `CartItem[]`

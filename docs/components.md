@@ -11,6 +11,7 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 | **Layout** | `RootLayout` | `src/layouts/RootLayout/RootLayout.tsx` | Phase 2 / 5 / Post-Phase 5 |
 | **Page** | `ProductListingPage` | `src/pages/ProductListingPage/ProductListingPage.tsx` | Phase 3 / Post-Phase 5 |
 | **Page** | `ProductDetailPage` | `src/pages/ProductDetailPage/ProductDetailPage.tsx` | Phase 4 / Post-Phase 5 |
+| **Page** | `CartPage` | `src/pages/CartPage/CartPage.tsx` | Phase 6 (Inc. 1) |
 | **Component** | `ApiDebugFab` | `src/components/ApiDebugFab/ApiDebugFab.tsx` | Post-Phase 5 |
 | **Component** | `Dropdown` | `src/components/Dropdown/Dropdown.tsx` | Phase 3 / Pre-Phase 6 |
 | **Component** | `Navbar` | `src/components/Navbar/Navbar.tsx` | Phase 3 / 4 / 5 |
@@ -41,6 +42,12 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 - **Route:** `/product/:id`
 - **Dependencies:** `useParams<{ id: string }>`, `Link`, `useNavigate`, `Helmet`, `useCart`, `useFavorites`, `useProductQuery`, `useRelatedProductsQuery`, `ProductNotFoundError`, `PriceBox`, `ProductCard`.
 - **Behavior:** Smooth-scrolls to top on `:id` change, resets tab selection per `id`, loads product and dependent related products via React Query, includes optimistic `Save` / `Saved` heart button, distinguishes `ProductNotFoundError` from retryable transient errors, and renders masonry gallery, 3 ARIA tabs, inline + floating CTA bars, and toast notifications.
+
+### `CartPage` (`src/pages/CartPage/CartPage.tsx`)
+- **Route:** `/cart`
+- **Subcomponents (`src/pages/CartPage/components/`):** `CartHeader`, `CartItemRow`, `CartPromoBox`, `CartShippingSelector`, `CartOrderNote`, `CartOrderSummary`.
+- **Dependencies:** `CartPageProvider`, `useCartPageContext`, `useCurrency`, `useDebounce`, `useStockValidationQuery`, `Helmet`.
+- **Behavior:** Wraps cart UI in a single monolithic `CartPageContext` (`useReducer`) for Increment 1 so Context re-render propagation can be observed in React DevTools. Handles quantity clamping, debounced stock checks, promo codes (`MINIE10`, `MINIE20`, `FREESHIP`), shipping selection, order notes, empty state, and currency conversion.
 
 ---
 
@@ -84,4 +91,4 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 - **Purpose:** Global slide-over shopping cart drawer.
 - **Internal Subcomponent:** `CartItem` (`CartItemProps`) — manages per-item `300ms` debounced `useStockValidationQuery` via `useDebounce`, numeric input clamping (`1..maxStock`), increment/decrement buttons, stock warnings for the current quantity, and unit/line totals.
 - **Dependencies:** `Link`, `useCart`, `useCurrency`, `useDebounce`, `useStockValidationQuery`.
-- **Behavior:** Renders `null` when `!isOpen`; locks body scroll when open; supports `Escape` and overlay click to close; shows empty state, item list, subtotal/total, and placeholder notices for Checkout and View Full Cart.
+- **Behavior:** Renders `null` when `!isOpen`; locks body scroll when open; supports `Escape` and overlay click to close; shows empty state, item list, subtotal/total, navigates to `/cart` on **View Full Cart**, and shows placeholder notice for **Proceed to Checkout**.

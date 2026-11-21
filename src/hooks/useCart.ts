@@ -11,6 +11,7 @@ import {
   setStockWarning as setStockWarningAction,
   removeFromCart as removeFromCartAction,
   clearCart as clearCartAction,
+  replaceCartItems as replaceCartItemsAction,
   openCart as openCartAction,
   closeCart as closeCartAction,
   toggleCart as toggleCartAction,
@@ -27,6 +28,7 @@ export interface UseCartReturn {
   setStockWarning: (id: number, message: string | null) => void;
   removeFromCart: (id: number) => void;
   clearCart: () => void;
+  replaceCartItems: (items: CartItem[]) => void;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
@@ -64,6 +66,9 @@ export function useCart(): UseCartReturn {
     },
     clearCart: () => {
       dispatch(clearCartAction());
+    },
+    replaceCartItems: (nextItems: CartItem[]) => {
+      dispatch(replaceCartItemsAction(nextItems));
     },
     openCart: () => {
       dispatch(openCartAction());

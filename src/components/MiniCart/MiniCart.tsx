@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { CartItem as CartItemType } from '../../types';
 import { useCart } from '../../hooks/useCart';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -268,6 +268,7 @@ export function MiniCart() {
   } = useCart();
 
   const { formatPrice } = useCurrency();
+  const navigate = useNavigate();
   const drawerRef = useRef<HTMLDivElement | null>(null);
   const [feedbackNotice, setFeedbackNotice] = useState('');
 
@@ -300,8 +301,8 @@ export function MiniCart() {
   };
 
   const handleViewCart = (): void => {
-    setFeedbackNotice('Dedicated cart page is under development.');
-    setTimeout(() => setFeedbackNotice(''), 3500);
+    closeCart();
+    navigate('/cart');
   };
 
   if (!isOpen) return null;

@@ -30,10 +30,12 @@ Follow **Conventional Commits** matching the repository history:
 - `refactor(plp): streamline toolbar with single-line category badges and sort`
 - `docs: translate documentation, comments, and labels to English`
 
-## 2. Branching Model
+## 2. Branching Model (Mandatory Branch-per-Spec Rule)
+- **Dedicated Branch per Spec/Task:** Every SDD specification (`docs/sdd/NNNN-*.md`), feature increment, or fix **must** be developed in its own dedicated branch. Never implement a new spec on `main` or reuse an unrelated/previous spec's branch.
+- **Verify Before Editing:** Before creating or modifying any files for a spec, inspect `git branch --show-current` and switch to a new branch (branched from `main`, or from an unmerged prerequisite feature branch when stacking increments).
 - Keep `main` always buildable (`npm run build`) and lint-clean (`npm run lint`).
 - Create descriptive branches per task or SDD spec:
-  - `feat/<feature-slug>`
+  - `feat/<feature-slug>` (or `feat/sdd-NNNN-<slug>`)
   - `fix/<bug-slug>`
   - `refactor/<scope-slug>`
   - `docs/<topic-slug>`
