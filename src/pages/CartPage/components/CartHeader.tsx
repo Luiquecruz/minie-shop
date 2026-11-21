@@ -1,11 +1,13 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { useCartPageContext } from '../../../context/cartPageState';
+import { useCartActions, useCartPageMeta } from '../../../hooks/useCart';
 
 /**
- * Top header bar for CartPage with breadcrumb, item count, and clear cart action.
+ * Top header bar for CartPage subscribed only to total unit count and item presence.
  */
-export function CartHeader() {
-  const { state, totalUnits, clearCart } = useCartPageContext();
+export const CartHeader = memo(function CartHeader() {
+  const { totalUnits, hasItems } = useCartPageMeta();
+  const { clearCart } = useCartActions();
 
   return (
     <header className="cart-header">
@@ -32,7 +34,7 @@ export function CartHeader() {
         </div>
 
         <div className="cart-header__actions">
-          {state.items.length > 0 && (
+          {hasItems && (
             <button
               type="button"
               className="cart-header__clear-btn"
@@ -60,6 +62,6 @@ export function CartHeader() {
       </div>
     </header>
   );
-}
+});
 
 export default CartHeader;

@@ -1,11 +1,17 @@
-import { useCartPageContext } from '../../../context/cartPageState';
+import { memo } from 'react';
+import { MAX_ORDER_NOTE_LENGTH } from '../../../store/slices/cartSlice';
+import {
+  useCartActions,
+  useCartOrderNoteState,
+} from '../../../hooks/useCart';
 
 /**
- * Order/delivery note textarea wired directly to the monolithic CartPageContext.
- * Every keystroke dispatches SET_ORDER_NOTE, demonstrating Context re-render fan-out.
+ * Memoized order/delivery note textarea subscribed strictly to `cart.orderNote`.
+ * Typing here does not re-render line items, promo box, shipping selector, or header.
  */
-export function CartOrderNote() {
-  const { state, setOrderNote } = useCartPageContext();
+export const CartOrderNote = memo(function CartOrderNote() {
+  const orderNote = useCartOrderNoteState();
+  const { setOrderNote } = useCartActions();
 
   return (
     <section className="cart-panel" aria-labelledby="cart-note-heading">
@@ -16,15 +22,14 @@ export function CartOrderNote() {
       </div>
 
       <label htmlFor="cart-order-note" className="cart-note__hint">
-        Add gift instructions or delivery preferences. Typing here updates the
-        shared CartPageContext and re-renders every subscribed component.
+        Add gift instructions or delivery preferences.
       </label>
 
       <textarea
         id="cart-order-note"
         rows={3}
-        maxLength={200}
-        value={state.orderNote}
+        maxLength={MAX_ORDER_NOTE_LENGTH}
+        value={orderNote}
         onChange={(e) => setOrderNote(e.target.value)}
         placeholder="e.g., Leave package at reception, gift wrap requested..."
         className="cart-note__textarea"
@@ -32,11 +37,11 @@ export function CartOrderNote() {
 
       <div className="cart-note__footer">
         <span className="cart-note__counter">
-          {state.orderNote.length}/200 characters
+          {orderNote.length}/{MAX_ORDER_NOTE_LENGTH} characters
         </span>
       </div>
     </section>
   );
-}
+});
 
 export default CartOrderNote;

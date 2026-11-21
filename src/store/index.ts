@@ -1,15 +1,101 @@
-import { configureStore } from '@reduxjs/toolkit';
+import {
+  combineReducers,
+  configureStore,
+  createListenerMiddleware,
+  isAnyOf,
+} from '@reduxjs/toolkit';
 import currencyReducer from './slices/currencySlice';
-import cartReducer from './slices/cartSlice';
+import cartReducer, {
+  addToCart,
+  applyCoupon,
+  clearCart,
+  initialCartState,
+  removeCoupon,
+  removeFromCart,
+  setOrderNote,
+  setShippingMethod,
+  updateQuantity,
+  type CartState,
+} from './slices/cartSlice';
+import {
+  loadPersistedCartItems,
+  loadPersistedCartPrefs,
+  savePersistedCartItems,
+  savePersistedCartPrefs,
+} from './persistence/cartStorage';
 
-export const store = configureStore({
-  reducer: {
-    currency: currencyReducer,
-    cart: cartReducer,
-  },
+const rootReducer = combineReducers({
+  currency: currencyReducer,
+  cart: cartReducer,
 });
 
-export type RootState = ReturnType<typeof store.getState>;
+export type RootState = ReturnType<typeof rootReducer>;
+
+export function hydrateCartState(): CartState {
+  const items = loadPersistedCartItems();
+  const prefs = loadPersistedCartPrefs();
+  return {
+    ...initialCartState,
+    items,
+    appliedCoupon: prefs.appliedCoupon,
+    couponInput: prefs.appliedCoupon?.code ?? '',
+    shippingMethod: prefs.shippingMethod,
+    orderNote: prefs.orderNote,
+  };
+}
+
+function persistPrefsFromState(state: RootState): void {
+  savePersistedCartPrefs({
+    appliedCoupon: state.cart.appliedCoupon,
+    shippingMethod: state.cart.shippingMethod,
+    orderNote: state.cart.orderNote,
+  });
+}
+
+/**
+ * Creates a Redux store instance with listener-based localStorage persistence
+ * so reducers remain 100% pure functions without side effects.
+ */
+export function createAppStore(preloadedState?: Partial<RootState>) {
+  const cartPersistenceListener = createListenerMiddleware();
+
+  cartPersistenceListener.startListening({
+    matcher: isAnyOf(addToCart, updateQuantity, removeFromCart, clearCart),
+    effect: (_action, listenerApi) => {
+      const state = listenerApi.getState() as RootState;
+      savePersistedCartItems(state.cart.items);
+    },
+  });
+
+  cartPersistenceListener.startListening({
+    matcher: isAnyOf(applyCoupon, removeCoupon, setShippingMethod, clearCart),
+    effect: (_action, listenerApi) => {
+      persistPrefsFromState(listenerApi.getState() as RootState);
+    },
+  });
+
+  cartPersistenceListener.startListening({
+    actionCreator: setOrderNote,
+    effect: async (_action, listenerApi) => {
+      listenerApi.cancelActiveListeners();
+      await listenerApi.delay(250);
+      persistPrefsFromState(listenerApi.getState() as RootState);
+    },
+  });
+
+  return configureStore({
+    reducer: rootReducer,
+    preloadedState,
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().prepend(cartPersistenceListener.middleware),
+  });
+}
+
+export const store = createAppStore({
+  cart: hydrateCartState(),
+});
+
+export type AppStore = typeof store;
 export type AppDispatch = typeof store.dispatch;
 
 export default store;

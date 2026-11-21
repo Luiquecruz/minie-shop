@@ -1,32 +1,39 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { CartItem } from '../../../types';
-import { useCartPageContext } from '../../../context/cartPageState';
+import { useCartActions, useCartItemState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useStockValidationQuery } from '../../../hooks/useProducts';
+import { resolveMaxStock } from '../../../store/slices/cartSlice';
 
 export interface CartItemRowProps {
-  item: CartItem;
+  itemId: number;
 }
 
 /**
- * Individual CartPage line item consuming the monolithic CartPageContext.
- * Includes quantity guardrails (1..stock) and debounced React Query stock validation.
+ * Memoized CartPage line item subscribed strictly to its own item ID slice
+ * so edits to sibling items, promo codes, shipping, or notes cause 0 re-renders here.
  */
-export function CartItemRow({ item }: CartItemRowProps) {
-  const { state, updateQuantity, removeItem } = useCartPageContext();
+export const CartItemRow = memo(function CartItemRow({
+  itemId,
+}: CartItemRowProps) {
+  const { item, stockWarning } = useCartItemState(itemId);
+  const { updateQuantity, removeFromCart } = useCartActions();
   const { formatPrice } = useCurrency();
 
   const [localWarning, setLocalWarning] = useState<string | null>(null);
   const [hasEditedQuantity, setHasEditedQuantity] = useState(false);
+  const [draftQty, setDraftQty] = useState<string | null>(null);
 
-  const debouncedQuantity = useDebounce(item.quantity, 300);
+  const quantity = item?.quantity ?? 0;
+  const debouncedQuantity = useDebounce(quantity, 300);
   const stockQuery = useStockValidationQuery(
-    item.id,
+    itemId,
     debouncedQuantity,
-    hasEditedQuantity,
+    Boolean(item) && hasEditedQuantity,
   );
+
+  if (!item) return null;
 
   const apiStockWarning =
     hasEditedQuantity && stockQuery.data && !stockQuery.data.available
@@ -35,16 +42,16 @@ export function CartItemRow({ item }: CartItemRowProps) {
         ? 'Could not validate stock right now.'
         : null;
 
-  const activeWarning =
-    localWarning ?? apiStockWarning ?? state.stockWarnings[item.id] ?? null;
+  const activeWarning = localWarning ?? apiStockWarning ?? stockWarning ?? null;
   const isValidating = hasEditedQuantity && stockQuery.isFetching;
 
-  const maxStock = typeof item.stock === 'number' ? item.stock : 99;
+  const maxStock = Math.max(1, resolveMaxStock(item.stock));
   const unitFinalPrice = item.price?.final_price || 0;
   const unitRegularPrice = item.price?.regular_price || 0;
   const lineTotal = unitFinalPrice * item.quantity;
 
   const handleIncrement = (): void => {
+    setDraftQty(null);
     if (item.quantity >= maxStock) {
       setLocalWarning(`Maximum stock reached (${maxStock} units).`);
       return;
@@ -55,18 +62,22 @@ export function CartItemRow({ item }: CartItemRowProps) {
   };
 
   const handleDecrement = (): void => {
+    setDraftQty(null);
     if (item.quantity <= 1) return;
     setLocalWarning(null);
     setHasEditedQuantity(true);
     updateQuantity(item.id, item.quantity - 1);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const rawValue = e.target.value;
-    if (rawValue === '') return;
+  const commitDraftQuantity = (raw: string): void => {
+    setDraftQty(null);
+    const trimmed = raw.trim();
+    if (trimmed === '') {
+      return;
+    }
 
-    const parsed = parseInt(rawValue, 10);
-    if (Number.isNaN(parsed) || parsed < 1) {
+    const parsed = Number.parseInt(trimmed, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
       setLocalWarning(null);
       setHasEditedQuantity(true);
       updateQuantity(item.id, 1);
@@ -83,6 +94,26 @@ export function CartItemRow({ item }: CartItemRowProps) {
     setLocalWarning(null);
     setHasEditedQuantity(true);
     updateQuantity(item.id, parsed);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    setDraftQty(e.target.value);
+  };
+
+  const handleInputBlur = (): void => {
+    if (draftQty !== null) {
+      commitDraftQuantity(draftQty);
+    }
+  };
+
+  const handleInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ): void => {
+    if (e.key === 'Enter' && draftQty !== null) {
+      commitDraftQuantity(draftQty);
+    } else if (e.key === 'Escape') {
+      setDraftQty(null);
+    }
   };
 
   return (
@@ -108,7 +139,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
             <button
               type="button"
               className="cart-item__remove-btn"
-              onClick={() => removeItem(item.id)}
+              onClick={() => removeFromCart(item.id)}
               aria-label={`Remove ${item.name} from cart`}
             >
               <svg
@@ -203,8 +234,10 @@ export function CartItemRow({ item }: CartItemRowProps) {
                 type="number"
                 min={1}
                 max={maxStock}
-                value={item.quantity}
+                value={draftQty !== null ? draftQty : String(item.quantity)}
                 onChange={handleInputChange}
+                onBlur={handleInputBlur}
+                onKeyDown={handleInputKeyDown}
                 className="cart-item__qty-input"
                 aria-label={`Quantity for ${item.name}`}
               />
@@ -269,6 +302,6 @@ export function CartItemRow({ item }: CartItemRowProps) {
       </div>
     </li>
   );
-}
+});
 
 export default CartItemRow;

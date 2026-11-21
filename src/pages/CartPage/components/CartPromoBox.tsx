@@ -1,17 +1,15 @@
-import {
-  PROMO_COUPONS,
-  useCartPageContext,
-} from '../../../context/cartPageState';
+import { memo } from 'react';
+import { PROMO_COUPONS } from '../../../store/slices/cartSlice';
+import { useCartActions, useCartPromoState } from '../../../hooks/useCart';
 
 const SUGGESTED_CODES = Object.keys(PROMO_COUPONS);
 
 /**
- * Promo coupon panel wired to CartPageContext.
- * Typing or applying a coupon dispatches into the monolithic reducer.
+ * Memoized promo coupon panel subscribed only to promo coupon slice fields.
  */
-export function CartPromoBox() {
-  const { state, setCouponInput, applyCoupon, removeCoupon } =
-    useCartPageContext();
+export const CartPromoBox = memo(function CartPromoBox() {
+  const { couponInput, appliedCoupon, couponError } = useCartPromoState();
+  const { setCouponInput, applyCoupon, removeCoupon } = useCartActions();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
@@ -33,7 +31,7 @@ export function CartPromoBox() {
         <input
           id="cart-coupon-input"
           type="text"
-          value={state.couponInput}
+          value={couponInput}
           onChange={(e) => setCouponInput(e.target.value)}
           placeholder="Enter MINIE10, MINIE20, or FREESHIP"
           className="cart-promo__input"
@@ -49,9 +47,7 @@ export function CartPromoBox() {
             key={code}
             type="button"
             className={`cart-promo__chip ${
-              state.appliedCoupon?.code === code
-                ? 'cart-promo__chip--active'
-                : ''
+              appliedCoupon?.code === code ? 'cart-promo__chip--active' : ''
             }`}
             onClick={() => applyCoupon(code)}
           >
@@ -60,28 +56,28 @@ export function CartPromoBox() {
         ))}
       </div>
 
-      {state.appliedCoupon && (
+      {appliedCoupon && (
         <div className="cart-promo__applied" role="status">
           <div className="cart-promo__applied-info">
             <span className="cart-promo__applied-code">
-              {state.appliedCoupon.code}
+              {appliedCoupon.code}
             </span>
             <span className="cart-promo__applied-desc">
-              {state.appliedCoupon.label}
+              {appliedCoupon.label}
             </span>
           </div>
           <button
             type="button"
             className="cart-promo__remove-btn"
             onClick={removeCoupon}
-            aria-label={`Remove promo code ${state.appliedCoupon.code}`}
+            aria-label={`Remove promo code ${appliedCoupon.code}`}
           >
             Remove
           </button>
         </div>
       )}
 
-      {state.couponError && (
+      {couponError && (
         <div className="cart-alert cart-alert--error" role="alert">
           <svg
             width="14"
@@ -98,11 +94,11 @@ export function CartPromoBox() {
               d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
             />
           </svg>
-          <span>{state.couponError}</span>
+          <span>{couponError}</span>
         </div>
       )}
     </section>
   );
-}
+});
 
 export default CartPromoBox;

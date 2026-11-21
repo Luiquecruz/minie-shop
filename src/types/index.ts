@@ -9,7 +9,14 @@ export type {
   Product,
   ProductSortOption,
 } from './product';
-export type { CartItem, StockWarningsMap, AddToCartPayload } from './cart';
+export type {
+  CartItem,
+  StockWarningsMap,
+  AddToCartPayload,
+  ShippingMethodId,
+  ShippingOption,
+  AppliedCoupon,
+} from './cart';
 export type {
   GetProductsParams,
   PaginatedProductsResponse,

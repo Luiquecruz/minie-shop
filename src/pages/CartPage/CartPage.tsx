@@ -1,7 +1,7 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { CartPageProvider } from '../../context/CartPageProvider';
-import { useCartPageContext } from '../../context/cartPageState';
+import { useCartHasItems, useCartItemIds, useCartPageMeta } from '../../hooks/useCart';
 import CartHeader from './components/CartHeader';
 import CartItemRow from './components/CartItemRow';
 import CartPromoBox from './components/CartPromoBox';
@@ -10,27 +10,38 @@ import CartOrderNote from './components/CartOrderNote';
 import CartOrderSummary from './components/CartOrderSummary';
 import './CartPage.css';
 
-function CartPageContent() {
-  const { state, totalUnits } = useCartPageContext();
-
+const CartPageTitle = memo(function CartPageTitle() {
+  const { totalUnits } = useCartPageMeta();
   const pageTitle =
     totalUnits > 0
       ? `Shopping Cart (${totalUnits}) | Minie Shop`
       : 'Shopping Cart | Minie Shop';
 
   return (
-    <div className="cart-page">
-      <Helmet>
-        <title>{pageTitle}</title>
-        <meta
-          name="description"
-          content="Review your shopping cart, adjust quantities, apply promo codes, and choose your shipping method at Minie Shop."
-        />
-      </Helmet>
+    <Helmet>
+      <title>{pageTitle}</title>
+      <meta
+        name="description"
+        content="Review your shopping cart, adjust quantities, apply promo codes, and choose your shipping method at Minie Shop."
+      />
+    </Helmet>
+  );
+});
 
+/**
+ * Dedicated Cart Page (/cart) backed by pure Redux Toolkit slice reducers,
+ * memoized createSelector selectors, and granular hook subscriptions.
+ */
+export function CartPage() {
+  const hasItems = useCartHasItems();
+  const itemIds = useCartItemIds();
+
+  return (
+    <div className="cart-page">
+      <CartPageTitle />
       <CartHeader />
 
-      {state.items.length === 0 ? (
+      {!hasItems ? (
         <section className="cart-empty" aria-label="Empty shopping cart">
           <div className="cart-empty__icon" aria-hidden="true">
             <svg
@@ -51,7 +62,7 @@ function CartPageContent() {
           <h2 className="cart-empty__title">Your shopping cart is empty</h2>
           <p className="cart-empty__desc">
             Add products from the catalog to test quantity guardrails, promo
-            codes, shipping rates, and Context re-render behavior.
+            codes, shipping rates, and Redux selector memoization.
           </p>
           <Link to="/" className="cart-btn cart-btn--primary cart-empty__cta">
             Explore Catalog
@@ -62,8 +73,8 @@ function CartPageContent() {
           <div className="cart-main">
             <section className="cart-items-section" aria-label="Cart items">
               <ul className="cart-items-list">
-                {state.items.map((item) => (
-                  <CartItemRow key={item.id} item={item} />
+                {itemIds.map((id) => (
+                  <CartItemRow key={id} itemId={id} />
                 ))}
               </ul>
             </section>
@@ -82,18 +93,6 @@ function CartPageContent() {
         </div>
       )}
     </div>
-  );
-}
-
-/**
- * Dedicated Cart Page (/cart) powered in Increment 1 by a monolithic
- * React Context + useReducer provider.
- */
-export function CartPage() {
-  return (
-    <CartPageProvider>
-      <CartPageContent />
-    </CartPageProvider>
   );
 }
 

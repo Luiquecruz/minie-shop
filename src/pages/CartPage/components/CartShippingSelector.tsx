@@ -1,19 +1,17 @@
-import {
-  FREE_SHIPPING_THRESHOLD_BRL,
-  SHIPPING_OPTIONS,
-  useCartPageContext,
-} from '../../../context/cartPageState';
+import { memo } from 'react';
+import { SHIPPING_OPTIONS } from '../../../store/slices/cartSlice';
+import { useCartActions, useCartShippingState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
 
 /**
- * Shipping method selector backed by CartPageContext.
+ * Memoized shipping method selector subscribed only to shipping method
+ * and memoized free-shipping eligibility booleans.
  */
-export function CartShippingSelector() {
-  const { state, subtotal, setShippingMethod } = useCartPageContext();
+export const CartShippingSelector = memo(function CartShippingSelector() {
+  const { shippingMethod, qualifiesForFreeStandard, hasFreeShippingCoupon } =
+    useCartShippingState();
+  const { setShippingMethod } = useCartActions();
   const { formatPrice } = useCurrency();
-
-  const qualifiesForFreeStandard = subtotal >= FREE_SHIPPING_THRESHOLD_BRL;
-  const hasFreeShippingCoupon = Boolean(state.appliedCoupon?.freeShipping);
 
   return (
     <section className="cart-panel" aria-labelledby="cart-shipping-heading">
@@ -29,7 +27,7 @@ export function CartShippingSelector() {
         aria-labelledby="cart-shipping-heading"
       >
         {SHIPPING_OPTIONS.map((option) => {
-          const isSelected = state.shippingMethod === option.id;
+          const isSelected = shippingMethod === option.id;
           const isFree =
             option.basePriceBrl === 0 ||
             hasFreeShippingCoupon ||
@@ -67,6 +65,6 @@ export function CartShippingSelector() {
       </div>
     </section>
   );
-}
+});
 
 export default CartShippingSelector;

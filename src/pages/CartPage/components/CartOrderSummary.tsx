@@ -1,30 +1,41 @@
-import { useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FREE_SHIPPING_THRESHOLD_BRL,
   SHIPPING_OPTIONS,
-  useCartPageContext,
-} from '../../../context/cartPageState';
+} from '../../../store/slices/cartSlice';
+import { useCartSummaryState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
 
 /**
- * Sticky order summary sidebar consuming CartPageContext and multi-currency formatting.
+ * Memoized sticky order summary sidebar driven by memoized Redux selectors.
  */
-export function CartOrderSummary() {
+export const CartOrderSummary = memo(function CartOrderSummary() {
   const {
-    state,
     totalUnits,
     subtotal,
     discountAmount,
     shippingCost,
     freeShippingRemaining,
     total,
-  } = useCartPageContext();
+    appliedCoupon,
+    shippingMethod,
+    orderNote,
+  } = useCartSummaryState();
   const { formatPrice } = useCurrency();
   const [checkoutNotice, setCheckoutNotice] = useState('');
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current !== null) {
+        clearTimeout(noticeTimerRef.current);
+      }
+    };
+  }, []);
 
   const selectedShipping =
-    SHIPPING_OPTIONS.find((opt) => opt.id === state.shippingMethod) ??
+    SHIPPING_OPTIONS.find((opt) => opt.id === shippingMethod) ??
     SHIPPING_OPTIONS[0];
 
   const progressRatio = Math.min(
@@ -33,10 +44,16 @@ export function CartOrderSummary() {
   );
 
   const handleCheckout = (): void => {
+    if (noticeTimerRef.current !== null) {
+      clearTimeout(noticeTimerRef.current);
+    }
     setCheckoutNotice(
       'Checkout flow will be added in the next Phase 6 increment.',
     );
-    setTimeout(() => setCheckoutNotice(''), 4000);
+    noticeTimerRef.current = setTimeout(() => {
+      setCheckoutNotice('');
+      noticeTimerRef.current = null;
+    }, 4000);
   };
 
   return (
@@ -47,7 +64,7 @@ export function CartOrderSummary() {
         </h2>
       </div>
 
-      {state.shippingMethod === 'standard' && !state.appliedCoupon?.freeShipping && (
+      {shippingMethod === 'standard' && !appliedCoupon?.freeShipping && (
         <div className="cart-summary__shipping-progress">
           <div className="cart-summary__progress-text">
             {freeShippingRemaining > 0 ? (
@@ -81,9 +98,9 @@ export function CartOrderSummary() {
           <dd>{formatPrice(subtotal)}</dd>
         </div>
 
-        {state.appliedCoupon && discountAmount > 0 && (
+        {appliedCoupon && discountAmount > 0 && (
           <div className="cart-summary__row cart-summary__row--discount">
-            <dt>Promo ({state.appliedCoupon.code})</dt>
+            <dt>Promo ({appliedCoupon.code})</dt>
             <dd>-{formatPrice(discountAmount)}</dd>
           </div>
         )}
@@ -99,10 +116,10 @@ export function CartOrderSummary() {
           </dd>
         </div>
 
-        {state.orderNote.trim() && (
+        {orderNote.trim() && (
           <div className="cart-summary__note-preview">
             <dt>Note attached</dt>
-            <dd title={state.orderNote}>{state.orderNote}</dd>
+            <dd title={orderNote}>{orderNote}</dd>
           </div>
         )}
 
@@ -163,6 +180,6 @@ export function CartOrderSummary() {
       </div>
     </aside>
   );
-}
+});
 
 export default CartOrderSummary;
