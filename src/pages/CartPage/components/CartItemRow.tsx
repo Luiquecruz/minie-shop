@@ -27,23 +27,20 @@ export const CartItemRow = memo(function CartItemRow({
 
   const quantity = item?.quantity ?? 0;
   const debouncedQuantity = useDebounce(quantity, 300);
-  const stockQuery = useStockValidationQuery(
-    itemId,
-    debouncedQuantity,
-    Boolean(item) && hasEditedQuantity,
-  );
+  const shouldValidate = Boolean(item) && hasEditedQuantity && debouncedQuantity === quantity;
+  const stockQuery = useStockValidationQuery(itemId, debouncedQuantity, shouldValidate);
 
   if (!item) return null;
 
   const apiStockWarning =
-    hasEditedQuantity && stockQuery.data && !stockQuery.data.available
+    shouldValidate && stockQuery.data && !stockQuery.data.available
       ? stockQuery.data.message
-      : hasEditedQuantity && stockQuery.isError
+      : shouldValidate && stockQuery.isError
         ? 'Could not validate stock right now.'
         : null;
 
   const activeWarning = localWarning ?? apiStockWarning ?? stockWarning ?? null;
-  const isValidating = hasEditedQuantity && stockQuery.isFetching;
+  const isValidating = shouldValidate && stockQuery.isFetching;
 
   const maxStock = Math.max(1, resolveMaxStock(item.stock));
   const unitFinalPrice = item.price?.final_price || 0;
@@ -76,7 +73,7 @@ export const CartItemRow = memo(function CartItemRow({
       return;
     }
 
-    const parsed = Number.parseInt(trimmed, 10);
+    const parsed = Math.trunc(Number(trimmed));
     if (!Number.isFinite(parsed) || parsed < 1) {
       setLocalWarning(null);
       setHasEditedQuantity(true);

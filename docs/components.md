@@ -47,7 +47,13 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 - **Route:** `/cart`
 - **Subcomponents (`src/pages/CartPage/components/`):** Memoized `CartHeader`, `CartItemRow`, `CartPromoBox`, `CartShippingSelector`, `CartOrderNote`, `CartOrderSummary`.
 - **Dependencies:** Granular Redux hooks (`src/hooks/useCart.ts`), `useCurrency`, `useDebounce`, `useStockValidationQuery`, `Helmet`.
-- **Behavior:** Migrated in Increment 2 from monolithic Context to pure functional Redux Toolkit `cartSlice` + memoized `createSelector` + `React.memo`, isolating re-renders strictly to affected sections. Handles quantity clamping, debounced stock checks, promo codes (`MINIE10`, `MINIE20`, `FREESHIP`), shipping selection, order notes, empty state, and currency conversion.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:ff2486ae60f9219ab531356e2efa5e757468437b98be37547cc2d19d6eb7a9e1 -->
+
+- **Behavior:** Migrated in Increment 2 from monolithic Context to pure functional Redux Toolkit `cartSlice` + memoized `createSelector` + `React.memo`, isolating re-renders strictly to affected sections. Handles quantity clamping, debounced stock checks, promo codes (`MINIE10`, `MINIE20`, `FREESHIP`), shipping selection, order notes, empty state, and currency conversion. Quantity edits accept decimal and exponent notation, truncate fractions, and validate only after the committed quantity has settled. The quantity field uses the same focus colors as the promo and note fields.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ---
 

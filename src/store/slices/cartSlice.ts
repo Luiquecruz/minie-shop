@@ -111,10 +111,12 @@ export const cartSlice = createSlice({
           targetQty > maxStock ? `Max stock reached (${maxStock} units).` : null;
 
         const nextItems =
-          clampedQty === existing.quantity
+          clampedQty === existing.quantity && maxStock === existing.stock
             ? state.items
             : state.items.map((item, idx) =>
-                idx === existingIndex ? { ...item, quantity: clampedQty } : item,
+                idx === existingIndex
+                  ? { ...item, quantity: clampedQty, stock: maxStock }
+                  : item,
               );
 
         return {

@@ -108,6 +108,22 @@ describe('cartSlice pure functional reducers & immutability', () => {
     expect(state2.stockWarnings[productA.id]).toContain('Max stock reached');
   });
 
+  it('refreshes stock when adding an existing item even if the quantity stays capped', () => {
+    const state = cartReducer(
+      initialCartState,
+      addToCart({ product: productA, quantity: 5 }),
+    );
+    const updated = cartReducer(state, addToCart({ ...productA, stock: 5.9 }));
+
+    expect(updated.items[0]).not.toBe(state.items[0]);
+    expect(updated.items[0]).toMatchObject({ quantity: 5, stock: 5 });
+    const incremented = cartReducer(
+      updated,
+      updateQuantity({ id: productA.id, quantity: 6 }),
+    );
+    expect(incremented.items).toBe(updated.items);
+  });
+
   it('preserves structural sharing for untouched items on updateQuantity', () => {
     let state = cartReducer(initialCartState, addToCart(productA));
     state = cartReducer(state, addToCart(productB));
@@ -257,6 +273,27 @@ describe('cartSlice pure functional reducers & immutability', () => {
     expect(hydrated.items).toEqual([]);
     expect(hydrated.appliedCoupon).toBeNull();
     expect(hydrated.orderNote).toBe('');
+  });
+
+  it('flushes the latest pending note on pagehide without a second write', async () => {
+    vi.useFakeTimers();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    try {
+      const store = createAppStore();
+      store.dispatch(setOrderNote('First draft'));
+      await vi.advanceTimersByTimeAsync(200);
+      store.dispatch(setOrderNote('Latest draft'));
+      await vi.advanceTimersByTimeAsync(200);
+      expect(hydrateCartState().orderNote).toBe('');
+
+      window.dispatchEvent(new Event('pagehide'));
+      expect(hydrateCartState().orderNote).toBe('Latest draft');
+      await vi.advanceTimersByTimeAsync(250);
+      expect(setItem).toHaveBeenCalledTimes(1);
+    } finally {
+      setItem.mockRestore();
+      vi.useRealTimers();
+    }
   });
 
   it('rejects tampered/non-finite localStorage items and invalid coupons safely', () => {

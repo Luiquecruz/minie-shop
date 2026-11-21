@@ -51,7 +51,14 @@ export const useAppSelector = useSelector.withTypes<RootState>();
   - `shippingMethod`: `ShippingMethodId` (`'standard' | 'express' | 'pickup'`)
   - `orderNote`: `string` (`maxLength = 200`)
 - **Reducers & Actions:**
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:cb29c95f3b418e84c72d82827deefb0b3d1c0527b89cb24e63fcca9d7b6b2572 -->
+
   - `addToCart`, `updateQuantity`, `setStockWarning`, `removeFromCart`, `clearCart`, `setCouponInput`, `applyCoupon`, `removeCoupon`, `setShippingMethod`, `setOrderNote`, `openCart`, `closeCart`, `toggleCart`.
+- **Stock & Note Persistence:** Adding an existing item refreshes its normalized stock and reuses the line item only when quantity and stock are unchanged. Order note edits use a 250 ms debounce; page hide flushes the latest pending note through checkout preference persistence.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ### `cartSelectors` (`src/store/selectors/cartSelectors.ts`)
 - **Base Input Selectors:** `selectCartState`, `selectCartItems`, `selectIsCartOpen`, `selectCartStockWarnings`, `selectCartCouponInput`, `selectCartAppliedCoupon`, `selectCartCouponError`, `selectCartShippingMethod`, `selectCartOrderNote`.

@@ -78,8 +78,21 @@ export function createAppStore(preloadedState?: Partial<RootState>) {
     actionCreator: setOrderNote,
     effect: async (_action, listenerApi) => {
       listenerApi.cancelActiveListeners();
-      await listenerApi.delay(250);
-      persistPrefsFromState(listenerApi.getState() as RootState);
+      const page = typeof window === 'undefined' ? undefined : window;
+      const persist = () => persistPrefsFromState(listenerApi.getState() as RootState);
+      const flush = () => {
+        if (listenerApi.signal.aborted) return;
+        persist();
+        listenerApi.cancel();
+      };
+
+      page?.addEventListener('pagehide', flush, { once: true });
+      try {
+        await listenerApi.delay(250);
+        persist();
+      } finally {
+        page?.removeEventListener('pagehide', flush);
+      }
     },
   });
 

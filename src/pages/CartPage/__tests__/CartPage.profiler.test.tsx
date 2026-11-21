@@ -1,6 +1,6 @@
 import { Profiler, type ProfilerOnRenderCallback } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -179,8 +179,12 @@ describe('AFTER Migration: CartPage with Redux Toolkit + createSelector + React.
       name: /increase quantity/i,
     });
     await user.click(incrementButtons[0]);
+    expect(validateSpy).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText('Validating stock')).not.toBeInTheDocument();
     await vi.waitFor(() => {
-      expect(validateSpy).toHaveBeenCalled();
+      expect(validateSpy).toHaveBeenCalledExactlyOnceWith(
+        PRODUCTS_MOCK[0].id, 2, expect.any(AbortSignal),
+      );
     });
     const item1QtyCounts = { ...counts };
 
@@ -224,7 +228,12 @@ describe('AFTER Migration: CartPage with Redux Toolkit + createSelector + React.
     );
     await user.clear(qtyInput);
     expect(qtyInput).toHaveValue(null);
-    await user.type(qtyInput, '3{Enter}');
+    fireEvent.change(qtyInput, { target: { value: '1e1' } });
+    await user.keyboard('{Enter}');
+    expect(qtyInput).toHaveValue(10);
+
+    fireEvent.change(qtyInput, { target: { value: '3.9' } });
+    await user.tab();
     expect(qtyInput).toHaveValue(3);
     expect(screen.getByText('4 units')).toBeInTheDocument();
 
