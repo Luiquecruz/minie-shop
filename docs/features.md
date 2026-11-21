@@ -16,8 +16,8 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
 | `F-06` | Floating Mini-Cart & Stock Guardrails | Phase 5 / Post-Phase 5 | `MiniCart.tsx`, `cartSlice.ts`, `useCart.ts`, `useProducts.ts` | Implemented |
 | `F-07` | Incremental TypeScript Migration | Pre-Phase 6 | `tsconfig.json`, `src/types/*`, `src/store/hooks.ts`, all `src/**/*.ts(x)` | Implemented |
 | `F-08` | React Query Caching, Optimistic Favorites & API Simulator | Post-Phase 5 | `src/query/*`, `useProducts.ts`, `useFavorites.ts`, `ApiDebugFab.tsx` | Implemented |
-| `F-09` | Dedicated Cart Page (Increment 1: Context + `useReducer`) | Phase 6 (Inc. 1) | `CartPage.tsx`, `CartPageProvider.tsx`, `cartPageState.ts` | Implemented |
-| `F-10` | Cart Optimization & Checkout Flow | Phase 6 (Inc. 2+) | — | Planned |
+| `F-09` | Dedicated Cart Page (Increment 2: Pure Redux + Memoized Selectors) | Phase 6 (Inc. 2) | `CartPage.tsx`, `cartSlice.ts`, `cartSelectors.ts`, `cartStorage.ts`, `useCart.ts` | Implemented |
+| `F-10` | Checkout Flow & Order Confirmation | Phase 6 (Inc. 3) | — | Planned |
 
 ---
 
@@ -84,9 +84,10 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
   - Optimistic Favorites toggle (`useToggleFavoriteMutation`) on `ProductCard` and `ProductDetailPage`, persisted in `localStorage` (`minieshop_favorites`), with automatic cache rollback on mutation failure and targeted invalidation of `favorites` and `favoritesOnly` product lists.
   - Discreet bottom-left `ApiDebugFab` popover allowing live toggling of **Simulate Query Error**, **Simulate Favorite Error**, and **Invalidate Cache**.
 
-### F-09: Dedicated Cart Page (Increment 1: Context + `useReducer`)
+### F-09: Dedicated Cart Page (Increment 2: Pure Redux + Memoized Selectors)
 - **Route:** `/cart`
 - **Capabilities:**
-  - Powered by a single monolithic `CartPageContext` + `cartPageReducer` (`CartPageProvider`) with bi-directional item synchronization to Redux `cartSlice` (`replaceCartItems`) and `localStorage` (`minieshop_cart`).
+  - Migrated from monolithic Context + `useReducer` to pure immutable Redux Toolkit `cartSlice` reducers, memoized `createSelector` derivations (`cartSelectors.ts`), granular hooks (`useCart.ts`), and `React.memo` subcomponents, reducing measured React `<Profiler>` updates across 4 cart interactions from `70` to `16` (-77.1%).
+  - Persists items (`minieshop_cart`) and checkout preferences (`minieshop_cart_prefs`) to `localStorage` via RTK `createListenerMiddleware` (`cartStorage.ts`) without side effects inside reducers.
   - Displays cart line items with quantity steppers, numeric bounds (`1..stock`), debounced stock validation (`useStockValidationQuery`), item removal, and Clear Cart.
   - Supports promo coupons (`MINIE10`, `MINIE20`, `FREESHIP`), shipping method selection (`Standard Delivery`, `Express Courier`, `Store Pickup`), free-shipping threshold progress (`>= 500 BRL`), order/delivery notes (`maxLength = 200`), and multi-currency conversion (`useCurrency`).

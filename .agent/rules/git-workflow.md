@@ -32,10 +32,11 @@ Follow **Conventional Commits** matching the repository history:
 
 ## 2. Branching Model (Mandatory Branch-per-Spec Rule)
 - **Dedicated Branch per Spec/Task:** Every SDD specification (`docs/sdd/NNNN-*.md`), feature increment, or fix **must** be developed in its own dedicated branch. Never implement a new spec on `main` or reuse an unrelated/previous spec's branch.
-- **Verify Before Editing:** Before creating or modifying any files for a spec, inspect `git branch --show-current` and switch to a new branch (branched from `main`, or from an unmerged prerequisite feature branch when stacking increments).
+- **Verify Before Editing:** Before creating or modifying files for a spec, inspect `git branch --show-current`. If you are already on that spec's dedicated branch, continue working on it; otherwise create and switch to a new dedicated branch (branched from `main`, or from an unmerged prerequisite feature branch when stacking increments).
+- **Clean Branch Naming (No SDD Identifiers):** Branch names must be clear, concise, and objective—**never** include `sdd`, SDD numbers, or spec IDs (e.g., avoid `feat/sdd-0001-cart-page`; use `feat/dedicated-cart-page`).
 - Keep `main` always buildable (`npm run build`) and lint-clean (`npm run lint`).
 - Create descriptive branches per task or SDD spec:
-  - `feat/<feature-slug>` (or `feat/sdd-NNNN-<slug>`)
+  - `feat/<feature-slug>`
   - `fix/<bug-slug>`
   - `refactor/<scope-slug>`
   - `docs/<topic-slug>`

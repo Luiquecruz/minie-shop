@@ -1,6 +1,6 @@
 # ADR-0008: Dedicated Cart Page Baseline with Monolithic React Context and `useReducer`
 
-- **Status:** Accepted
+- **Status:** Superseded by [`ADR-0010`](./0010-cart-page-redux-memoized-selectors.md)
 - **Date:** 2026-11-20
 - **Phase:** Phase 6 — Increment 1
 - **Related SDD:** [`docs/sdd/0001-dedicated-cart-and-checkout.md`](../sdd/0001-dedicated-cart-and-checkout.md)

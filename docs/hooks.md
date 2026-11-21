@@ -8,7 +8,7 @@ Tracks all custom React hooks in `src/hooks/`.
 
 | Hook | Path | Primary Responsibility | Dependencies |
 | :--- | :--- | :--- | :--- |
-| `useCart` | `src/hooks/useCart.ts` | Cart state & actions facade | `store/hooks`, `cartSlice` |
+| `useCart` | `src/hooks/useCart.ts` | Global & granular Redux cart hooks (`useCart`, `useCartActions`, `useCartItemIds`, `useCartItemState`, `useCartPromoState`, `useCartShippingState`, `useCartOrderNoteState`, `useCartSummaryState`) | `store/hooks`, `cartSlice`, `cartSelectors` |
 | `useCurrency` | `src/hooks/useCurrency.ts` | Currency state, switching & formatting | `store/hooks`, `currencySlice`, `utils/currency` |
 | `useDebounce<T>` | `src/hooks/useDebounce.ts` | Generic value debouncing with timer cleanup | React `useState`, `useEffect` |
 | `useProductsQuery` | `src/hooks/useProducts.ts` | Paginated, filtered catalog query (`keepPreviousData`) | `@tanstack/react-query`, `queryKeys`, `productsApi` |
@@ -23,9 +23,10 @@ Tracks all custom React hooks in `src/hooks/`.
 
 ## Hook Details
 
-### `useCart` (`src/hooks/useCart.ts`)
-- **Purpose:** Encapsulates Redux `cart` selectors (`useAppSelector`) and typed action dispatchers (`useAppDispatch`) behind `UseCartReturn`.
-- **Returns (`UseCartReturn`):** `items`, `isOpen`, `cartCount`, `subtotal`, `stockWarnings`, `addToCart`, `updateQuantity`, `setStockWarning`, `removeFromCart`, `clearCart`, `replaceCartItems`, `openCart`, `closeCart`, `toggleCart`.
+### `useCart` & Granular Cart Hooks (`src/hooks/useCart.ts`)
+- **Purpose:** Encapsulates Redux `cart` memoized selectors (`src/store/selectors/cartSelectors.ts`) and stable memoized dispatchers (`useCartActions`) so components never call `useSelector`/`useDispatch` directly.
+- **`useCart()` Returns (`UseCartReturn`):** `items`, `isOpen`, `cartCount`, `subtotal`, `stockWarnings`, plus all `CartActions`.
+- **Granular `CartPage` Hooks:** `useCartActions`, `useCartPageMeta`, `useCartItemIds` (`shallowEqual`), `useCartItemState(id)`, `useCartPromoState`, `useCartShippingState`, `useCartOrderNoteState`, `useCartSummaryState`.
 
 ### `useCurrency` (`src/hooks/useCurrency.ts`)
 - **Purpose:** Exposes active store currency, configuration, switcher, and BRL-to-target formatting helpers via `UseCurrencyReturn`.

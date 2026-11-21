@@ -45,9 +45,9 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 
 ### `CartPage` (`src/pages/CartPage/CartPage.tsx`)
 - **Route:** `/cart`
-- **Subcomponents (`src/pages/CartPage/components/`):** `CartHeader`, `CartItemRow`, `CartPromoBox`, `CartShippingSelector`, `CartOrderNote`, `CartOrderSummary`.
-- **Dependencies:** `CartPageProvider`, `useCartPageContext`, `useCurrency`, `useDebounce`, `useStockValidationQuery`, `Helmet`.
-- **Behavior:** Wraps cart UI in a single monolithic `CartPageContext` (`useReducer`) for Increment 1 so Context re-render propagation can be observed in React DevTools. Handles quantity clamping, debounced stock checks, promo codes (`MINIE10`, `MINIE20`, `FREESHIP`), shipping selection, order notes, empty state, and currency conversion.
+- **Subcomponents (`src/pages/CartPage/components/`):** Memoized `CartHeader`, `CartItemRow`, `CartPromoBox`, `CartShippingSelector`, `CartOrderNote`, `CartOrderSummary`.
+- **Dependencies:** Granular Redux hooks (`src/hooks/useCart.ts`), `useCurrency`, `useDebounce`, `useStockValidationQuery`, `Helmet`.
+- **Behavior:** Migrated in Increment 2 from monolithic Context to pure functional Redux Toolkit `cartSlice` + memoized `createSelector` + `React.memo`, isolating re-renders strictly to affected sections. Handles quantity clamping, debounced stock checks, promo codes (`MINIE10`, `MINIE20`, `FREESHIP`), shipping selection, order notes, empty state, and currency conversion.
 
 ---
 

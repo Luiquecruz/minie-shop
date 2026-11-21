@@ -6,12 +6,13 @@ description: "Typechecking, linting, production build checks, browser validation
 # Testing & Verification Rules
 
 ## 1. Current Verification Baseline
-At the current milestone (Pre-Phase 6 TypeScript Migration complete), no unit/integration test runner is installed in `package.json`. Every code change must be verified with the following baseline gates:
+At the current milestone (Phase 6 Increment 2 — Vitest + React Testing Library adopted via `ADR-0009`), every code change must pass the following verification gates:
 
-1. **Static Typechecking (`npm run typecheck`):** Executes `tsc --noEmit` using strict `tsconfig.json`. Must finish with `0 errors`.
-2. **Static Linting (`npm run lint`):** Executes `oxlint` using `.oxlintrc.json` (`react`, `oxc`, `typescript` plugins). Must finish with `0 warnings and 0 errors`.
-3. **Production Bundle (`npm run build`):** Executes `tsc --noEmit && vite build` to verify TypeScript compilation, module resolution, TSX compilation, and CSS bundling.
-4. **Browser Validation Cadence:** Perform end-to-end browser inspection at the conclusion of each implemented user flow or upon explicit user request. Avoid spawning heavy browser checks for purely documentation edits.
+1. **Automated Tests (`npm test`):** Executes `vitest run` across reducer, memoized selector, and React `<Profiler>` tests. Must finish with `0 failures`.
+2. **Static Typechecking (`npm run typecheck`):** Executes `tsc --noEmit` using strict `tsconfig.json`. Must finish with `0 errors`.
+3. **Static Linting (`npm run lint`):** Executes `oxlint` using `.oxlintrc.json` (`react`, `oxc`, `typescript` plugins). Must finish with `0 warnings and 0 errors`.
+4. **Production Bundle (`npm run build`):** Executes `tsc --noEmit && vite build` to verify TypeScript compilation, module resolution, TSX compilation, and CSS bundling.
+5. **Browser Validation Cadence:** Perform end-to-end browser inspection at the conclusion of each implemented user flow or upon explicit user request. Avoid spawning heavy browser checks for purely documentation edits.
 
 ## 2. Browser Flow Validation Checklist
 When validating UI flows in the browser (`npm run dev` on `http://localhost:5199`):
