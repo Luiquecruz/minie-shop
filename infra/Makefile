@@ -1,9 +1,12 @@
 COMPOSE := docker compose -f compose.yaml --env-file $(if $(wildcard .env),.env,.env.example)
 
-.PHONY: up watch down logs ps seed test reset
+.PHONY: up up-ai watch down logs ps seed test reset
 
 up:
 	$(COMPOSE) up -d --build
+
+up-ai:
+	$(COMPOSE) --profile ai up -d --build
 
 watch:
 	$(COMPOSE) watch

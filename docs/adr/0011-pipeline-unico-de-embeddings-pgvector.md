@@ -27,13 +27,29 @@ A busca híbrida (Fase 3) e as recomendações semânticas futuras (Fase 4) depe
 
 ---
 
-## Especificação do Modelo Escolhido *(preenchido ao final da `S06`)*
+## Especificação do Modelo Escolhido *(preenchido na `S06`)*
 
-- **Modelo escolhido:** *(a preencher após comparação `bge-m3` vs `embeddinggemma` na `S06`)*
-- **Dimensão (`vector(N)`):** *(a preencher na `S06`)*
-- **Template de texto (`templateVersion`):** *(a preencher na `S06`)*
-- **Prefixos (query vs documento):** *(a preencher na `S06`)*
-- **Resumo da comparação (`bge-m3` vs `embeddinggemma`):** *(a preencher na `S06`)*
+- **Modelo escolhido:** `embeddinggemma` (Google EmbeddingGemma via Ollama `ollama/ollama:0.40.17`, ~621 MB)
+- **Dimensão (`vector(N)`):** `768` (`catalog.product_embeddings.embedding vector(768)` com índice HNSW `vector_cosine_ops`)
+- **Template de texto (`templateVersion: "v1"`):**
+  ```text
+  Produto: {name}
+  Categoria: {categoryNames}
+  [Marca: {brand}]
+  Descrição: {description}
+  [Especificações: {attributesText}]
+  ```
+- **Prefixos (conforme model card oficial do EmbeddingGemma):**
+  - **Documento:** `title: {name} | text: {templateText}`
+  - **Consulta:** `task: search result | query: {query}`
+- **Resultado da comparação empírica (20 consultas de intenção em PT-BR sobre os 30 produtos do seed, CPU em container OrbStack):**
+
+| Modelo | Dimensão | Tamanho | Recall@3 | Recall@5 | MRR | Batch 30 docs (CPU) | Latência Query p50 / p95 (CPU) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `bge-m3` *(sem prefixo)* | 1024 | 1.2 GB | 0.900 | 0.950 | 0.804 | 88.4s | 2630 ms / 3129 ms |
+| **`embeddinggemma`** *(prefixos assimétricos)* | **768** | **621 MB** | **0.950** | **0.950** | **0.892** | 111.5s | **2589 ms** / 3138 ms |
+
+**Justificativa:** `embeddinggemma` obteve **+8.8 pontos percentuais em MRR** (`0.892` vs `0.804`) e maior `Recall@3` (`0.950` vs `0.900`) nas consultas de intenção em português, ocupando **metade do espaço em disco/RAM** (`621 MB` vs `1.2 GB`) e **25% menos memória vetorial** (`768` vs `1024` dimensões) no pgvector e no Meilisearch.
 
 ---
 

@@ -11,6 +11,7 @@ import {
   check,
   index,
   uniqueIndex,
+  vector,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
@@ -162,4 +163,18 @@ export const favorites = catalogSchema.table(
       sql`${table.customerId} IS NOT NULL OR ${table.sessionId} IS NOT NULL`,
     ),
   ],
+);
+
+export const productEmbeddings = catalogSchema.table(
+  'product_embeddings',
+  {
+    productId: uuid('product_id')
+      .primaryKey()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    embedding: vector('embedding', { dimensions: 768 }).notNull(),
+    model: text('model').notNull(),
+    contentHash: text('content_hash').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('product_embeddings_hnsw_idx').using('hnsw', table.embedding.op('vector_cosine_ops'))],
 );

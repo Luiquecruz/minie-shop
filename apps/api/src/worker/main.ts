@@ -7,7 +7,7 @@ import { loadEnv } from '../config/env.js';
 import { DatabaseService } from '../database/database.service.js';
 import { CategoryChangedOutboxHandler } from '../modules/catalog/index.js';
 import { OutboxService } from '../modules/platform/index.js';
-import { SearchIndexOutboxHandler } from '../modules/search/index.js';
+import { EmbeddingsOutboxHandler, SearchIndexOutboxHandler } from '../modules/search/index.js';
 import { OutboxWorkerRunner, type OutboxEventHandler } from './worker.runner.js';
 
 async function bootstrapWorker(): Promise<void> {
@@ -24,10 +24,14 @@ async function bootstrapWorker(): Promise<void> {
   const outboxService = appContext.get(OutboxService);
   const databaseService = appContext.get(DatabaseService);
   const searchIndexHandler = appContext.get(SearchIndexOutboxHandler);
+  const embeddingsHandler = appContext.get(EmbeddingsOutboxHandler);
   const categoryChangedHandler = appContext.get(CategoryChangedOutboxHandler);
 
   const handlers: Record<string, OutboxEventHandler> = {
     'search-index': (event) => searchIndexHandler.handle(event),
+    embeddings: async (event) => {
+      await embeddingsHandler.handle(event);
+    },
     'catalog-category-fanout': (event) => categoryChangedHandler.handle(event),
     noop: async () => {
       // Built-in smoke/heartbeat consumer

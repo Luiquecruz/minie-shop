@@ -20,6 +20,7 @@ import {
   attributeDefinitions,
   categories,
   favorites,
+  productEmbeddings,
   productImages,
   products,
 } from '../../database/schema/index.js';
@@ -1058,6 +1059,83 @@ export class CatalogService {
         });
       }
     });
+  }
+
+  // --- Public Embedding Persistence Interface (catalog owns catalog.product_embeddings, S06) ---
+
+  async getProductEmbeddingMeta(
+    productId: string,
+  ): Promise<{ model: string; contentHash: string } | null> {
+    const [row] = await this.databaseService.db
+      .select({
+        model: productEmbeddings.model,
+        contentHash: productEmbeddings.contentHash,
+      })
+      .from(productEmbeddings)
+      .where(eq(productEmbeddings.productId, productId))
+      .limit(1);
+
+    return row ?? null;
+  }
+
+  async getProductEmbeddingsByIds(
+    productIds: string[],
+  ): Promise<Map<string, { embedding: number[]; model: string; contentHash: string }>> {
+    const result = new Map<string, { embedding: number[]; model: string; contentHash: string }>();
+    if (productIds.length === 0) {
+      return result;
+    }
+
+    const rows = await this.databaseService.db
+      .select({
+        productId: productEmbeddings.productId,
+        embedding: productEmbeddings.embedding,
+        model: productEmbeddings.model,
+        contentHash: productEmbeddings.contentHash,
+      })
+      .from(productEmbeddings)
+      .where(inArray(productEmbeddings.productId, productIds));
+
+    for (const row of rows) {
+      result.set(row.productId, {
+        embedding: row.embedding,
+        model: row.model,
+        contentHash: row.contentHash,
+      });
+    }
+    return result;
+  }
+
+  async upsertProductEmbedding(input: {
+    productId: string;
+    embedding: number[];
+    model: string;
+    contentHash: string;
+  }): Promise<void> {
+    await this.databaseService.db
+      .insert(productEmbeddings)
+      .values({
+        productId: input.productId,
+        embedding: input.embedding,
+        model: input.model,
+        contentHash: input.contentHash,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: productEmbeddings.productId,
+        set: {
+          embedding: input.embedding,
+          model: input.model,
+          contentHash: input.contentHash,
+          updatedAt: new Date(),
+        },
+      });
+  }
+
+  async deleteProductEmbedding(productId: string): Promise<void> {
+    await this.databaseService.db
+      .delete(productEmbeddings)
+      .where(eq(productEmbeddings.productId, productId));
   }
 
   private buildOrderByClauses(sort: DecodedCursor['s'], rankSql: SQL<number>): SQL[] {

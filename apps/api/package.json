@@ -14,6 +14,8 @@
     "search:init": "tsx src/cli/search-init.ts",
     "search:reindex": "tsx src/cli/search-reindex.ts",
     "search:status": "tsx src/cli/search-status.ts",
+    "embeddings:reindex": "tsx src/cli/embeddings-reindex.ts",
+    "embeddings:status": "tsx src/cli/embeddings-status.ts",
     "outbox:stats": "tsx src/cli/outbox-cli.ts stats",
     "outbox:requeue": "tsx src/cli/outbox-cli.ts requeue",
     "outbox:wait-drain": "tsx src/cli/outbox-cli.ts wait-drain",

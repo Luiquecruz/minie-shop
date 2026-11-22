@@ -74,6 +74,16 @@ O serviço one-shot `init-search` cria/atualiza o índice `products` (com sinôn
 - `worker.key` — usada pelo `worker`, com permissões apenas de escrita/leitura de documentos e tarefas no índice `products`.
 - `MEILI_MASTER_KEY` fica restrita a `init-search` e comandos operacionais (`pnpm search:reindex`).
 
+## Embeddings Locais (Profile opcional `ai`)
+
+O `make -C infra up` padrão **não** sobe o Ollama (a API opera normalmente em modo `keyword` com fallback automático). Para habilitar embeddings locais e busca híbrida:
+
+```bash
+make -C infra up-ai
+```
+
+> **Nota para macOS / OrbStack:** containers Linux no macOS executam inferência **somente em CPU** (sem acesso à GPU Apple Silicon/Metal). Para obter latência de GPU nativa no macOS, instale o Ollama diretamente no host e configure `EMBEDDINGS_BASE_URL=http://host.docker.internal:11434` em `infra/.env`.
+
 ---
 
 ## Troubleshooting

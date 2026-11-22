@@ -36,6 +36,13 @@ export const envSchema = z.object({
   WORKER_LEASE_MS: z.coerce.number().int().min(1_000).max(600_000).default(30_000),
   WORKER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(5),
   OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(7),
+  EMBEDDINGS_PROVIDER: z.enum(['ollama', 'fake']).default('ollama'),
+  EMBEDDINGS_BASE_URL: z.string().url().default('http://localhost:11434'),
+  EMBEDDINGS_MODEL: z.string().min(1).default('embeddinggemma'),
+  EMBEDDINGS_DIMENSIONS: z.coerce.number().int().min(1).max(4096).default(768),
+  EMBEDDINGS_QUERY_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(4_000),
+  MEILI_EMBEDDER_NAME: z.string().min(1).default('semantic'),
+  SEARCH_SEMANTIC_RATIO: z.coerce.number().min(0).max(1).default(0.5),
 });
 
 export type Env = z.infer<typeof envSchema>;
