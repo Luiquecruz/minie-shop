@@ -1,12 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { asc, count, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import type {
   CategoryDTO,
+  CategoryRefDTO,
   ImageDTO,
   ProductAttributeDTO,
   ProductCardDTO,
+  ProductDetailDTO,
   ProductListResponseDTO,
 } from '@minieshop/contracts';
+import { notFoundError } from '../../common/errors.js';
 import { DatabaseService } from '../../database/database.service.js';
 import {
   attributeDefinitions,
@@ -319,6 +322,72 @@ export class CatalogService {
     }
 
     return { items, nextCursor };
+  }
+
+  async getProductBySlug(slug: string): Promise<ProductDetailDTO> {
+    const [productRows, attrDefs, allCategories] = await Promise.all([
+      this.databaseService.db
+        .select({
+          id: products.id,
+          slug: products.slug,
+          name: products.name,
+          description: products.description,
+          categoryId: products.categoryId,
+          effectivePrice: effectivePriceSql,
+          currency: products.currency,
+          inStock: products.inStock,
+          attributes: products.attributes,
+        })
+        .from(products)
+        .where(and(eq(products.slug, slug), eq(products.status, 'published')))
+        .limit(1),
+      this.getAttributeDefinitions(),
+      this.getAllCategories(),
+    ]);
+
+    const product = productRows[0];
+    if (!product) {
+      throw notFoundError(`Product "${slug}" not found`);
+    }
+
+    const categoriesById = new Map(allCategories.map((c) => [c.id, c]));
+    const currentCategory = categoriesById.get(product.categoryId);
+    if (!currentCategory) {
+      throw notFoundError(`Category for product "${slug}" not found`);
+    }
+
+    const breadcrumbs: CategoryRefDTO[] = [];
+    let cursorCategory: CategoryRow | undefined = currentCategory;
+    const visited = new Set<string>();
+    while (cursorCategory && !visited.has(cursorCategory.id)) {
+      visited.add(cursorCategory.id);
+      breadcrumbs.unshift({ slug: cursorCategory.slug, name: cursorCategory.name });
+      cursorCategory = cursorCategory.parentId
+        ? categoriesById.get(cursorCategory.parentId)
+        : undefined;
+    }
+
+    const imagesByProductId = await this.loadReadyImagesByProductIds([product.id]);
+    const productImagesList = imagesByProductId.get(product.id) ?? [];
+
+    return {
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      description: product.description,
+      price: {
+        amount: Number(product.effectivePrice),
+        currency: product.currency,
+      },
+      inStock: product.inStock,
+      category: {
+        slug: currentCategory.slug,
+        name: currentCategory.name,
+      },
+      breadcrumbs,
+      images: productImagesList,
+      attributes: this.mapProductAttributes(product.attributes ?? {}, attrDefs, false),
+    };
   }
 
   private buildOrderByClauses(sort: DecodedCursor['s'], rankSql: SQL<number>): SQL[] {
