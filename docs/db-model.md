@@ -217,6 +217,7 @@ erDiagram
 - **Estoque (`inventory.stock_items`):** `quantity >= 0`, `reserved >= 0`, `reserved <= quantity`, `variant_id UNIQUE`.
 - **Mídia (`media.media_assets`):** `status IN ('pending', 'ready', 'failed')`, `storage_key UNIQUE`, `checksum_sha256 UNIQUE`, `size_bytes > 0`.
 - **Busca textual e filtros (`catalog.products`):**
+  - `status` (`text NOT NULL DEFAULT 'published'`, `CHECK (status IN ('draft', 'published', 'archived'))`, índice `products_status_idx`) e `CHECK (slug <> 'facets')` adicionados na migration `0006` (`ADR-0008`).
   - `search_vector` (`tsvector`) atualizado automaticamente via trigger `BEFORE INSERT OR UPDATE` usando `to_tsvector('portuguese', public.unaccent(...))` com pesos `A` (`name`) e `B` (`description`), indexado com **GIN**.
   - `attributes` (`jsonb`) indexado com **GIN**.
   - Índices B-tree em `category_id`, `regular_price_cents` e `special_price_cents`.

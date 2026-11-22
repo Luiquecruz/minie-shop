@@ -1,0 +1,244 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'infra/**'
+      - 'docs/adr/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'infra/**'
+      - 'docs/adr/**'
+      - '.github/workflows/backend.yml'
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-backend-${{ hashFiles('packages/contracts/pnpm-lock.yaml', 'apps/api/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-backend-
+
+      - name: Install and check @minieshop/contracts
+        working-directory: packages/contracts
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm lint
+          pnpm typecheck
+          pnpm build
+
+      - name: Install and check @minieshop/api
+        working-directory: apps/api
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm lint
+          pnpm typecheck
+          pnpm build
+
+  api-integration-tests:
+    name: API Unit & Integration Tests (Postgres + pgvector)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: minieshop
+          POSTGRES_PASSWORD: minieshop_dev_password
+          POSTGRES_DB: minieshop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U minieshop -d minieshop"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-backend-${{ hashFiles('packages/contracts/pnpm-lock.yaml', 'apps/api/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-backend-
+
+      - name: Build @minieshop/contracts
+        working-directory: packages/contracts
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Install @minieshop/api dependencies
+        working-directory: apps/api
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests (contracts, errors, chaos middleware)
+        working-directory: apps/api
+        run: pnpm exec tsx --test src/common/*.test.ts
+
+      - name: Run HTTP API integration suite (Vitest + app_test)
+        working-directory: apps/api
+        env:
+          NODE_ENV: test
+          TEST_DATABASE_URL: postgresql://minieshop:minieshop_dev_password@127.0.0.1:5432/app_test
+          S3_ENDPOINT: http://127.0.0.1:8333
+          S3_PUBLIC_ENDPOINT: http://127.0.0.1:8333
+          S3_REGION: us-east-1
+          S3_ACCESS_KEY_ID: minieshop_dev_access_key
+          S3_SECRET_ACCESS_KEY: minieshop_dev_secret_key
+          S3_PUBLIC_BUCKET: minieshop-catalog-public
+          S3_PRIVATE_BUCKET: minieshop-private
+        run: pnpm test:integration
+
+  seed-and-media-tests:
+    name: Seed & Media Integration Tests (Postgres + SeaweedFS)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: minieshop
+          POSTGRES_PASSWORD: minieshop_dev_password
+          POSTGRES_DB: minieshop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U minieshop -d minieshop"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-backend-${{ hashFiles('packages/contracts/pnpm-lock.yaml', 'apps/api/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-backend-
+
+      - name: Start SeaweedFS storage and initialize buckets
+        run: |
+          docker compose -f infra/compose.yaml --env-file infra/.env.example up -d storage
+          docker compose -f infra/compose.yaml --env-file infra/.env.example up --exit-code-from init-buckets init-buckets
+
+      - name: Build @minieshop/contracts
+        working-directory: packages/contracts
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Install @minieshop/api dependencies
+        working-directory: apps/api
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Drizzle migrations and Phase 1 seed/media integration test (T10)
+        working-directory: apps/api
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://minieshop:minieshop_dev_password@127.0.0.1:5432/minieshop
+          S3_ENDPOINT: http://127.0.0.1:8333
+          S3_PUBLIC_ENDPOINT: http://127.0.0.1:8333
+          S3_REGION: us-east-1
+          S3_ACCESS_KEY_ID: minieshop_dev_access_key
+          S3_SECRET_ACCESS_KEY: minieshop_dev_secret_key
+          S3_PUBLIC_BUCKET: minieshop-catalog-public
+          S3_PRIVATE_BUCKET: minieshop-private
+        run: |
+          pnpm db:migrate
+          pnpm exec tsx --test src/seed/seed-and-media.integration.test.ts
+
+      - name: Tear down storage containers
+        if: always()
+        run: docker compose -f infra/compose.yaml --env-file infra/.env.example down -v --remove-orphans
+
+  docker-build:
+    name: Build API Docker Image
+    runs-on: ubuntu-latest
+    needs:
+      - lint-and-typecheck
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          tags: minieshop-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
