@@ -1,6 +1,6 @@
 # Árvore de Categorias e Definições de Atributos (`T06`)
 
-> **Status:** Aguardando aprovação humana antes de iniciar a `T07` (Modelagem e Migrations).
+> **Status:** Aprovado com ajuste (inclusão de `catalog.product_variants` e variantes de tamanho/cor nos produtos de Vestuário e Calçados desde a Fase 1).
 
 Proposta baseada no mapeamento de `src/data/products.ts` ([`docs/data-mapping.md`](./data-mapping.md)) e nos filtros necessários para o catálogo.
 
@@ -70,6 +70,9 @@ Os atributos abaixo serão armazenados em `catalog.products.attributes` (JSONB c
 
 ## 3. Impacto no Backlog / Modelagem (`T07`)
 
-- **Sem `product_variants` na Fase 1:** confirmado em `T05` que nenhum dos 30 produtos possui grade de cor/tamanho; `inventory.stock_items` referencia diretamente `catalog.products.id`.
+- **Variantes (`catalog.product_variants`) incluídas desde a Fase 1:** aprovado na revisão humana para cobrir o caso de grade desde o início.
+  - Todo produto possui ao menos 1 variante (`is_default = true`, SKU próprio).
+  - Produtos de **Calçados** (`#11`, `#12`) recebem grade de numeração (`39`, `40`, `41`, `42`) e produtos de **Vestuário** (`#13`, `#14`, `#15`) recebem grade de tamanho/cor (`P`, `M`, `G` + cor).
+  - Consequentemente, `inventory.stock_items` passa a controlar estoque **por variante** (`variant_id -> catalog.product_variants.id`), e `catalog.products.in_stock` reflete se ao menos uma variante do produto possui saldo disponível (`quantity - reserved > 0`).
 - **Categorias novas para o seed (`T09`):** 5 categorias raiz + 15 subcategorias (20 registros em `catalog.categories`) e 12 registros em `catalog.attribute_definitions`.
-- **Fallback de imagem (`T09`):** 2 produtos na fixture (sugestão: `#19 Vela Aromática` e `#29 Organizador de Mesa`) ficarão intencionalmente sem imagem no seed para validar o fallback do frontend.
+- **Fallback de imagem (`T09`):** 2 produtos na fixture (`#19 Vela Aromática` e `#29 Organizador de Mesa`) ficarão intencionalmente sem imagem no seed para validar o fallback do frontend.
