@@ -34,3 +34,4 @@ This directory maintains an **incremental, append-only log** of architectural de
 | [ADR-0009](./0009-vitest-testes-integracao-api-e-banco-isolado.md) | Vitest para Testes de Integração HTTP da API e Banco `app_test` Isolado | Backend Fase 2 (`T18`) | Accepted | 2026-11-22 |
 | [ADR-0010](./0010-meilisearch-como-motor-de-busca.md) | Meilisearch como Motor de Busca atrás de `SearchPort` *(spec ADR-005)* | Backend Fase 3 (`S01`) | Accepted | 2026-11-22 |
 | [ADR-0011](./0011-pipeline-unico-de-embeddings-pgvector.md) | Pipeline Único de Embeddings com pgvector e Embedder `userProvided` *(spec ADR-006)* | Backend Fase 3 (`S01`) | Accepted | 2026-11-22 |
+| [ADR-0012](./0012-outbox-postgres-e-worker-segundo-entrypoint.md) | Outbox Transacional em PostgreSQL e Worker como Segundo Entrypoint *(spec ADR-010)* | Backend Fase 3 (`S03`) | Accepted | 2026-11-22 |

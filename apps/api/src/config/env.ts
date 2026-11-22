@@ -30,6 +30,12 @@ export const envSchema = z.object({
   MEILI_API_KEY_FILE: z.string().optional(),
   MEILI_MASTER_KEY: z.string().optional(),
   MEILI_INDEX_PRODUCTS: z.string().min(1).default('products'),
+  WORKER_HEALTH_PORT: z.coerce.number().int().min(1).max(65535).default(3002),
+  WORKER_POLL_INTERVAL_MS: z.coerce.number().int().min(50).max(60_000).default(500),
+  WORKER_BATCH_SIZE: z.coerce.number().int().min(1).max(200).default(20),
+  WORKER_LEASE_MS: z.coerce.number().int().min(1_000).max(600_000).default(30_000),
+  WORKER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(5),
+  OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(7),
 });
 
 export type Env = z.infer<typeof envSchema>;

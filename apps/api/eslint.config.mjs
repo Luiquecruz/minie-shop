@@ -35,7 +35,7 @@ export default createBaseConfig({
           {
             type: 'app-shell',
             pattern:
-              'src/{app.module.ts,app.factory.ts,main.ts,index.ts,common/**,config/**,database/**,health/**,cli/**,seed/**,test/**}',
+              'src/{app.module.ts,app.factory.ts,main.ts,index.ts,common/**,config/**,database/**,health/**,cli/**,seed/**,test/**,worker/**}',
             mode: 'full',
           },
         ],

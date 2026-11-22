@@ -63,7 +63,8 @@ export async function truncateCatalogAndMedia(db: NodePgDatabase<typeof schema>)
       "catalog"."products",
       "catalog"."attribute_definitions",
       "catalog"."categories",
-      "media"."media_assets"
+      "media"."media_assets",
+      "platform"."outbox"
       RESTART IDENTITY CASCADE`,
   );
 }

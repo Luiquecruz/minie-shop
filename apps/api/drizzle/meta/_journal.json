@@ -50,6 +50,13 @@
       "when": 1763856000000,
       "tag": "0006_catalog_product_status_and_slug_constraint",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1763900000000,
+      "tag": "0007_platform_outbox",
+      "breakpoints": true
     }
   ]
 }
