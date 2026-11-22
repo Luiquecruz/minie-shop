@@ -30,3 +30,4 @@ This directory maintains an **incremental, append-only log** of architectural de
 | [ADR-0005](./0005-imagem-fallback-no-frontend.md) | Imagem de Fallback Vive no Frontend, Nunca no Bucket *(spec ADR-004)* | Backend Fase 1 (`T01`) | Accepted | 2026-11-21 |
 | [ADR-0006](./0006-organizacao-banco-schemas-por-modulo.md) | Organização do Banco de Dados — Um Schema por Módulo *(spec ADR-008)* | Backend Fase 1 (`T01`) | Accepted | 2026-11-21 |
 | [ADR-0007](./0007-autenticacao-sessoes-opacas-propria.md) | Autenticação — Implementação Própria com Sessões Opacas no Servidor *(spec ADR-009)* | Backend Fase 1 (`T01`) | Accepted | 2026-11-21 |
+| [ADR-0008](./0008-contratos-api-publica-erros-e-status-produto.md) | Contratos Públicos da API do Catálogo, Envelope de Erros e Status de Publicação | Backend Fase 2 (`T11`) | Accepted | 2026-11-22 |

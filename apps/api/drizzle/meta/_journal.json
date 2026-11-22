@@ -43,6 +43,13 @@
       "when": 1763769900000,
       "tag": "0005_platform_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1763856000000,
+      "tag": "0006_catalog_product_status_and_slug_constraint",
+      "breakpoints": true
     }
   ]
 }

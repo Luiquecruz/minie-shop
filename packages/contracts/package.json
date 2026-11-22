@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./catalog/public": {
+      "types": "./dist/catalog/public.d.ts",
+      "import": "./dist/catalog/public.js"
     }
   },
   "scripts": {

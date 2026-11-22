@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+const booleanEnvSchema = z
+  .enum(['true', 'false', '1', '0'])
+  .default('false')
+  .transform((value) => value === 'true' || value === '1');
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
@@ -13,11 +18,28 @@ export const envSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().min(1, 'S3_SECRET_ACCESS_KEY is required'),
   S3_PUBLIC_BUCKET: z.string().min(1, 'S3_PUBLIC_BUCKET is required'),
   S3_PRIVATE_BUCKET: z.string().min(1, 'S3_PRIVATE_BUCKET is required'),
+  CORS_ORIGINS: z.string().default('http://localhost:5199'),
+  COOKIE_SECRET: z
+    .string()
+    .min(16, 'COOKIE_SECRET must be at least 16 characters')
+    .default('minieshop-dev-cookie-secret-change-me'),
+  CHAOS_ENABLED: booleanEnvSchema,
 });
 
 export type Env = z.infer<typeof envSchema>;
 
 let cachedEnv: Env | null = null;
+
+export function resetEnvCache(): void {
+  cachedEnv = null;
+}
+
+export function parseCorsOrigins(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+}
 
 export function loadEnv(raw: NodeJS.ProcessEnv = process.env): Env {
   if (cachedEnv && raw === process.env) {

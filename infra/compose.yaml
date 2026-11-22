@@ -151,6 +151,9 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-minieshop_dev_secret_key}
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-minieshop-catalog-public}
       S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-minieshop-private}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5199}
+      COOKIE_SECRET: ${COOKIE_SECRET:-minieshop-dev-cookie-secret-change-me}
+      CHAOS_ENABLED: ${CHAOS_ENABLED:-false}
     ports:
       - '${API_PORT:-3001}:3001'
     healthcheck:
