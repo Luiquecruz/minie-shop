@@ -18,7 +18,7 @@ ps:
 	$(COMPOSE) ps
 
 seed:
-	$(COMPOSE) --profile seed run --rm seed
+	$(COMPOSE) --profile seed run --rm --build seed
 
 test:
 	cd ../apps/api && pnpm test && pnpm test:integration
@@ -26,5 +26,7 @@ test:
 reset:
 	$(COMPOSE) down -v --remove-orphans
 	$(COMPOSE) up -d --build
-	$(COMPOSE) --profile seed run --rm seed
-	@echo "[reset] Stack recreated cleanly (postgres, storage, init-buckets, migrate, seed, api)."
+	$(COMPOSE) --profile seed run --rm --build seed
+	$(COMPOSE) exec -T worker pnpm outbox:wait-drain --consumers=search-index,catalog-category-fanout --timeout=60000
+	$(COMPOSE) exec -T worker pnpm search:status
+	@echo "[reset] Stack recreated cleanly (postgres, storage, search, migrate, seed, worker drained, search in sync, api)."

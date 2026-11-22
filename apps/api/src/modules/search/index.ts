@@ -9,6 +9,7 @@ export {
   type SearchSuggestHit,
 } from './search.port.js';
 export { MeilisearchAdapter, type MeilisearchAdapterConfig } from './meilisearch.adapter.js';
+export { SearchIndexOutboxHandler } from './search-index.handler.js';
 export {
   buildProductsIndexSettings,
   loadPortugueseSynonyms,

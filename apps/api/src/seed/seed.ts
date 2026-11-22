@@ -13,6 +13,7 @@ import {
   storeSettings,
 } from '../database/schema/index.js';
 import { MediaService, S3StorageAdapter } from '../modules/media/index.js';
+import { OutboxService } from '../modules/platform/index.js';
 
 interface FixtureCategory {
   slug: string;
@@ -308,6 +309,25 @@ export async function runSeed(options?: {
             updatedAt: new Date(),
           },
         });
+    }
+
+    // 5. Enqueue product.changed events in batch for outbox consumers (S05)
+    const outboxService = new OutboxService(databaseService);
+    const seededProductRows = await databaseService.db
+      .select({ id: products.id })
+      .from(products);
+    if (seededProductRows.length > 0) {
+      await databaseService.db.transaction(async (tx) => {
+        await outboxService.enqueueBatch(
+          tx,
+          seededProductRows.map((row) => ({
+            eventType: 'product.changed' as const,
+            aggregateType: 'product' as const,
+            aggregateId: row.id,
+            payload: { productId: row.id },
+          })),
+        );
+      });
     }
 
     return {

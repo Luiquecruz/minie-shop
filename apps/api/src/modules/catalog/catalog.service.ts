@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { and, asc, count, desc, eq, gt, inArray, sql, type SQL } from 'drizzle-orm';
 import {
   searchIndexDocumentSchema,
@@ -24,6 +24,7 @@ import {
   products,
 } from '../../database/schema/index.js';
 import { MediaService } from '../media/index.js';
+import { OutboxService } from '../platform/index.js';
 import {
   buildProductFilterConditions,
   buildSearchRankSql,
@@ -53,6 +54,9 @@ export class CatalogService {
     private readonly databaseService: DatabaseService,
     @Inject(MediaService)
     private readonly mediaService: MediaService,
+    @Optional()
+    @Inject(OutboxService)
+    private readonly outboxService?: OutboxService,
   ) {}
 
   getModuleSummary(): { module: string; mediaModule: string } {
@@ -899,6 +903,161 @@ export class CatalogService {
       name: row.name,
       categoryName: categoryNameById.get(row.categoryId) ?? '',
     }));
+  }
+
+  // --- Transactional Catalog Write Use Cases emitting Outbox events (S05) ---
+
+  async createProduct(input: {
+    categoryId: string;
+    slug: string;
+    sku: string;
+    name: string;
+    description: string;
+    regularPriceCents: number;
+    specialPriceCents?: number | null;
+    currency?: string;
+    inStock?: boolean;
+    status?: 'draft' | 'published' | 'archived';
+    attributes?: Record<string, unknown>;
+  }): Promise<{ id: string; slug: string }> {
+    return this.databaseService.db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(products)
+        .values({
+          categoryId: input.categoryId,
+          slug: input.slug,
+          sku: input.sku,
+          name: input.name,
+          description: input.description,
+          regularPriceCents: input.regularPriceCents,
+          specialPriceCents: input.specialPriceCents ?? null,
+          currency: input.currency ?? 'BRL',
+          inStock: input.inStock ?? false,
+          status: input.status ?? 'published',
+          attributes: input.attributes ?? {},
+        })
+        .returning({ id: products.id, slug: products.slug });
+
+      if (!created) {
+        throw new Error('Failed to create product');
+      }
+
+      if (this.outboxService) {
+        await this.outboxService.enqueue(tx, {
+          eventType: 'product.changed',
+          aggregateType: 'product',
+          aggregateId: created.id,
+          payload: { productId: created.id },
+        });
+      }
+
+      return created;
+    });
+  }
+
+  async updateProduct(
+    productId: string,
+    patch: {
+      name?: string;
+      description?: string;
+      categoryId?: string;
+      regularPriceCents?: number;
+      specialPriceCents?: number | null;
+      inStock?: boolean;
+      status?: 'draft' | 'published' | 'archived';
+      attributes?: Record<string, unknown>;
+    },
+  ): Promise<void> {
+    await this.databaseService.db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(products)
+        .set({
+          ...patch,
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, productId))
+        .returning({ id: products.id });
+
+      if (!updated) {
+        throw notFoundError(`Product "${productId}" not found`);
+      }
+
+      if (this.outboxService) {
+        await this.outboxService.enqueue(tx, {
+          eventType: 'product.changed',
+          aggregateType: 'product',
+          aggregateId: productId,
+          payload: { productId },
+        });
+      }
+    });
+  }
+
+  async setProductStatus(
+    productId: string,
+    status: 'draft' | 'published' | 'archived',
+  ): Promise<void> {
+    await this.updateProduct(productId, { status });
+  }
+
+  async updateProductInStock(productId: string, inStock: boolean): Promise<void> {
+    await this.updateProduct(productId, { inStock });
+  }
+
+  async deleteProduct(productId: string): Promise<void> {
+    await this.databaseService.db.transaction(async (tx) => {
+      const deleted = await tx
+        .delete(products)
+        .where(eq(products.id, productId))
+        .returning({ id: products.id });
+
+      if (deleted.length === 0) {
+        throw notFoundError(`Product "${productId}" not found`);
+      }
+
+      if (this.outboxService) {
+        await this.outboxService.enqueue(tx, {
+          eventType: 'product.changed',
+          aggregateType: 'product',
+          aggregateId: productId,
+          payload: { productId },
+        });
+      }
+    });
+  }
+
+  async updateCategory(
+    categoryId: string,
+    patch: {
+      name?: string;
+      slug?: string;
+      parentId?: string | null;
+      sortOrder?: number;
+    },
+  ): Promise<void> {
+    await this.databaseService.db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(categories)
+        .set({
+          ...patch,
+          updatedAt: new Date(),
+        })
+        .where(eq(categories.id, categoryId))
+        .returning({ id: categories.id });
+
+      if (!updated) {
+        throw notFoundError(`Category "${categoryId}" not found`);
+      }
+
+      if (this.outboxService) {
+        await this.outboxService.enqueue(tx, {
+          eventType: 'category.changed',
+          aggregateType: 'category',
+          aggregateId: categoryId,
+          payload: { categoryId },
+        });
+      }
+    });
   }
 
   private buildOrderByClauses(sort: DecodedCursor['s'], rankSql: SQL<number>): SQL[] {
