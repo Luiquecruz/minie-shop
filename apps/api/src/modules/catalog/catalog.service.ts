@@ -3,6 +3,9 @@ import { and, asc, count, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import type {
   CategoryDTO,
   CategoryRefDTO,
+  FacetAttributeDTO,
+  FacetCategoryDTO,
+  FacetsDTO,
   ImageDTO,
   ProductAttributeDTO,
   ProductCardDTO,
@@ -26,6 +29,7 @@ import {
 } from './catalog-filters.js';
 import {
   encodeCursor,
+  parseCatalogFilters,
   parseProductListQuery,
   type AttributeDefinitionInfo,
   type DecodedCursor,
@@ -387,6 +391,179 @@ export class CatalogService {
       breadcrumbs,
       images: productImagesList,
       attributes: this.mapProductAttributes(product.attributes ?? {}, attrDefs, false),
+    };
+  }
+
+  async getFacets(rawQuery: Record<string, unknown>): Promise<FacetsDTO> {
+    const [attrDefs, allCategories] = await Promise.all([
+      this.getAttributeDefinitions(),
+      this.getAllCategories(),
+    ]);
+
+    const filters = parseCatalogFilters(rawQuery, attrDefs, 'facets');
+
+    let selectedCategoryIds: string[] | null | undefined;
+    if (filters.category !== undefined) {
+      selectedCategoryIds = this.resolveCategorySubtreeIds(allCategories, filters.category);
+    }
+
+    // 1. Price facet (disjunctive: ignores minPrice/maxPrice)
+    const priceConditions = buildProductFilterConditions({
+      filters,
+      categoryIds: selectedCategoryIds,
+      exclude: { price: true },
+    });
+
+    const pricePromise = this.databaseService.db
+      .select({
+        minPrice: sql<number | null>`MIN(${effectivePriceSql})`,
+        maxPrice: sql<number | null>`MAX(${effectivePriceSql})`,
+      })
+      .from(products)
+      .where(combineConditions(priceConditions));
+
+    // 2. Category facet (disjunctive: ignores category filter, aggregates subtrees)
+    const categoryConditions = buildProductFilterConditions({
+      filters,
+      categoryIds: selectedCategoryIds,
+      exclude: { category: true },
+    });
+
+    const categoryCountsPromise = this.databaseService.db
+      .select({
+        categoryId: products.categoryId,
+        total: count(),
+      })
+      .from(products)
+      .where(combineConditions(categoryConditions))
+      .groupBy(products.categoryId);
+
+    // 3. Attribute facets (disjunctive: each filterable attribute ignores only its own filter)
+    const filterableDefs = attrDefs.filter((def) => def.isFilterable);
+    const attributePromises = filterableDefs.map(async (def): Promise<FacetAttributeDTO | null> => {
+      const attrConditions = buildProductFilterConditions({
+        filters,
+        categoryIds: selectedCategoryIds,
+        exclude: { attributeCode: def.code },
+      });
+
+      if (def.dataType === 'number') {
+        const [rangeRow] = await this.databaseService.db
+          .select({
+            minVal: sql<number | null>`MIN((${products.attributes} ->> ${def.code})::double precision)`,
+            maxVal: sql<number | null>`MAX((${products.attributes} ->> ${def.code})::double precision)`,
+          })
+          .from(products)
+          .where(
+            combineConditions([
+              ...attrConditions,
+              sql`jsonb_typeof(${products.attributes} -> ${def.code}) = 'number'`,
+            ]),
+          );
+
+        if (rangeRow?.minVal === null || rangeRow?.maxVal === null || !rangeRow) {
+          return null;
+        }
+
+        return {
+          code: def.code,
+          label: def.label,
+          type: def.dataType,
+          ...(def.unit ? { unit: def.unit } : {}),
+          range: {
+            min: Number(rangeRow.minVal),
+            max: Number(rangeRow.maxVal),
+          },
+        };
+      }
+
+      const valueExpr = sql<string>`(${products.attributes} ->> ${def.code})`;
+      const optionRows = await this.databaseService.db
+        .select({
+          value: valueExpr,
+          total: count(),
+        })
+        .from(products)
+        .where(
+          combineConditions([
+            ...attrConditions,
+            sql`${products.attributes} ? ${def.code}`,
+            sql`(${products.attributes} ->> ${def.code}) IS NOT NULL`,
+          ]),
+        )
+        .groupBy(sql`1`)
+        .orderBy(desc(count()), asc(sql`1`));
+
+      if (optionRows.length === 0) {
+        return null;
+      }
+
+      return {
+        code: def.code,
+        label: def.label,
+        type: def.dataType,
+        ...(def.unit ? { unit: def.unit } : {}),
+        options: optionRows.map((row) => ({
+          value: row.value,
+          count: Number(row.total),
+        })),
+      };
+    });
+
+    const [priceRows, categoryCountRows, attributeResults] = await Promise.all([
+      pricePromise,
+      categoryCountsPromise,
+      Promise.all(attributePromises),
+    ]);
+
+    const priceRow = priceRows[0];
+    const directCountByCatId = new Map<string, number>();
+    for (const row of categoryCountRows) {
+      directCountByCatId.set(row.categoryId, Number(row.total));
+    }
+
+    // Aggregate subtree counts for every category so category.count === listProducts(?category=slug).length
+    const childrenByParent = new Map<string | null, CategoryRow[]>();
+    for (const cat of allCategories) {
+      const list = childrenByParent.get(cat.parentId) ?? [];
+      list.push(cat);
+      childrenByParent.set(cat.parentId, list);
+    }
+
+    const subtreeCountById = new Map<string, number>();
+    const computeSubtreeCount = (catId: string): number => {
+      const cached = subtreeCountById.get(catId);
+      if (cached !== undefined) {
+        return cached;
+      }
+      const direct = directCountByCatId.get(catId) ?? 0;
+      const children = childrenByParent.get(catId) ?? [];
+      const total = direct + children.reduce((sum, child) => sum + computeSubtreeCount(child.id), 0);
+      subtreeCountById.set(catId, total);
+      return total;
+    };
+
+    const facetCategories: FacetCategoryDTO[] = [];
+    for (const cat of allCategories) {
+      const total = computeSubtreeCount(cat.id);
+      if (total > 0) {
+        facetCategories.push({
+          slug: cat.slug,
+          name: cat.name,
+          count: total,
+        });
+      }
+    }
+
+    const attributes = attributeResults.filter((item): item is FacetAttributeDTO => item !== null);
+
+    return {
+      price: {
+        min: priceRow && priceRow.minPrice !== null ? Number(priceRow.minPrice) : null,
+        max: priceRow && priceRow.maxPrice !== null ? Number(priceRow.maxPrice) : null,
+      },
+      categories: facetCategories,
+      attributes,
     };
   }
 

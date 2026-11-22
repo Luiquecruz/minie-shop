@@ -1,6 +1,7 @@
 import { Controller, Get, Inject, Param, Req, Res } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
+  facetsDtoSchema,
   productDetailDtoSchema,
   productListResponseSchema,
   productSlugParamSchema,
@@ -21,6 +22,14 @@ export class ProductsController {
     const rawQuery = (request.query ?? {}) as Record<string, unknown>;
     const result = await this.catalogService.listProducts(rawQuery);
     const payload = parseOutput(productListResponseSchema, result);
+    await sendWithPublicCache(request, reply, payload);
+  }
+
+  @Get('facets')
+  async getFacets(@Req() request: FastifyRequest, @Res() reply: FastifyReply): Promise<void> {
+    const rawQuery = (request.query ?? {}) as Record<string, unknown>;
+    const result = await this.catalogService.getFacets(rawQuery);
+    const payload = parseOutput(facetsDtoSchema, result);
     await sendWithPublicCache(request, reply, payload);
   }
 
