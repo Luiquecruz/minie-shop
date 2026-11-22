@@ -17,6 +17,7 @@ import { DatabaseService } from '../../database/database.service.js';
 import {
   attributeDefinitions,
   categories,
+  favorites,
   productImages,
   products,
 } from '../../database/schema/index.js';
@@ -565,6 +566,49 @@ export class CatalogService {
       categories: facetCategories,
       attributes,
     };
+  }
+
+  private async assertPublishedProductExists(productId: string): Promise<void> {
+    const existing = await this.databaseService.db
+      .select({ id: products.id })
+      .from(products)
+      .where(and(eq(products.id, productId), eq(products.status, 'published')))
+      .limit(1);
+
+    if (existing.length === 0) {
+      throw notFoundError(`Product "${productId}" not found`);
+    }
+  }
+
+  async listFavoritesBySession(sessionId: string): Promise<string[]> {
+    const rows = await this.databaseService.db
+      .select({ productId: favorites.productId })
+      .from(favorites)
+      .innerJoin(products, eq(products.id, favorites.productId))
+      .where(and(eq(favorites.sessionId, sessionId), eq(products.status, 'published')))
+      .orderBy(desc(favorites.createdAt), asc(favorites.productId));
+
+    return rows.map((row) => row.productId);
+  }
+
+  async addFavoriteForSession(sessionId: string, productId: string): Promise<void> {
+    await this.assertPublishedProductExists(productId);
+
+    await this.databaseService.db
+      .insert(favorites)
+      .values({
+        productId,
+        sessionId,
+      })
+      .onConflictDoNothing();
+  }
+
+  async removeFavoriteForSession(sessionId: string, productId: string): Promise<void> {
+    await this.assertPublishedProductExists(productId);
+
+    await this.databaseService.db
+      .delete(favorites)
+      .where(and(eq(favorites.sessionId, sessionId), eq(favorites.productId, productId)));
   }
 
   private buildOrderByClauses(sort: DecodedCursor['s'], rankSql: SQL<number>): SQL[] {
