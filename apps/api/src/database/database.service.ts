@@ -3,11 +3,12 @@ import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { sql } from 'drizzle-orm';
 import { Pool } from 'pg';
 import { loadEnv } from '../config/env.js';
+import * as schema from './schema/index.js';
 
 @Injectable()
 export class DatabaseService implements OnModuleDestroy {
   private readonly pool: Pool;
-  public readonly db: NodePgDatabase;
+  public readonly db: NodePgDatabase<typeof schema>;
 
   constructor() {
     const env = loadEnv();
@@ -17,7 +18,7 @@ export class DatabaseService implements OnModuleDestroy {
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 5_000,
     });
-    this.db = drizzle(this.pool);
+    this.db = drizzle(this.pool, { schema });
   }
 
   async checkConnection(): Promise<boolean> {

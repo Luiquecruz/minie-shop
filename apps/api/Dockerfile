@@ -16,6 +16,7 @@ COPY apps/api/package.json apps/api/pnpm-lock.yaml apps/api/pnpm-workspace.yaml 
 RUN cd apps/api && pnpm install --frozen-lockfile
 
 COPY apps/api/src ./apps/api/src
+COPY apps/api/drizzle ./apps/api/drizzle
 
 WORKDIR /workspace/apps/api
 
