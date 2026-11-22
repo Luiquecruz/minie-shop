@@ -9,6 +9,7 @@
     "db:migrate": "tsx src/database/migrate.ts",
     "db:seed": "tsx src/seed/seed.ts",
     "media:add": "tsx src/cli/media-add.ts",
+    "search:init": "tsx src/cli/search-init.ts",
     "test": "tsx --test src/**/*.test.ts",
     "test:integration": "vitest run",
     "build": "eslint src/ && tsc -p tsconfig.json",

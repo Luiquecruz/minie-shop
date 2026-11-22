@@ -64,6 +64,15 @@ flowchart LR
 | `storage` (S3) | `8333` | Gateway S3-compatível (endpoint público para o navegador e URLs assinadas) |
 | `storage` (Master) | `9333` | Status do cluster (`/cluster/status`) e UI |
 | `storage` (Filer) | `8888` | Interface do Filer SeaweedFS |
+| `search` (Meilisearch) | `127.0.0.1:7700` | Motor de busca (apenas localhost para depuração; navegador nunca fala direto) |
+
+## Chaves de Privilégio Mínimo (Meilisearch)
+
+O serviço one-shot `init-search` cria/atualiza o índice `products` (com sinônimos PT-BR e `localizedAttributes: ['por']`) e provisiona duas chaves escopadas no volume compartilhado `meili_keys` (`/run/meili-keys`, montado `:ro` nos consumidores):
+
+- `search.key` — usada pela `api` (`MEILI_API_KEY_FILE=/run/meili-keys/search.key`), com permissão apenas `search` no índice `products`.
+- `worker.key` — usada pelo `worker`, com permissões apenas de escrita/leitura de documentos e tarefas no índice `products`.
+- `MEILI_MASTER_KEY` fica restrita a `init-search` e comandos operacionais (`pnpm search:reindex`).
 
 ---
 

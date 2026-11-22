@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from 'node:fs';
 import { z } from 'zod';
 
 const booleanEnvSchema = z
@@ -24,6 +25,11 @@ export const envSchema = z.object({
     .min(16, 'COOKIE_SECRET must be at least 16 characters')
     .default('minieshop-dev-cookie-secret-change-me'),
   CHAOS_ENABLED: booleanEnvSchema,
+  MEILI_HOST: z.string().url('MEILI_HOST must be a valid URL').default('http://localhost:7700'),
+  MEILI_API_KEY: z.string().optional(),
+  MEILI_API_KEY_FILE: z.string().optional(),
+  MEILI_MASTER_KEY: z.string().optional(),
+  MEILI_INDEX_PRODUCTS: z.string().min(1).default('products'),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -32,6 +38,22 @@ let cachedEnv: Env | null = null;
 
 export function resetEnvCache(): void {
   cachedEnv = null;
+}
+
+export function resolveMeiliApiKey(env: Pick<Env, 'MEILI_API_KEY' | 'MEILI_API_KEY_FILE' | 'MEILI_MASTER_KEY'>): string {
+  if (env.MEILI_API_KEY_FILE && existsSync(env.MEILI_API_KEY_FILE)) {
+    const fileValue = readFileSync(env.MEILI_API_KEY_FILE, 'utf8').trim();
+    if (fileValue.length > 0) {
+      return fileValue;
+    }
+  }
+  if (env.MEILI_API_KEY && env.MEILI_API_KEY.trim().length > 0) {
+    return env.MEILI_API_KEY.trim();
+  }
+  if (env.MEILI_MASTER_KEY && env.MEILI_MASTER_KEY.trim().length > 0) {
+    return env.MEILI_MASTER_KEY.trim();
+  }
+  return '';
 }
 
 export function parseCorsOrigins(raw: string): string[] {
