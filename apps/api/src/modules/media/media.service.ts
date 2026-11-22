@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq } from 'drizzle-orm';
+import { and, count, eq, inArray } from 'drizzle-orm';
+import type { ImageVariantDTO } from '@minieshop/contracts';
 import sharp from 'sharp';
 import { DatabaseService } from '../../database/database.service.js';
 import { mediaAssets, productImages, type MediaVariantsMap } from '../../database/schema/index.js';
@@ -40,6 +41,14 @@ export interface RegisterMediaResult {
   publicUrl: string;
 }
 
+export interface ReadyMediaAsset {
+  id: string;
+  width: number;
+  height: number;
+  placeholder: string;
+  variants: ImageVariantDTO[];
+}
+
 @Injectable()
 export class MediaService {
   constructor(
@@ -51,6 +60,56 @@ export class MediaService {
 
   getModuleName(): string {
     return 'media';
+  }
+
+  async getReadyAssetsByIds(assetIds: string[]): Promise<Map<string, ReadyMediaAsset>> {
+    const uniqueIds = Array.from(new Set(assetIds));
+    const result = new Map<string, ReadyMediaAsset>();
+    if (uniqueIds.length === 0) {
+      return result;
+    }
+
+    const rows = await this.databaseService.db
+      .select({
+        id: mediaAssets.id,
+        width: mediaAssets.width,
+        height: mediaAssets.height,
+        placeholderBase64: mediaAssets.placeholderBase64,
+        variants: mediaAssets.variants,
+      })
+      .from(mediaAssets)
+      .where(and(inArray(mediaAssets.id, uniqueIds), eq(mediaAssets.status, 'ready')));
+
+    for (const row of rows) {
+      const variants: ImageVariantDTO[] = [];
+      const variantsMap = row.variants ?? {};
+
+      for (const spec of VARIANT_SPECS) {
+        const variant = variantsMap[spec.name];
+        if (!variant) {
+          continue;
+        }
+        variants.push({
+          name: spec.name,
+          url: this.storage.buildPublicUrl(variant.key),
+          width: variant.width,
+          height: variant.height,
+        });
+      }
+
+      variants.sort((a, b) => a.width - b.width);
+
+      const largestVariant = variants[variants.length - 1];
+      result.set(row.id, {
+        id: row.id,
+        width: row.width ?? largestVariant?.width ?? 0,
+        height: row.height ?? largestVariant?.height ?? 0,
+        placeholder: row.placeholderBase64 ?? '',
+        variants,
+      });
+    }
+
+    return result;
   }
 
   async register(input: RegisterMediaInput): Promise<RegisterMediaResult> {

@@ -1,6 +1,7 @@
 export { MediaModule } from './media.module.js';
 export {
   MediaService,
+  type ReadyMediaAsset,
   type RegisterMediaInput,
   type RegisterMediaResult,
 } from './media.service.js';
