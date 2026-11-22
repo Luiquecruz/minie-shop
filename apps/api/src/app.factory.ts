@@ -7,6 +7,7 @@ import fastifyCookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
 import { pino, type Logger } from 'pino';
 import { AppModule } from './app.module.js';
+import { assertChaosSafety, registerChaosHook } from './common/chaos.middleware.js';
 import { GlobalExceptionFilter } from './common/global-exception.filter.js';
 import { loadEnv, parseCorsOrigins, type Env } from './config/env.js';
 
@@ -18,6 +19,7 @@ export interface CreateAppResult {
 
 export async function createApp(options?: { env?: Env }): Promise<CreateAppResult> {
   const env = options?.env ?? loadEnv();
+  assertChaosSafety(env);
 
   const logger = pino({
     level: env.LOG_LEVEL,
@@ -57,6 +59,8 @@ export async function createApp(options?: { env?: Env }): Promise<CreateAppResul
   await fastifyInstance.register(fastifyCookie, {
     secret: env.COOKIE_SECRET,
   });
+
+  registerChaosHook(fastifyInstance, env, logger);
 
   fastifyInstance.addHook('onSend', async (request, reply) => {
     void reply.header('x-request-id', request.id);
