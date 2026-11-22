@@ -6,11 +6,14 @@ import { EmbeddingsOutboxHandler } from './embeddings.handler.js';
 import { DeterministicFakeEmbeddingProvider } from './fake-embedding.provider.js';
 import { MeilisearchAdapter } from './meilisearch.adapter.js';
 import { OllamaEmbeddingProvider } from './ollama-embedding.provider.js';
+import { SearchController } from './search.controller.js';
 import { SearchIndexOutboxHandler } from './search-index.handler.js';
 import { SEARCH_PORT } from './search.port.js';
+import { SearchService } from './search.service.js';
 
 @Module({
   imports: [CatalogModule],
+  controllers: [SearchController],
   providers: [
     MeilisearchAdapter,
     {
@@ -34,6 +37,7 @@ import { SEARCH_PORT } from './search.port.js';
         });
       },
     },
+    SearchService,
     SearchIndexOutboxHandler,
     EmbeddingsOutboxHandler,
   ],
@@ -41,6 +45,7 @@ import { SEARCH_PORT } from './search.port.js';
     SEARCH_PORT,
     EMBEDDING_PROVIDER,
     MeilisearchAdapter,
+    SearchService,
     SearchIndexOutboxHandler,
     EmbeddingsOutboxHandler,
   ],

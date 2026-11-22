@@ -28,6 +28,7 @@ export {
 export { DeterministicFakeEmbeddingProvider } from './fake-embedding.provider.js';
 export { SearchIndexOutboxHandler } from './search-index.handler.js';
 export { EmbeddingsOutboxHandler } from './embeddings.handler.js';
+export { SearchService, type SearchRequestParams } from './search.service.js';
 export {
   buildProductsIndexSettings,
   loadPortugueseSynonyms,

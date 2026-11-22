@@ -32,8 +32,31 @@ async function runReindex(): Promise<void> {
       if (ids.length === 0) {
         break;
       }
-      const docs = await catalogService.getIndexableProductsByIds(ids);
-      yield docs;
+      const [docs, embMap] = await Promise.all([
+        catalogService.getIndexableProductsByIds(ids),
+        catalogService.getProductEmbeddingsByIds(ids),
+      ]);
+
+      const enriched: IndexableDocumentWithVectors[] = docs.map((doc) => {
+        const emb = embMap.get(doc.id);
+        if (embedderDimensions) {
+          return {
+            ...doc,
+            _vectors: {
+              [embedderName]:
+                emb && emb.embedding.length === embedderDimensions
+                  ? {
+                      embeddings: emb.embedding,
+                      regenerate: false,
+                    }
+                  : null,
+            },
+          };
+        }
+        return doc;
+      });
+
+      yield enriched;
       afterId = ids[ids.length - 1];
       if (ids.length < batchSize) {
         break;

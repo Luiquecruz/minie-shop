@@ -62,6 +62,8 @@ Códigos estáveis (`ErrorCode`):
 | `GET` | `/favorites` | `no-store` | Lista de `productIds` favoritados pela sessão anônima |
 | `POST` | `/favorites/:productId` | `no-store` | Adiciona produto aos favoritos (idempotente, `200`) |
 | `DELETE` | `/favorites/:productId` | `no-store` | Remove produto dos favoritos (idempotente, `204`) |
+| `GET` | `/search` | `public, max-age=30` + `ETag` | Busca híbrida/textual via Meilisearch com hidratação no Postgres e fallback em 3 camadas |
+| `GET` | `/search/suggest` | `public, max-age=30` + `ETag` | Autocomplete lexical rápido (até 8 sugestões, sem embeddings) |
 
 > **Ordem de rotas:** `/products/facets` é registrada antes de `/products/:slug`, e o slug `facets` é reservado tanto por constraint no banco (`products_slug_not_reserved`) quanto na validação do parâmetro `:slug`.
 
@@ -163,6 +165,35 @@ curl -s -b cookies.txt http://localhost:3001/favorites | jq .
 
 # Remover favorito (idempotente, 204 No Content)
 curl -i -b cookies.txt -X DELETE http://localhost:3001/favorites/<PRODUCT_UUID>
+```
+
+---
+
+### 4.6 Busca Híbrida e Autocomplete (`GET /search` e `GET /search/suggest`)
+
+O navegador **nunca** fala diretamente com o Meilisearch. Toda busca passa pela API, que consulta o motor, hidrata os `ProductCardDTO` a partir do PostgreSQL na ordem do motor (descartando produtos não publicados e exibindo preço/estoque atuais) e degrada em 3 camadas sempre com `HTTP 200` e campo `mode`:
+
+1. `mode: "hybrid"` — Meilisearch com texto + vetor da consulta (embedder `userProvided` `semantic`, `768` dims, `SEARCH_SEMANTIC_RATIO`).
+2. `mode: "keyword"` — Meilisearch apenas lexical (quando `mode=keyword` foi pedido ou o modelo de embeddings falhou/excedeu timeout).
+3. `mode: "postgres"` — fallback para busca textual do PostgreSQL (quando o Meilisearch está indisponível ou o circuit breaker está aberto).
+
+> **Atenção operacional:** alterar `EMBEDDINGS_DIMENSIONS` (atualmente `768`, `embeddinggemma`) exige atualizar a migration de `catalog.product_embeddings`, reexecutar `pnpm search:init`, `pnpm embeddings:reindex` e `pnpm search:reindex`.
+
+Parâmetros de `GET /search`:
+- `q` *(obrigatório)* — termo ou frase de busca.
+- `limit` *(1..60, default `12`)*, `offset` *(0..200, default `0`)*.
+- `category` *(slug)*, `minPrice`, `maxPrice` *(centavos)*, `inStock` *(`true | false`)*.
+- `mode` *(`hybrid` default | `keyword`)*.
+
+```bash
+# Busca híbrida por intenção (profile ai ativo)
+curl -s "http://localhost:3001/search?q=fone+para+viajar+de+aviao+sem+barulho" | jq '{mode, estimatedTotal, slugs: (.items | map(.slug))}'
+
+# Busca somente textual (não gera embedding)
+curl -s "http://localhost:3001/search?q=oculos&mode=keyword&limit=5" | jq .
+
+# Autocomplete rápido (máx. 8 sugestões, sempre textual)
+curl -s "http://localhost:3001/search/suggest?q=cafet" | jq .
 ```
 
 ---

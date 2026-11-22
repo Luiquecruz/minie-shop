@@ -71,7 +71,7 @@ jobs:
           pnpm build
 
   api-integration-tests:
-    name: API Unit & Integration Tests (Postgres + pgvector)
+    name: API Unit & Integration Tests (Postgres + Meilisearch)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -87,6 +87,19 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=10
+      meilisearch:
+        image: getmeili/meilisearch:v1.57.0
+        env:
+          MEILI_MASTER_KEY: minieshop_dev_meili_master_key_32chars
+          MEILI_ENV: development
+          MEILI_NO_ANALYTICS: 'true'
+        ports:
+          - 7700:7700
+        options: >-
+          --health-cmd="curl -fsS http://127.0.0.1:7700/health | grep -q available"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -124,11 +137,11 @@ jobs:
         working-directory: apps/api
         run: pnpm install --frozen-lockfile
 
-      - name: Run unit tests (contracts, errors, chaos middleware)
+      - name: Run unit tests (contracts, errors, chaos, embedding-text)
         working-directory: apps/api
-        run: pnpm exec tsx --test src/common/*.test.ts
+        run: pnpm exec tsx --test src/common/*.test.ts src/modules/search/*.test.ts
 
-      - name: Run HTTP API integration suite (Vitest + app_test)
+      - name: Run HTTP API & Search integration suite (Vitest + app_test + Meilisearch)
         working-directory: apps/api
         env:
           NODE_ENV: test
@@ -140,6 +153,10 @@ jobs:
           S3_SECRET_ACCESS_KEY: minieshop_dev_secret_key
           S3_PUBLIC_BUCKET: minieshop-catalog-public
           S3_PRIVATE_BUCKET: minieshop-private
+          MEILI_HOST: http://127.0.0.1:7700
+          MEILI_MASTER_KEY: minieshop_dev_meili_master_key_32chars
+          EMBEDDINGS_PROVIDER: fake
+          EMBEDDINGS_DIMENSIONS: '768'
         run: pnpm test:integration
 
   seed-and-media-tests:
