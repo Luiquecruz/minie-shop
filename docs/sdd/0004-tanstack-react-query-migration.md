@@ -4,7 +4,7 @@
 - **Phase:** Post-Phase 5 / Pre-Phase 6 Milestone
 - **Author:** Antigravity
 - **Date:** 2026-11-20
-- **Related ADRs:** [`docs/adr/0007-tanstack-react-query-server-state.md`](../adr/0007-tanstack-react-query-server-state.md), [`docs/adr/0004-custom-hooks-and-abortable-simulated-api.md`](../adr/0004-custom-hooks-and-abortable-simulated-api.md)
+- **Related ADRs:** [`ADR-0001`](../adr/0001-frontend-architecture-baseline.md) *(consolidates former ADRs `0004`, `0007`)*
 
 ---
 

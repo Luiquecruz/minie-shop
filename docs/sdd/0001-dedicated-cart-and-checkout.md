@@ -4,7 +4,7 @@
 - **Phase:** Phase 6
 - **Author:** Antigravity
 - **Date:** 2026-11-20 (Updated 2026-11-21 for Increment 2)
-- **Related ADRs:** [`docs/adr/0008-cart-page-context-reducer-baseline.md`](../adr/0008-cart-page-context-reducer-baseline.md), [`docs/adr/0009-vitest-and-react-testing-library.md`](../adr/0009-vitest-and-react-testing-library.md), [`docs/adr/0010-cart-page-redux-memoized-selectors.md`](../adr/0010-cart-page-redux-memoized-selectors.md)
+- **Related ADRs:** [`ADR-0001`](../adr/0001-frontend-architecture-baseline.md) *(consolidates former ADRs `0003`, `0008`, `0009`, `0010`)*
 
 ---
 

@@ -8,7 +8,7 @@ Project constitution, context, and operational guidelines for AI agents and deve
 
 **Progressive Minie Shop** is an incremental e-commerce web application built from scratch with React, TypeScript, and Vite to explore and apply fundamental and advanced React patterns in structured phases.
 
-- **Current Phase:** Phase 6 — Increment 2 (`SDD-0001` / `ADR-0009` / `ADR-0010`): Dedicated Cart Page (`/cart`) migrated from monolithic Context + `useReducer` to pure immutable Redux Toolkit `cartSlice` reducers, memoized `createSelector` selectors, listener-based `localStorage` persistence, and Vitest + React `<Profiler>` verification.
+- **Current Phase:** Phase 6 — Increment 2 (`SDD-0001` / `ADR-0001` Frontend Baseline): Dedicated Cart Page (`/cart`) migrated from monolithic Context + `useReducer` to pure immutable Redux Toolkit `cartSlice` reducers, memoized `createSelector` selectors, listener-based `localStorage` persistence, and Vitest + React `<Profiler>` verification.
 - **Next Planned Phase:**
   - **Phase 6 (Inc. 3):** Checkout flow & order confirmation.
 

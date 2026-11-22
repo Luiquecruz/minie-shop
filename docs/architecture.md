@@ -68,8 +68,8 @@ Defined in `src/index.css` and `src/App.css`:
 | **Phase 3** | PLP, `RootLayout`, `Navbar`, `Dropdown`, `PriceBox`, `ProductCard`, currency & pricing engines | Completed |
 | **Phase 4** | PDP (`/product/:id`), dynamic `Helmet`, masonry gallery, 3-tab system, floating CTA, related products, `SearchBar` | Completed |
 | **Phase 5** | `MiniCart` slide-over drawer, debounced stock validation, `cartSlice` guardrails & `localStorage` persistence | Completed |
-| **Pre-Phase 6** | Incremental TypeScript migration (`SDD-0003` / `ADR-0006`) | Completed |
-| **Post-Phase 5** | TanStack React Query migration (`SDD-0004` / `ADR-0007`), URL pagination, optimistic Favorites, `ApiDebugFab` | Completed |
-| **Phase 6 (Inc. 1)** | Dedicated Cart page (`/cart`) with monolithic Context + `useReducer` (`SDD-0001` / `ADR-0008`) | Superseded by Inc. 2 |
-| **Phase 6 (Inc. 2)** | Pure Redux Toolkit `cartSlice`, memoized `createSelector`, `localStorage` listener, Vitest + React `<Profiler>` (`SDD-0001` / `ADR-0009` / `ADR-0010`) | Implemented |
+| **Pre-Phase 6** | Incremental TypeScript migration (`SDD-0003` / consolidated in `ADR-0001`) | Completed |
+| **Post-Phase 5** | TanStack React Query migration (`SDD-0004` / consolidated in `ADR-0001`), URL pagination, optimistic Favorites, `ApiDebugFab` | Completed |
+| **Phase 6 (Inc. 1)** | Dedicated Cart page (`/cart`) with monolithic Context + `useReducer` (`SDD-0001` / historical) | Superseded by Inc. 2 |
+| **Phase 6 (Inc. 2)** | Pure Redux Toolkit `cartSlice`, memoized `createSelector`, `localStorage` listener, Vitest + React `<Profiler>` (`SDD-0001` / `ADR-0001`) | Implemented |
 | **Phase 6 (Inc. 3)** | Checkout flow & order confirmation (`SDD-0001`) | Planned |

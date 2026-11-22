@@ -7,11 +7,11 @@ This directory maintains an **incremental, append-only log** of architectural de
 ## Incremental Governance Rules
 
 1. **Sequential Numbering:** Name files `NNNN-short-kebab-title.md` (zero-padded 4 digits: `0001`, `0002`, ...).
-2. **Never Delete History:** Accepted ADRs are immutable historical records. If a decision changes later (for example, migrating from JS to TypeScript in Phase 7 or replacing `productsApi` with a real backend), create a **new** ADR and update the previous ADR's status to `Superseded by ADR-XXXX`.
+2. **Never Delete History:** Accepted ADRs are immutable historical records. If a decision changes later, create a **new** ADR and update the previous ADR's status to `Superseded by ADR-XXXX` (or `Partially Superseded by ADR-XXXX`). *(Note: Prior to starting the backend journey, the ten initial frontend ADRs `0001`–`0010` were consolidated into [`ADR-0001`](./0001-frontend-architecture-baseline.md); their individual records remain preserved in Git history.)*
 3. **Required Triggers for a New ADR:**
-   - Adding or replacing core dependencies (routing, state, styling, testing, validation, build plugins).
-   - Changing architectural boundaries (e.g., introducing backend HTTP clients, adding a new Redux slice vs. React Context).
-   - Executing major phase transitions (Phase 6 Checkout architecture, Phase 7 TypeScript migration).
+   - Adding or replacing core dependencies (backend frameworks, databases, ORMs, auth, routing, state, styling, testing, validation, build plugins).
+   - Changing architectural boundaries (e.g., introducing backend HTTP clients, API contracts, server-side persistence, new Redux slices vs. React Query).
+   - Executing major phase transitions (Backend integration, Checkout & Orders architecture).
 4. **Update Index:** Add every new ADR to the table below in the same commit.
 
 ### Status Lifecycle
@@ -23,13 +23,4 @@ This directory maintains an **incremental, append-only log** of architectural de
 
 | ID | Title | Phase | Status | Date |
 | :--- | :--- | :--- | :--- | :--- |
-| [ADR-0001](./0001-vite-react-js-baseline.md) | Vite 8 + React 19 (JavaScript/JSX) with Oxlint Baseline | Phase 1 | Partially Superseded by ADR-0006 | 2026-10-23 |
-| [ADR-0002](./0002-declarative-routing-and-root-layout.md) | Declarative Routing with Canonical `RootLayout` and `react-helmet-async` | Phase 2–4 | Accepted | 2026-10-24 |
-| [ADR-0003](./0003-redux-toolkit-with-localstorage-persistence.md) | Redux Toolkit Store (`currency`, `cart`) with `localStorage` Persistence | Phase 3–5 | Accepted | 2026-10-27 |
-| [ADR-0004](./0004-custom-hooks-and-abortable-simulated-api.md) | Custom Hooks Facade and Abortable Frontend-Only Simulated API | Phase 3–5 | Partially Superseded by ADR-0007 | 2026-10-27 |
-| [ADR-0005](./0005-css-tokens-dark-mode-and-svg-only-ui.md) | CSS Custom Properties Design System, Dark Mode, and SVG-Only UI | Phase 3–5 | Accepted | 2026-10-27 |
-| [ADR-0006](./0006-incremental-typescript-migration.md) | Strict TypeScript Baseline & Extensionless Bundler Resolution | Pre-Phase 6 | Accepted | 2026-11-18 |
-| [ADR-0007](./0007-tanstack-react-query-server-state.md) | TanStack React Query for Server & Async Data State | Post-Phase 5 | Accepted | 2026-11-20 |
-| [ADR-0008](./0008-cart-page-context-reducer-baseline.md) | Dedicated Cart Page Baseline with Monolithic React Context and `useReducer` | Phase 6 (Inc. 1) | Superseded by ADR-0010 | 2026-11-20 |
-| [ADR-0009](./0009-vitest-and-react-testing-library.md) | Vitest & React Testing Library Adoption | Phase 6 (Inc. 2) | Accepted | 2026-11-21 |
-| [ADR-0010](./0010-cart-page-redux-memoized-selectors.md) | Migrate CartPage to Pure Functional Redux Toolkit Slice & Memoized `createSelector` | Phase 6 (Inc. 2) | Accepted | 2026-11-21 |
+| [ADR-0001](./0001-frontend-architecture-baseline.md) | Frontend Architecture Baseline (Phases 1–6 Inc. 2) | Phases 1–6 (Inc. 2) | Accepted | 2026-11-21 |
