@@ -1,16 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
-import type {
-  CategoryDTO,
-  CategoryRefDTO,
-  FacetAttributeDTO,
-  FacetCategoryDTO,
-  FacetsDTO,
-  ImageDTO,
-  ProductAttributeDTO,
-  ProductCardDTO,
-  ProductDetailDTO,
-  ProductListResponseDTO,
+import { and, asc, count, desc, eq, gt, inArray, sql, type SQL } from 'drizzle-orm';
+import {
+  searchIndexDocumentSchema,
+  type CategoryDTO,
+  type CategoryRefDTO,
+  type FacetAttributeDTO,
+  type FacetCategoryDTO,
+  type FacetsDTO,
+  type ImageDTO,
+  type ProductAttributeDTO,
+  type ProductCardDTO,
+  type ProductDetailDTO,
+  type ProductListResponseDTO,
+  type SearchIndexDocument,
 } from '@minieshop/contracts';
 import { notFoundError } from '../../common/errors.js';
 import { DatabaseService } from '../../database/database.service.js';
@@ -609,6 +611,294 @@ export class CatalogService {
     await this.databaseService.db
       .delete(favorites)
       .where(and(eq(favorites.sessionId, sessionId), eq(favorites.productId, productId)));
+  }
+
+  // --- Public interfaces for Search & Outbox modules (ADR-0006 / S04) ---
+
+  private buildCategoryAncestry(
+    categoryId: string,
+    categoriesById: Map<string, CategoryRow>,
+  ): { pathSlugs: string[]; names: string[] } {
+    const pathSlugs: string[] = [];
+    const names: string[] = [];
+    const visited = new Set<string>();
+    let current = categoriesById.get(categoryId);
+
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id);
+      pathSlugs.unshift(current.slug);
+      names.unshift(current.name);
+      current = current.parentId ? categoriesById.get(current.parentId) : undefined;
+    }
+
+    return { pathSlugs, names };
+  }
+
+  private buildAttributesText(
+    rawAttributes: Record<string, unknown>,
+    defs: AttributeDefinitionInfo[],
+  ): string {
+    const parts: string[] = [];
+    for (const def of defs) {
+      if (!def.isFilterable && !def.showOnCard) {
+        continue;
+      }
+      const val = rawAttributes[def.code];
+      if (typeof val === 'string' && val.trim().length > 0) {
+        parts.push(`${def.label}: ${val.trim()}`);
+      } else if (typeof val === 'number') {
+        parts.push(`${def.label}: ${val}${def.unit ? ` ${def.unit}` : ''}`);
+      } else if (typeof val === 'boolean' && val) {
+        parts.push(def.label);
+      }
+    }
+    return parts.join(' | ');
+  }
+
+  async getIndexableProductById(productId: string): Promise<SearchIndexDocument | null> {
+    const docs = await this.getIndexableProductsByIds([productId]);
+    return docs[0] ?? null;
+  }
+
+  async getIndexableProductsByIds(productIds: string[]): Promise<SearchIndexDocument[]> {
+    if (productIds.length === 0) {
+      return [];
+    }
+
+    const [rows, allCategories, attrDefs] = await Promise.all([
+      this.databaseService.db
+        .select({
+          id: products.id,
+          slug: products.slug,
+          name: products.name,
+          description: products.description,
+          categoryId: products.categoryId,
+          effectivePrice: effectivePriceSql,
+          inStock: products.inStock,
+          attributes: products.attributes,
+          createdAt: products.createdAt,
+        })
+        .from(products)
+        .where(and(inArray(products.id, productIds), eq(products.status, 'published'))),
+      this.getAllCategories(),
+      this.getAttributeDefinitions(),
+    ]);
+
+    const categoriesById = new Map(allCategories.map((c) => [c.id, c]));
+
+    return rows.map((row) => {
+      const { pathSlugs, names } = this.buildCategoryAncestry(row.categoryId, categoriesById);
+      const attrs = row.attributes ?? {};
+      const brandRaw = attrs.brand;
+      const brand = typeof brandRaw === 'string' && brandRaw.trim().length > 0 ? brandRaw.trim() : undefined;
+
+      return searchIndexDocumentSchema.parse({
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        description: row.description,
+        ...(brand ? { brand } : {}),
+        categoryPath: pathSlugs,
+        categoryNames: names.join(' > '),
+        attributesText: this.buildAttributesText(attrs, attrDefs),
+        price: Number(row.effectivePrice),
+        inStock: row.inStock,
+        createdAt: Math.floor(new Date(row.createdAt).getTime()),
+      });
+    });
+  }
+
+  async listIndexableProductIdsBatch(params: {
+    afterId?: string;
+    limit: number;
+  }): Promise<string[]> {
+    const conditions: SQL[] = [eq(products.status, 'published')];
+    if (params.afterId) {
+      conditions.push(gt(products.id, params.afterId));
+    }
+
+    const rows = await this.databaseService.db
+      .select({ id: products.id })
+      .from(products)
+      .where(combineConditions(conditions))
+      .orderBy(asc(products.id))
+      .limit(params.limit);
+
+    return rows.map((row) => row.id);
+  }
+
+  async listAllPublishedProductIds(): Promise<string[]> {
+    const rows = await this.databaseService.db
+      .select({ id: products.id })
+      .from(products)
+      .where(eq(products.status, 'published'))
+      .orderBy(asc(products.id));
+
+    return rows.map((row) => row.id);
+  }
+
+  async listProductIdsByCategorySubtree(categoryId: string): Promise<string[]> {
+    const allCategories = await this.getAllCategories();
+    const target = allCategories.find((c) => c.id === categoryId);
+    if (!target) {
+      return [];
+    }
+    const subtreeIds = this.resolveCategorySubtreeIds(allCategories, target.slug);
+    if (!subtreeIds || subtreeIds.length === 0) {
+      return [];
+    }
+
+    const rows = await this.databaseService.db
+      .select({ id: products.id })
+      .from(products)
+      .where(inArray(products.categoryId, subtreeIds));
+
+    return rows.map((row) => row.id);
+  }
+
+  async getProductCardsByIdsOrdered(productIds: string[]): Promise<ProductCardDTO[]> {
+    if (productIds.length === 0) {
+      return [];
+    }
+
+    const uniqueIds = Array.from(new Set(productIds));
+    const [rows, allCategories, attrDefs, imagesByProductId] = await Promise.all([
+      this.databaseService.db
+        .select({
+          id: products.id,
+          slug: products.slug,
+          name: products.name,
+          categoryId: products.categoryId,
+          effectivePrice: effectivePriceSql,
+          currency: products.currency,
+          inStock: products.inStock,
+          attributes: products.attributes,
+        })
+        .from(products)
+        .where(and(inArray(products.id, uniqueIds), eq(products.status, 'published'))),
+      this.getAllCategories(),
+      this.getAttributeDefinitions(),
+      this.loadReadyImagesByProductIds(uniqueIds),
+    ]);
+
+    const categorySlugById = new Map(allCategories.map((c) => [c.id, c.slug]));
+    const cardById = new Map<string, ProductCardDTO>();
+
+    for (const row of rows) {
+      const productImgs = imagesByProductId.get(row.id) ?? [];
+      cardById.set(row.id, {
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        price: {
+          amount: Number(row.effectivePrice),
+          currency: row.currency,
+        },
+        inStock: row.inStock,
+        image: productImgs[0] ?? null,
+        highlights: this.mapProductAttributes(row.attributes ?? {}, attrDefs, true),
+        categorySlug: categorySlugById.get(row.categoryId) ?? '',
+      });
+    }
+
+    const ordered: ProductCardDTO[] = [];
+    for (const id of productIds) {
+      const card = cardById.get(id);
+      if (card) {
+        ordered.push(card);
+      }
+    }
+    return ordered;
+  }
+
+  async searchProductsPostgresFallback(params: {
+    q: string;
+    limit: number;
+    offset: number;
+    category?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    inStock?: boolean;
+  }): Promise<{ items: ProductCardDTO[]; estimatedTotal: number }> {
+    const allCategories = await this.getAllCategories();
+    let categoryIds: string[] | null | undefined;
+    if (params.category !== undefined) {
+      categoryIds = this.resolveCategorySubtreeIds(allCategories, params.category);
+      if (!categoryIds || categoryIds.length === 0) {
+        return { items: [], estimatedTotal: 0 };
+      }
+    }
+
+    const conditions = buildProductFilterConditions({
+      filters: {
+        category: params.category,
+        minPrice: params.minPrice,
+        maxPrice: params.maxPrice,
+        inStock: params.inStock,
+        q: params.q,
+        discreteAttributes: [],
+        numericAttributes: [],
+      },
+      categoryIds,
+    });
+
+    const whereClause = combineConditions(conditions);
+    const rankSql = buildSearchRankSql(params.q);
+
+    const [countResult, idRows] = await Promise.all([
+      this.databaseService.db.select({ total: count() }).from(products).where(whereClause),
+      this.databaseService.db
+        .select({ id: products.id })
+        .from(products)
+        .where(whereClause)
+        .orderBy(desc(rankSql), desc(products.id))
+        .limit(params.limit)
+        .offset(params.offset),
+    ]);
+
+    const ids = idRows.map((row) => row.id);
+    const items = await this.getProductCardsByIdsOrdered(ids);
+
+    return {
+      items,
+      estimatedTotal: Number(countResult[0]?.total ?? 0),
+    };
+  }
+
+  async suggestProductsPostgresFallback(
+    q: string,
+    limit: number,
+  ): Promise<Array<{ slug: string; name: string; categoryName: string }>> {
+    const trimmed = q.trim();
+    if (trimmed.length === 0) {
+      return [];
+    }
+
+    const allCategories = await this.getAllCategories();
+    const categoryNameById = new Map(allCategories.map((c) => [c.id, c.name]));
+    const likePattern = `%${trimmed}%`;
+
+    const rows = await this.databaseService.db
+      .select({
+        slug: products.slug,
+        name: products.name,
+        categoryId: products.categoryId,
+      })
+      .from(products)
+      .where(
+        and(
+          eq(products.status, 'published'),
+          sql`(public.unaccent(${products.name}) ILIKE public.unaccent(${likePattern}) OR "catalog"."products"."search_vector" @@ websearch_to_tsquery('portuguese', public.unaccent(${trimmed})))`,
+        ),
+      )
+      .orderBy(asc(products.name))
+      .limit(limit);
+
+    return rows.map((row) => ({
+      slug: row.slug,
+      name: row.name,
+      categoryName: categoryNameById.get(row.categoryId) ?? '',
+    }));
   }
 
   private buildOrderByClauses(sort: DecodedCursor['s'], rankSql: SQL<number>): SQL[] {

@@ -12,6 +12,8 @@
     "db:seed": "tsx src/seed/seed.ts",
     "media:add": "tsx src/cli/media-add.ts",
     "search:init": "tsx src/cli/search-init.ts",
+    "search:reindex": "tsx src/cli/search-reindex.ts",
+    "search:status": "tsx src/cli/search-status.ts",
     "outbox:stats": "tsx src/cli/outbox-cli.ts stats",
     "outbox:requeue": "tsx src/cli/outbox-cli.ts requeue",
     "outbox:wait-drain": "tsx src/cli/outbox-cli.ts wait-drain",

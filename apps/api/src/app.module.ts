@@ -4,8 +4,9 @@ import { HealthModule } from './health/health.module.js';
 import { CatalogModule } from './modules/catalog/index.js';
 import { MediaModule } from './modules/media/index.js';
 import { PlatformModule } from './modules/platform/index.js';
+import { SearchModule } from './modules/search/index.js';
 
 @Module({
-  imports: [DatabaseModule, PlatformModule, HealthModule, MediaModule, CatalogModule],
+  imports: [DatabaseModule, PlatformModule, HealthModule, MediaModule, CatalogModule, SearchModule],
 })
 export class AppModule {}

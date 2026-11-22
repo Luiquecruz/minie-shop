@@ -60,3 +60,18 @@ export {
   type ProductSlugParam,
   type ProductIdParam,
 } from './catalog/public.js';
+
+export {
+  searchIndexDocumentSchema,
+  searchModeSchema,
+  searchRequestedModeSchema,
+  searchResponseSchema,
+  searchSuggestionSchema,
+  searchSuggestResponseSchema,
+  type SearchIndexDocument,
+  type SearchMode,
+  type SearchRequestedMode,
+  type SearchResponseDTO,
+  type SearchSuggestionDTO,
+  type SearchSuggestResponseDTO,
+} from './search/public.js';
