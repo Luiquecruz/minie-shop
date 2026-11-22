@@ -11,8 +11,26 @@ import {
   type ErrorCode,
   type ErrorDetail,
 } from '@minieshop/contracts';
-import { ZodError } from 'zod';
+import { ZodError, type ZodIssue } from 'zod';
 import { AppHttpError, zodErrorToDetails } from './errors.js';
+
+function isZodError(value: unknown): value is ZodError {
+  if (value instanceof ZodError) {
+    return true;
+  }
+  return (
+    value instanceof Error &&
+    value.name === 'ZodError' &&
+    Array.isArray((value as { issues?: unknown }).issues)
+  );
+}
+
+function extractZodDetails(error: { issues: ZodIssue[] }): ErrorDetail[] {
+  return error.issues.map((issue) => ({
+    path: issue.path.length > 0 ? issue.path.join('.') : '_root',
+    message: issue.message,
+  }));
+}
 
 export function buildErrorResponse(params: {
   code: ErrorCode;
@@ -64,11 +82,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    if (exception instanceof ZodError) {
+    if (isZodError(exception)) {
       const payload = buildErrorResponse({
         code: 'VALIDATION_ERROR',
         message: 'Validation failed',
-        details: zodErrorToDetails(exception),
+        details:
+          exception instanceof ZodError
+            ? zodErrorToDetails(exception)
+            : extractZodDetails(exception),
         requestId,
       });
       void reply.code(400).send(payload);

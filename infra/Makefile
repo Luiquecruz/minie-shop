@@ -21,7 +21,7 @@ seed:
 	$(COMPOSE) --profile seed run --rm seed
 
 test:
-	cd ../apps/api && pnpm test
+	cd ../apps/api && pnpm test && pnpm test:integration
 
 reset:
 	$(COMPOSE) down -v --remove-orphans

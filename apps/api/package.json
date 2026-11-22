@@ -10,6 +10,7 @@
     "db:seed": "tsx src/seed/seed.ts",
     "media:add": "tsx src/cli/media-add.ts",
     "test": "tsx --test src/**/*.test.ts",
+    "test:integration": "vitest run",
     "build": "eslint src/ && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src/",
@@ -44,6 +45,7 @@
     "prettier": "^3.5.3",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
-    "typescript-eslint": "^8.26.1"
+    "typescript-eslint": "^8.26.1",
+    "vitest": "^5.1.1"
   }
 }
