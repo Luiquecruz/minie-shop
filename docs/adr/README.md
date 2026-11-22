@@ -24,3 +24,9 @@ This directory maintains an **incremental, append-only log** of architectural de
 | ID | Title | Phase | Status | Date |
 | :--- | :--- | :--- | :--- | :--- |
 | [ADR-0001](./0001-frontend-architecture-baseline.md) | Frontend Architecture Baseline (Phases 1–6 Inc. 2) | Phases 1–6 (Inc. 2) | Accepted | 2026-11-21 |
+| [ADR-0002](./0002-monolito-modular-monorepo.md) | Monolito Modular em Monorepo e Gatilhos de Extração *(spec ADR-001)* | Backend Fase 1 (`T01`) | Accepted | 2026-11-21 |
+| [ADR-0003](./0003-framework-e-orm-nestjs-drizzle.md) | Framework Backend (NestJS + Fastify) e ORM (Drizzle) *(spec ADR-002)* | Backend Fase 1 (`T01`) | Accepted | 2026-11-21 |
+| [ADR-0004](./0004-storage-midia-s3-seaweedfs.md) | Storage de Mídia S3-Compatível (SeaweedFS) *(spec ADR-003)* | Backend Fase 1 (`T01`) | Accepted | 2026-11-21 |
+| [ADR-0005](./0005-imagem-fallback-no-frontend.md) | Imagem de Fallback Vive no Frontend, Nunca no Bucket *(spec ADR-004)* | Backend Fase 1 (`T01`) | Accepted | 2026-11-21 |
+| [ADR-0006](./0006-organizacao-banco-schemas-por-modulo.md) | Organização do Banco de Dados — Um Schema por Módulo *(spec ADR-008)* | Backend Fase 1 (`T01`) | Accepted | 2026-11-21 |
+| [ADR-0007](./0007-autenticacao-sessoes-opacas-propria.md) | Autenticação — Implementação Própria com Sessões Opacas no Servidor *(spec ADR-009)* | Backend Fase 1 (`T01`) | Accepted | 2026-11-21 |
