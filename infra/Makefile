@@ -1,6 +1,6 @@
 COMPOSE := docker compose -f compose.yaml --env-file $(if $(wildcard .env),.env,.env.example)
 
-.PHONY: up watch down logs ps reset
+.PHONY: up watch down logs ps seed reset
 
 up:
 	$(COMPOSE) up -d --build
@@ -17,7 +17,11 @@ logs:
 ps:
 	$(COMPOSE) ps
 
+seed:
+	$(COMPOSE) --profile seed run --rm seed
+
 reset:
 	$(COMPOSE) down -v --remove-orphans
 	$(COMPOSE) up -d --build
-	@echo "[reset] Stack recreated cleanly (postgres, storage, init-buckets, migrate, api)."
+	$(COMPOSE) --profile seed run --rm seed
+	@echo "[reset] Stack recreated cleanly (postgres, storage, init-buckets, migrate, seed, api)."

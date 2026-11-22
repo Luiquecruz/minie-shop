@@ -17,6 +17,7 @@ RUN cd apps/api && pnpm install --frozen-lockfile
 
 COPY apps/api/src ./apps/api/src
 COPY apps/api/drizzle ./apps/api/drizzle
+COPY apps/api/seed ./apps/api/seed
 
 WORKDIR /workspace/apps/api
 
