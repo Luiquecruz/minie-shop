@@ -32,3 +32,5 @@ This directory maintains an **incremental, append-only log** of architectural de
 | [ADR-0007](./0007-autenticacao-sessoes-opacas-propria.md) | Autenticação — Implementação Própria com Sessões Opacas no Servidor *(spec ADR-009)* | Backend Fase 1 (`T01`) | Accepted | 2026-11-21 |
 | [ADR-0008](./0008-contratos-api-publica-erros-e-status-produto.md) | Contratos Públicos da API do Catálogo, Envelope de Erros e Status de Publicação | Backend Fase 2 (`T11`) | Accepted | 2026-11-22 |
 | [ADR-0009](./0009-vitest-testes-integracao-api-e-banco-isolado.md) | Vitest para Testes de Integração HTTP da API e Banco `app_test` Isolado | Backend Fase 2 (`T18`) | Accepted | 2026-11-22 |
+| [ADR-0010](./0010-meilisearch-como-motor-de-busca.md) | Meilisearch como Motor de Busca atrás de `SearchPort` *(spec ADR-005)* | Backend Fase 3 (`S01`) | Accepted | 2026-11-22 |
+| [ADR-0011](./0011-pipeline-unico-de-embeddings-pgvector.md) | Pipeline Único de Embeddings com pgvector e Embedder `userProvided` *(spec ADR-006)* | Backend Fase 3 (`S01`) | Accepted | 2026-11-22 |
