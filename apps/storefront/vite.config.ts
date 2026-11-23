@@ -7,6 +7,6 @@ export default defineConfig({
   server: {
     host: true,
     port: 5199,
-    open: true,
+    open: !process.env.CI && process.env.DOCKER !== 'true',
   },
 });

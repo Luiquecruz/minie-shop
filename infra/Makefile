@@ -1,4 +1,5 @@
-COMPOSE := docker compose -f compose.yaml --env-file $(if $(wildcard .env),.env,.env.example)
+ENV_FILE := $(if $(wildcard ../.env),../.env,$(if $(wildcard .env),.env,../.env.example))
+COMPOSE := docker compose -f compose.yaml --env-file $(ENV_FILE)
 
 .PHONY: up up-ai watch down logs ps seed test reset reset-ai
 

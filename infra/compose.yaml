@@ -1,4 +1,4 @@
-name: minieshop-backend
+name: minieshop
 
 services:
   postgres:
@@ -300,6 +300,42 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  storefront:
+    build:
+      context: ..
+      dockerfile: apps/storefront/Dockerfile
+      target: development
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
+      DOCKER: 'true'
+    ports:
+      - '127.0.0.1:${STOREFRONT_PORT:-5199}:5199'
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:5199/']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    develop:
+      watch:
+        - action: sync
+          path: ../apps/storefront/src
+          target: /workspace/apps/storefront/src
+        - action: sync
+          path: ../apps/storefront/public
+          target: /workspace/apps/storefront/public
+        - action: sync
+          path: ../apps/storefront/index.html
+          target: /workspace/apps/storefront/index.html
+        - action: rebuild
+          path: ../apps/storefront/package.json
+        - action: rebuild
+          path: ../packages/contracts/src
 
   embeddings:
     profiles: ['ai']

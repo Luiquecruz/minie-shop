@@ -191,8 +191,8 @@ jobs:
 
       - name: Start SeaweedFS storage and initialize buckets
         run: |
-          docker compose -f infra/compose.yaml --env-file infra/.env.example up -d storage
-          docker compose -f infra/compose.yaml --env-file infra/.env.example up --exit-code-from init-buckets init-buckets
+          docker compose -f infra/compose.yaml --env-file .env.example up -d storage
+          docker compose -f infra/compose.yaml --env-file .env.example up --exit-code-from init-buckets init-buckets
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
@@ -217,7 +217,7 @@ jobs:
 
       - name: Tear down storage containers
         if: always()
-        run: docker compose -f infra/compose.yaml --env-file infra/.env.example down -v --remove-orphans
+        run: docker compose -f infra/compose.yaml --env-file .env.example down -v --remove-orphans
 
   docker-build:
     name: Build API Docker Image

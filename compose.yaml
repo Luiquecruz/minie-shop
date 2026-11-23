@@ -1,0 +1,4 @@
+name: minieshop
+
+include:
+  - path: ./infra/compose.yaml
