@@ -11,10 +11,13 @@ import { createMailTransport, MAIL_TRANSPORT_TOKEN } from './mail-transport.js';
 import { MailerOutboxHandler } from './mailer.handler.js';
 import { PasswordService } from './password.service.js';
 import { InMemoryRateLimiter, RATE_LIMITER_TOKEN } from './rate-limiter.js';
+import { RbacSeedService } from './rbac-seed.service.js';
 import { SessionService } from './session.service.js';
+import { StaffAdminController } from './staff-admin.controller.js';
+import { StaffAdminService } from './staff-admin.service.js';
 
 @Module({
-  controllers: [CustomerAuthController],
+  controllers: [CustomerAuthController, StaffAdminController],
   providers: [
     {
       provide: CLOCK_TOKEN,
@@ -34,6 +37,8 @@ import { SessionService } from './session.service.js';
     EmailTokenService,
     MailerOutboxHandler,
     CustomerAuthService,
+    RbacSeedService,
+    StaffAdminService,
     IdentityGuard,
     {
       provide: APP_GUARD,
@@ -50,6 +55,8 @@ import { SessionService } from './session.service.js';
     EmailTokenService,
     MailerOutboxHandler,
     CustomerAuthService,
+    RbacSeedService,
+    StaffAdminService,
     IdentityGuard,
   ],
 })

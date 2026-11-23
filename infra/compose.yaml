@@ -161,6 +161,8 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-minieshop_dev_secret_key}
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-minieshop-catalog-public}
       S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-minieshop-private}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@minieshop.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-minieshop-dev-admin-pass-2026}
     command: ['pnpm', 'db:seed']
 
   mailpit:

@@ -17,6 +17,10 @@
     "./identity/public": {
       "types": "./dist/identity/public.d.ts",
       "import": "./dist/identity/public.js"
+    },
+    "./identity/admin": {
+      "types": "./dist/identity/admin.d.ts",
+      "import": "./dist/identity/admin.js"
     }
   },
   "scripts": {

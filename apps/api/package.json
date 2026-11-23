@@ -24,6 +24,7 @@
     "relations:status": "tsx src/cli/relations-status.ts",
     "relations:add": "tsx src/cli/relations-curate.ts add",
     "relations:remove": "tsx src/cli/relations-curate.ts remove",
+    "staff:create": "tsx src/cli/staff-create.ts",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "test:integration": "vitest run",
     "test:e2e:mailpit": "RUN_MAILPIT_E2E=true vitest run src/test/mailpit.e2e.spec.ts",

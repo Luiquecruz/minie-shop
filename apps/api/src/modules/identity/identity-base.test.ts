@@ -212,6 +212,11 @@ describe('I01 — Password Policy, Argon2id, CSRF, RateLimiter & Log Redaction',
       COOKIE_SECRET: 'prod-cookie-secret-with-more-than-32-random-chars-1',
       CSRF_SECRET: 'prod-csrf-secret-with-more-than-32-random-chars-2',
       EMAIL_TOKEN_SECRET: 'prod-email-secret-with-more-than-32-random-chars-3',
+      MAIL_TRANSPORT: 'resend',
+      MAIL_FROM: 'Minie Shop <no-reply@minieshop.com.br>',
+      RESEND_API_KEY: 're_prod_secret_key_123',
+      ADMIN_EMAIL: 'ops@minieshop.com.br',
+      ADMIN_PASSWORD: 'prod-admin-passphrase-2026-unique',
     });
     assert.doesNotThrow(() => assertSecurityConfig(strongProdEnv));
   });

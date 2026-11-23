@@ -9,6 +9,8 @@ const booleanEnvSchema = z
 export const DEV_DEFAULT_COOKIE_SECRET = 'minieshop-dev-cookie-secret-change-me';
 export const DEV_DEFAULT_CSRF_SECRET = 'minieshop-dev-csrf-secret-change-me-32chars';
 export const DEV_DEFAULT_EMAIL_TOKEN_SECRET = 'minieshop-dev-email-token-secret-change-me';
+export const DEV_DEFAULT_ADMIN_EMAIL = 'admin@minieshop.local';
+export const DEV_DEFAULT_ADMIN_PASSWORD = 'minieshop-dev-admin-pass-2026';
 
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -55,6 +57,8 @@ export const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
+  ADMIN_EMAIL: z.string().default(DEV_DEFAULT_ADMIN_EMAIL),
+  ADMIN_PASSWORD: z.string().default(DEV_DEFAULT_ADMIN_PASSWORD),
   CHAOS_ENABLED: booleanEnvSchema,
   MEILI_HOST: z.string().url('MEILI_HOST must be a valid URL').default('http://localhost:7700'),
   MEILI_API_KEY: z.string().optional(),
@@ -145,6 +149,16 @@ export function assertSecurityConfig(env: Env): void {
   }
   if (env.MAIL_TRANSPORT === 'resend' && (!env.RESEND_API_KEY || env.RESEND_API_KEY.trim().length === 0)) {
     errors.push('RESEND_API_KEY is required in production when MAIL_TRANSPORT=resend');
+  }
+  if (!env.ADMIN_EMAIL.trim() || env.ADMIN_EMAIL.trim().toLowerCase() === DEV_DEFAULT_ADMIN_EMAIL) {
+    errors.push('ADMIN_EMAIL must not use the dev default or be empty in production');
+  }
+  if (
+    !env.ADMIN_PASSWORD ||
+    env.ADMIN_PASSWORD.length < 12 ||
+    env.ADMIN_PASSWORD === DEV_DEFAULT_ADMIN_PASSWORD
+  ) {
+    errors.push('ADMIN_PASSWORD must be a strong non-default password (>= 12 chars) in production');
   }
 
   if (errors.length > 0) {

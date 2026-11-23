@@ -15,6 +15,7 @@ import {
   storeSettings,
 } from '../database/schema/index.js';
 import { MediaService, S3StorageAdapter } from '../modules/media/index.js';
+import { PasswordService, RbacSeedService } from '../modules/identity/index.js';
 import { OutboxService } from '../modules/platform/index.js';
 
 interface FixtureCategory {
@@ -404,6 +405,10 @@ export async function runSeed(options?: {
         });
       manualRelationsCount += 1;
     }
+
+    // 4.7 Seed RBAC permissions, default roles & initial admin if no staff exists (I04)
+    const rbacSeedService = new RbacSeedService(databaseService, new PasswordService());
+    await rbacSeedService.seedInitialAdminIfEmpty();
 
     // 5. Enqueue product.changed events in batch for outbox consumers (S05 / R03)
     const outboxService = new OutboxService(databaseService);

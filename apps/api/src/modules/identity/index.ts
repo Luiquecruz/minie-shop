@@ -12,6 +12,8 @@ export {
   type MailTransport,
 } from './mail-transport.js';
 export { MailerOutboxHandler } from './mailer.handler.js';
+export { RbacSeedService } from './rbac-seed.service.js';
+export { StaffAdminService } from './staff-admin.service.js';
 export {
   CustomerAuthService,
   GENERIC_REGISTER_MESSAGE,
