@@ -2,6 +2,17 @@ export { IdentityModule } from './identity.module.js';
 export { PasswordService, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from './password.service.js';
 export { EmailTokenService, type EmailTokenPurpose } from './email-token.service.js';
 export {
+  MAIL_TRANSPORT_TOKEN,
+  SmtpMailTransport,
+  ResendMailTransport,
+  InMemoryMailTransport,
+  createMailTransport,
+  type MailMessage,
+  type SentMailRecord,
+  type MailTransport,
+} from './mail-transport.js';
+export { MailerOutboxHandler } from './mailer.handler.js';
+export {
   CustomerAuthService,
   GENERIC_REGISTER_MESSAGE,
   normalizeEmail,

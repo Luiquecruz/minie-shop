@@ -2,10 +2,18 @@ import { Body, Controller, Get, Inject, Post, Req, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import {
   authCustomerResponseSchema,
+  changePasswordRequestSchema,
+  changePasswordResponseSchema,
   csrfTokenResponseSchema,
+  forgotPasswordRequestSchema,
   genericAcceptedResponseSchema,
   loginRequestSchema,
   registerRequestSchema,
+  resendVerificationRequestSchema,
+  resetPasswordRequestSchema,
+  resetPasswordResponseSchema,
+  verifyEmailRequestSchema,
+  verifyEmailResponseSchema,
 } from '@minieshop/contracts';
 import { parseOutput } from '../../common/parse-response.js';
 import { loadEnv } from '../../config/env.js';
@@ -109,6 +117,73 @@ export class CustomerAuthController {
   ): Promise<void> {
     const profile = await this.customerAuthService.getMe(customer.customerId);
     const payload = parseOutput(authCustomerResponseSchema, { customer: profile });
+    await reply.code(200).send(payload);
+  }
+
+  @Post('auth/verify-email')
+  async verifyEmail(@Body() rawBody: unknown, @Res() reply: FastifyReply): Promise<void> {
+    const body = verifyEmailRequestSchema.parse(rawBody);
+    const result = await this.customerAuthService.verifyEmail(body.token);
+    const payload = parseOutput(verifyEmailResponseSchema, result);
+    await reply.code(200).send(payload);
+  }
+
+  @Post('auth/resend-verification')
+  async resendVerification(
+    @Body() rawBody: unknown,
+    @Req() request: RequestWithIdentity,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    const body = resendVerificationRequestSchema.parse(rawBody);
+    const result = await this.customerAuthService.resendVerification({
+      email: body.email,
+      ipAddress: request.ip,
+    });
+    const payload = parseOutput(genericAcceptedResponseSchema, result);
+    await reply.code(202).send(payload);
+  }
+
+  @Post('auth/forgot-password')
+  async forgotPassword(
+    @Body() rawBody: unknown,
+    @Req() request: RequestWithIdentity,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    const body = forgotPasswordRequestSchema.parse(rawBody);
+    const result = await this.customerAuthService.forgotPassword({
+      email: body.email,
+      ipAddress: request.ip,
+    });
+    const payload = parseOutput(genericAcceptedResponseSchema, result);
+    await reply.code(202).send(payload);
+  }
+
+  @Post('auth/reset-password')
+  async resetPassword(@Body() rawBody: unknown, @Res() reply: FastifyReply): Promise<void> {
+    const body = resetPasswordRequestSchema.parse(rawBody);
+    const result = await this.customerAuthService.resetPassword({
+      token: body.token,
+      newPassword: body.newPassword,
+    });
+    const payload = parseOutput(resetPasswordResponseSchema, result);
+    await reply.code(200).send(payload);
+  }
+
+  @Post('auth/change-password')
+  @RequireCustomer()
+  async changePassword(
+    @CurrentCustomer() customer: CustomerPrincipal,
+    @Body() rawBody: unknown,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    const body = changePasswordRequestSchema.parse(rawBody);
+    const result = await this.customerAuthService.changePassword({
+      customerId: customer.customerId,
+      currentSessionId: customer.sessionId,
+      currentPassword: body.currentPassword,
+      newPassword: body.newPassword,
+    });
+    const payload = parseOutput(changePasswordResponseSchema, result);
     await reply.code(200).send(payload);
   }
 }

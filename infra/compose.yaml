@@ -163,6 +163,19 @@ services:
       S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-minieshop-private}
     command: ['pnpm', 'db:seed']
 
+  mailpit:
+    image: axllent/mailpit:v1.24.1
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025'
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
   api:
     build:
       context: ..
@@ -193,7 +206,16 @@ services:
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-minieshop-catalog-public}
       S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-minieshop-private}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5199}
+      STOREFRONT_URL: ${STOREFRONT_URL:-http://localhost:5199}
       COOKIE_SECRET: ${COOKIE_SECRET:-minieshop-dev-cookie-secret-change-me}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      CSRF_SECRET: ${CSRF_SECRET:-minieshop-dev-csrf-secret-change-me-32chars}
+      EMAIL_TOKEN_SECRET: ${EMAIL_TOKEN_SECRET:-minieshop-dev-email-token-secret-change-me}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
+      MAIL_FROM: ${MAIL_FROM:-Progressive Minie Shop <no-reply@minieshop.local>}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
       CHAOS_ENABLED: ${CHAOS_ENABLED:-false}
       MEILI_HOST: http://search:7700
       MEILI_API_KEY_FILE: /run/meili-keys/search.key
@@ -238,11 +260,19 @@ services:
         condition: service_healthy
       init-search:
         condition: service_completed_successfully
+      mailpit:
+        condition: service_healthy
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       HOST: 0.0.0.0
       LOG_LEVEL: ${LOG_LEVEL:-info}
       DATABASE_URL: ${DATABASE_URL:-postgresql://minieshop:minieshop_dev_password@postgres:5432/minieshop}
+      STOREFRONT_URL: ${STOREFRONT_URL:-http://localhost:5199}
+      EMAIL_TOKEN_SECRET: ${EMAIL_TOKEN_SECRET:-minieshop-dev-email-token-secret-change-me}
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
+      MAIL_FROM: ${MAIL_FROM:-Progressive Minie Shop <no-reply@minieshop.local>}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
       S3_ENDPOINT: ${S3_ENDPOINT:-http://storage:8333}
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:8333}
       S3_REGION: ${S3_REGION:-us-east-1}

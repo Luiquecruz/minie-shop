@@ -62,6 +62,13 @@ jobs:
           pnpm typecheck
           pnpm build
 
+      - name: Install and check @minieshop/email
+        working-directory: packages/email
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm typecheck
+          pnpm build
+
       - name: Install and check @minieshop/api
         working-directory: apps/api
         run: |
@@ -129,6 +136,12 @@ jobs:
 
       - name: Build @minieshop/contracts
         working-directory: packages/contracts
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Build @minieshop/email
+        working-directory: packages/email
         run: |
           pnpm install --frozen-lockfile
           pnpm build
@@ -210,6 +223,12 @@ jobs:
 
       - name: Build @minieshop/contracts
         working-directory: packages/contracts
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Build @minieshop/email
+        working-directory: packages/email
         run: |
           pnpm install --frozen-lockfile
           pnpm build

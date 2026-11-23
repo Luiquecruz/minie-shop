@@ -65,6 +65,7 @@ flowchart LR
 | `storage` (Master) | `9333` | Status do cluster (`/cluster/status`) e UI |
 | `storage` (Filer) | `8888` | Interface do Filer SeaweedFS |
 | `search` (Meilisearch) | `127.0.0.1:7700` | Motor de busca (apenas localhost para depuração; navegador nunca fala direto) |
+| `mailpit` (SMTP / UI) | `127.0.0.1:1025` / `127.0.0.1:8025` | Captura local de e-mails transacionais (SMTP + Web UI/API em `http://127.0.0.1:8025`) |
 
 ## Chaves de Privilégio Mínimo (Meilisearch)
 

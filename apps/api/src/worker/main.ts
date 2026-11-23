@@ -6,7 +6,7 @@ import { createAppLogger } from '../common/logger.js';
 import { assertSecurityConfig, loadEnv } from '../config/env.js';
 import { DatabaseService } from '../database/database.service.js';
 import { CategoryChangedOutboxHandler } from '../modules/catalog/index.js';
-import { SessionService } from '../modules/identity/index.js';
+import { MailerOutboxHandler, SessionService } from '../modules/identity/index.js';
 import { OutboxService } from '../modules/platform/index.js';
 import { RecommendationsOutboxHandler } from '../modules/recommendations/index.js';
 import { EmbeddingsOutboxHandler, SearchIndexOutboxHandler } from '../modules/search/index.js';
@@ -24,6 +24,7 @@ async function bootstrapWorker(): Promise<void> {
   const outboxService = appContext.get(OutboxService);
   const databaseService = appContext.get(DatabaseService);
   const sessionService = appContext.get(SessionService);
+  const mailerHandler = appContext.get(MailerOutboxHandler);
   const searchIndexHandler = appContext.get(SearchIndexOutboxHandler);
   const embeddingsHandler = appContext.get(EmbeddingsOutboxHandler);
   const categoryChangedHandler = appContext.get(CategoryChangedOutboxHandler);
@@ -37,14 +38,7 @@ async function bootstrapWorker(): Promise<void> {
     recommendations: (event) => recommendationsHandler.handle(event),
     'catalog-category-fanout': (event) => categoryChangedHandler.handle(event),
     mailer: async (event) => {
-      logger.info(
-        {
-          eventId: event.id,
-          aggregateId: event.aggregateId,
-          kind: event.payload.kind,
-        },
-        'Queued identity email event logged (real mailer transport added in I03)',
-      );
+      await mailerHandler.handle(event);
     },
     noop: async () => {
       // Built-in smoke/heartbeat consumer

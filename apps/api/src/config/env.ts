@@ -48,6 +48,13 @@ export const envSchema = z.object({
   ARGON2_MEMORY_COST: z.coerce.number().int().min(1024).max(1_048_576).default(19_456),
   ARGON2_TIME_COST: z.coerce.number().int().min(1).max(20).default(2),
   ARGON2_PARALLELISM: z.coerce.number().int().min(1).max(16).default(1),
+  MAIL_TRANSPORT: z.enum(['smtp', 'resend', 'memory']).default('smtp'),
+  MAIL_FROM: z.string().min(1).default('Progressive Minie Shop <no-reply@minieshop.local>'),
+  SMTP_HOST: z.string().min(1).default('127.0.0.1'),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
   CHAOS_ENABLED: booleanEnvSchema,
   MEILI_HOST: z.string().url('MEILI_HOST must be a valid URL').default('http://localhost:7700'),
   MEILI_API_KEY: z.string().optional(),
@@ -129,6 +136,15 @@ export function assertSecurityConfig(env: Env): void {
     errors.push(
       'EMAIL_TOKEN_SECRET must be a strong non-default secret (>= 32 chars) in production',
     );
+  }
+  if (env.MAIL_TRANSPORT === 'memory') {
+    errors.push('MAIL_TRANSPORT=memory is forbidden in production');
+  }
+  if (env.MAIL_FROM.trim().length === 0) {
+    errors.push('MAIL_FROM is required in production');
+  }
+  if (env.MAIL_TRANSPORT === 'resend' && (!env.RESEND_API_KEY || env.RESEND_API_KEY.trim().length === 0)) {
+    errors.push('RESEND_API_KEY is required in production when MAIL_TRANSPORT=resend');
   }
 
   if (errors.length > 0) {

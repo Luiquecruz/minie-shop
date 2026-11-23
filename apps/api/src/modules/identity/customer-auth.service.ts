@@ -21,6 +21,10 @@ import { SessionService } from './session.service.js';
 
 export const GENERIC_REGISTER_MESSAGE =
   'If this email can be registered, we have sent instructions to your inbox.';
+export const GENERIC_VERIFICATION_MESSAGE =
+  'If an unverified account exists for this email, we have sent a new verification link.';
+export const GENERIC_PASSWORD_RESET_MESSAGE =
+  'If an account exists for this email, we have sent password reset instructions.';
 
 export function normalizeEmail(raw: string): string {
   return raw.normalize('NFKC').trim().toLowerCase();
@@ -246,5 +250,207 @@ export class CustomerAuthService {
     }
 
     return toCustomerProfileDto(customer);
+  }
+
+  async verifyEmail(rawToken: string): Promise<{ verified: true }> {
+    await this.databaseService.db.transaction(async (tx) => {
+      const { customerId } = await this.emailTokenService.verifyAndConsumeToken(
+        rawToken,
+        'verify_email',
+        tx,
+      );
+
+      await tx
+        .update(customers)
+        .set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
+        .where(eq(customers.id, customerId));
+    });
+
+    return { verified: true };
+  }
+
+  async resendVerification(input: {
+    email: string;
+    ipAddress: string;
+  }): Promise<{ accepted: true; message: string }> {
+    const email = normalizeEmail(input.email);
+
+    await enforceRateLimit(this.rateLimiter, [
+      { key: `resend-verify:ip:${input.ipAddress}`, rule: RATE_LIMIT_RULES.RESEND_VERIFICATION_IP },
+      {
+        key: `resend-verify:account:${email}`,
+        rule: RATE_LIMIT_RULES.RESEND_VERIFICATION_ACCOUNT,
+      },
+    ]);
+
+    const [customer] = await this.databaseService.db
+      .select({ id: customers.id, emailVerifiedAt: customers.emailVerifiedAt, isActive: customers.isActive })
+      .from(customers)
+      .where(eq(customers.email, email))
+      .limit(1);
+
+    if (customer && customer.isActive && customer.emailVerifiedAt === null) {
+      await this.databaseService.db.transaction(async (tx) => {
+        const { emailTokenId } = await this.emailTokenService.issueToken({
+          customerId: customer.id,
+          purpose: 'verify_email',
+          tx,
+        });
+
+        await this.outboxService.enqueue(tx, {
+          eventType: 'identity.email_requested',
+          aggregateType: 'customer',
+          aggregateId: customer.id,
+          payload: {
+            kind: 'verify_email',
+            customerId: customer.id,
+            emailTokenId,
+          },
+        });
+      });
+    }
+
+    return { accepted: true, message: GENERIC_VERIFICATION_MESSAGE };
+  }
+
+  async forgotPassword(input: {
+    email: string;
+    ipAddress: string;
+  }): Promise<{ accepted: true; message: string }> {
+    const email = normalizeEmail(input.email);
+
+    await enforceRateLimit(this.rateLimiter, [
+      { key: `forgot-pwd:ip:${input.ipAddress}`, rule: RATE_LIMIT_RULES.FORGOT_PASSWORD_IP },
+      {
+        key: `forgot-pwd:account:${email}`,
+        rule: RATE_LIMIT_RULES.FORGOT_PASSWORD_ACCOUNT,
+      },
+    ]);
+
+    const [customer] = await this.databaseService.db
+      .select({ id: customers.id, isActive: customers.isActive })
+      .from(customers)
+      .where(eq(customers.email, email))
+      .limit(1);
+
+    if (customer && customer.isActive) {
+      await this.databaseService.db.transaction(async (tx) => {
+        const { emailTokenId } = await this.emailTokenService.issueToken({
+          customerId: customer.id,
+          purpose: 'reset_password',
+          tx,
+        });
+
+        await this.outboxService.enqueue(tx, {
+          eventType: 'identity.email_requested',
+          aggregateType: 'customer',
+          aggregateId: customer.id,
+          payload: {
+            kind: 'reset_password',
+            customerId: customer.id,
+            emailTokenId,
+          },
+        });
+      });
+    }
+
+    return { accepted: true, message: GENERIC_PASSWORD_RESET_MESSAGE };
+  }
+
+  async resetPassword(input: { token: string; newPassword: string }): Promise<{ reset: true }> {
+    await this.databaseService.db.transaction(async (tx) => {
+      const { customerId } = await this.emailTokenService.verifyAndConsumeToken(
+        input.token,
+        'reset_password',
+        tx,
+      );
+
+      const [customer] = await tx
+        .select({ id: customers.id, email: customers.email, isActive: customers.isActive })
+        .from(customers)
+        .where(eq(customers.id, customerId))
+        .limit(1);
+
+      if (!customer || !customer.isActive) {
+        throw unauthenticatedError();
+      }
+
+      const normalizedPassword = this.passwordService.validatePolicy(
+        input.newPassword,
+        customer.email,
+      );
+      const passwordHash = await this.passwordService.hash(normalizedPassword);
+
+      await tx
+        .update(customers)
+        .set({ passwordHash, updatedAt: new Date() })
+        .where(eq(customers.id, customer.id));
+
+      // Revoke ALL active sessions on password reset
+      await this.sessionService.revokeAllCustomerSessions(customer.id, tx);
+
+      await this.outboxService.enqueue(tx, {
+        eventType: 'identity.email_requested',
+        aggregateType: 'customer',
+        aggregateId: customer.id,
+        payload: {
+          kind: 'password_changed',
+          customerId: customer.id,
+        },
+      });
+    });
+
+    return { reset: true };
+  }
+
+  async changePassword(input: {
+    customerId: string;
+    currentSessionId: string;
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<{ changed: true }> {
+    const [customer] = await this.databaseService.db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, input.customerId))
+      .limit(1);
+
+    if (!customer || !customer.isActive) {
+      throw unauthenticatedError();
+    }
+
+    const valid = await this.passwordService.verify(customer.passwordHash, input.currentPassword);
+    if (!valid) {
+      throw invalidCredentialsError();
+    }
+
+    const normalizedNew = this.passwordService.validatePolicy(input.newPassword, customer.email);
+    const newHash = await this.passwordService.hash(normalizedNew);
+
+    await this.databaseService.db.transaction(async (tx) => {
+      await tx
+        .update(customers)
+        .set({ passwordHash: newHash, updatedAt: new Date() })
+        .where(eq(customers.id, customer.id));
+
+      // Revoke all OTHER sessions, keeping the current authenticated session active
+      await this.sessionService.revokeOtherCustomerSessions(
+        customer.id,
+        input.currentSessionId,
+        tx,
+      );
+
+      await this.outboxService.enqueue(tx, {
+        eventType: 'identity.email_requested',
+        aggregateType: 'customer',
+        aggregateId: customer.id,
+        payload: {
+          kind: 'password_changed',
+          customerId: customer.id,
+        },
+      });
+    });
+
+    return { changed: true };
   }
 }
