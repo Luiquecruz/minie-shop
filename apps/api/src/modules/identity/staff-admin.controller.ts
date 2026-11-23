@@ -6,6 +6,8 @@ import {
   adminCustomerListResponseSchema,
   adminMeResponseSchema,
   adminStaffListResponseSchema,
+  auditLogQuerySchema,
+  auditLogResponseSchema,
   csrfTokenResponseSchema,
   staffLoginRequestSchema,
   updateStaffRolesRequestSchema,
@@ -13,6 +15,7 @@ import {
 } from '@minieshop/contracts';
 import { parseOutput } from '../../common/parse-response.js';
 import { loadEnv } from '../../config/env.js';
+import { AuditService, type AuditContext } from '../platform/index.js';
 import { CsrfService } from './csrf.service.js';
 import {
   AllowAnyStaff,
@@ -26,6 +29,15 @@ import type { RequestWithIdentity, StaffPrincipal } from './types.js';
 
 const uuidParamSchema = z.object({ id: z.string().uuid('Invalid staff ID') });
 
+function extractAuditContext(request: RequestWithIdentity): AuditContext {
+  return {
+    ipAddress: request.ip,
+    userAgent:
+      typeof request.headers['user-agent'] === 'string' ? request.headers['user-agent'] : null,
+    requestId: typeof request.id === 'string' ? request.id : String(request.id ?? ''),
+  };
+}
+
 @Controller('admin')
 export class StaffAdminController {
   constructor(
@@ -35,6 +47,8 @@ export class StaffAdminController {
     private readonly sessionService: SessionService,
     @Inject(CsrfService)
     private readonly csrfService: CsrfService,
+    @Inject(AuditService)
+    private readonly auditService: AuditService,
   ) {}
 
   @Post('auth/login')
@@ -50,12 +64,13 @@ export class StaffAdminController {
     const existingRawToken =
       typeof request.cookies?.[cookieName] === 'string' ? request.cookies[cookieName] : undefined;
 
+    const ctx = extractAuditContext(request);
     const result = await this.staffAdminService.login({
       email: body.email,
       password: body.password,
-      ipAddress: request.ip,
-      userAgent:
-        typeof request.headers['user-agent'] === 'string' ? request.headers['user-agent'] : null,
+      ipAddress: ctx.ipAddress ?? request.ip,
+      userAgent: ctx.userAgent ?? null,
+      requestId: ctx.requestId ?? null,
       existingRawToken,
     });
 
@@ -66,8 +81,16 @@ export class StaffAdminController {
 
   @Post('auth/logout')
   @AllowAnyStaff()
-  async logout(@CurrentStaff() staff: StaffPrincipal, @Res() reply: FastifyReply): Promise<void> {
-    await this.staffAdminService.logout(staff.sessionId);
+  async logout(
+    @CurrentStaff() staff: StaffPrincipal,
+    @Req() request: RequestWithIdentity,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    await this.staffAdminService.logout(
+      staff.sessionId,
+      staff.staffUserId,
+      extractAuditContext(request),
+    );
     this.sessionService.clearSessionCookie(reply, 'staff');
     await reply.code(204).send();
   }
@@ -76,9 +99,10 @@ export class StaffAdminController {
   @AllowAnyStaff()
   async logoutAll(
     @CurrentStaff() staff: StaffPrincipal,
+    @Req() request: RequestWithIdentity,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    await this.staffAdminService.logoutAll(staff.staffUserId);
+    await this.staffAdminService.logoutAll(staff.staffUserId, extractAuditContext(request));
     this.sessionService.clearSessionCookie(reply, 'staff');
     await reply.code(204).send();
   }
@@ -106,10 +130,15 @@ export class StaffAdminController {
   @RequirePermission('customers:read')
   async listCustomers(
     @Query() rawQuery: Record<string, unknown>,
+    @CurrentStaff() staff: StaffPrincipal,
+    @Req() request: RequestWithIdentity,
     @Res() reply: FastifyReply,
   ): Promise<void> {
     const query = adminCustomerListQuerySchema.parse(rawQuery);
-    const result = await this.staffAdminService.listCustomers(query);
+    const result = await this.staffAdminService.listCustomers(query, {
+      actorStaffId: staff.staffUserId,
+      context: extractAuditContext(request),
+    });
     const payload = parseOutput(adminCustomerListResponseSchema, result);
     await reply.code(200).send(payload);
   }
@@ -128,6 +157,7 @@ export class StaffAdminController {
     @Param('id') rawId: string,
     @Body() rawBody: unknown,
     @CurrentStaff() staff: StaffPrincipal,
+    @Req() request: RequestWithIdentity,
     @Res() reply: FastifyReply,
   ): Promise<void> {
     const { id } = uuidParamSchema.parse({ id: rawId });
@@ -136,8 +166,21 @@ export class StaffAdminController {
       actorStaffId: staff.staffUserId,
       targetStaffId: id,
       roleCodes: body.roles,
+      context: extractAuditContext(request),
     });
     const payload = parseOutput(updateStaffRolesResponseSchema, { staff: result.staff });
+    await reply.code(200).send(payload);
+  }
+
+  @Get('audit-log')
+  @RequirePermission('audit:read')
+  async getAuditLog(
+    @Query() rawQuery: Record<string, unknown>,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    const query = auditLogQuerySchema.parse(rawQuery);
+    const result = await this.auditService.queryLogs(query);
+    const payload = parseOutput(auditLogResponseSchema, result);
     await reply.code(200).send(payload);
   }
 }

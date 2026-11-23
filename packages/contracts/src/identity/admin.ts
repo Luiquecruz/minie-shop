@@ -104,3 +104,49 @@ export const updateStaffRolesResponseSchema = z
   .strict();
 
 export type UpdateStaffRolesResponseDTO = z.infer<typeof updateStaffRolesResponseSchema>;
+
+export const auditActorTypeSchema = z.enum(['system', 'customer', 'staff']);
+export type AuditActorTypeDTO = z.infer<typeof auditActorTypeSchema>;
+
+export const auditLogEntryDtoSchema = z
+  .object({
+    id: z.string().uuid(),
+    actorType: auditActorTypeSchema,
+    actorId: z.string().uuid().nullable(),
+    action: z.string(),
+    entityType: z.string(),
+    entityId: z.string(),
+    before: z.record(z.unknown()).nullable(),
+    after: z.record(z.unknown()).nullable(),
+    ipAddress: z.string().nullable(),
+    userAgent: z.string().nullable(),
+    requestId: z.string().nullable(),
+    metadata: z.record(z.unknown()),
+    createdAt: z.string().datetime(),
+  })
+  .strict();
+
+export type AuditLogEntryDTO = z.infer<typeof auditLogEntryDtoSchema>;
+
+export const auditLogQuerySchema = z
+  .object({
+    actorType: auditActorTypeSchema.optional(),
+    actorId: z.string().uuid().optional(),
+    action: z.string().trim().min(1).max(120).optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(25),
+    cursor: z.string().min(1).max(512).optional(),
+  })
+  .strict();
+
+export type AuditLogQuery = z.infer<typeof auditLogQuerySchema>;
+
+export const auditLogResponseSchema = z
+  .object({
+    items: z.array(auditLogEntryDtoSchema),
+    nextCursor: z.string().nullable(),
+  })
+  .strict();
+
+export type AuditLogResponseDTO = z.infer<typeof auditLogResponseSchema>;

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 import type {
   AdminCustomerListItemDTO,
@@ -24,6 +24,7 @@ import {
   staffUserRoles,
   staffUsers,
 } from '../../database/schema/index.js';
+import { AuditService, type AuditContext } from '../platform/index.js';
 import { normalizeEmail } from './customer-auth.service.js';
 import { PasswordService } from './password.service.js';
 import {
@@ -45,6 +46,9 @@ export class StaffAdminService {
     private readonly sessionService: SessionService,
     @Inject(RATE_LIMITER_TOKEN)
     private readonly rateLimiter: RateLimiter,
+    @Optional()
+    @Inject(AuditService)
+    private readonly auditService?: AuditService,
   ) {}
 
   async login(input: {
@@ -52,9 +56,15 @@ export class StaffAdminService {
     password: string;
     ipAddress: string;
     userAgent: string | null;
+    requestId?: string | null;
     existingRawToken?: string;
   }): Promise<{ staff: StaffProfileDTO; rawToken: string; sessionId: string }> {
     const email = normalizeEmail(input.email);
+    const context: AuditContext = {
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+      requestId: input.requestId ?? null,
+    };
 
     await enforceRateLimit(this.rateLimiter, [
       { key: `staff-login:ip:${input.ipAddress}`, rule: RATE_LIMIT_RULES.STAFF_LOGIN_IP },
@@ -69,11 +79,33 @@ export class StaffAdminService {
 
     if (!staff || !staff.isActive) {
       await this.passwordService.verifyDummy(input.password);
+      if (this.auditService) {
+        await this.auditService.recordStandalone({
+          actorType: 'staff',
+          actorId: staff?.id ?? null,
+          action: 'staff.login_failed',
+          entityType: 'staff_user',
+          entityId: staff?.id ?? email,
+          metadata: { email, reason: !staff ? 'unknown_account' : 'inactive_account' },
+          context,
+        });
+      }
       throw invalidCredentialsError();
     }
 
     const passwordValid = await this.passwordService.verify(staff.passwordHash, input.password);
     if (!passwordValid) {
+      if (this.auditService) {
+        await this.auditService.recordStandalone({
+          actorType: 'staff',
+          actorId: staff.id,
+          action: 'staff.login_failed',
+          entityType: 'staff_user',
+          entityId: staff.id,
+          metadata: { email, reason: 'invalid_password' },
+          context,
+        });
+      }
       throw invalidCredentialsError();
     }
 
@@ -89,13 +121,25 @@ export class StaffAdminService {
       if (input.existingRawToken) {
         await this.sessionService.revokeSessionByRawToken(input.existingRawToken, 'staff', tx);
       }
-      return this.sessionService.createSession({
+      const sess = await this.sessionService.createSession({
         subjectType: 'staff',
         subjectId: staff.id,
         ipAddress: input.ipAddress,
         userAgent: input.userAgent,
         tx,
       });
+      if (this.auditService) {
+        await this.auditService.record(tx, {
+          actorType: 'staff',
+          actorId: staff.id,
+          action: 'staff.login_succeeded',
+          entityType: 'staff_user',
+          entityId: staff.id,
+          metadata: { sessionId: sess.sessionId },
+          context,
+        });
+      }
+      return sess;
     });
 
     await this.rateLimiter.reset(`staff-login:account:${email}`);
@@ -108,12 +152,40 @@ export class StaffAdminService {
     };
   }
 
-  async logout(sessionId: string): Promise<void> {
-    await this.sessionService.revokeSession(sessionId);
+  async logout(
+    sessionId: string,
+    actorStaffId?: string,
+    context?: AuditContext,
+  ): Promise<void> {
+    await this.databaseService.db.transaction(async (tx) => {
+      await this.sessionService.revokeSession(sessionId, tx);
+      if (this.auditService && actorStaffId) {
+        await this.auditService.record(tx, {
+          actorType: 'staff',
+          actorId: actorStaffId,
+          action: 'staff.logout',
+          entityType: 'session',
+          entityId: sessionId,
+          context,
+        });
+      }
+    });
   }
 
-  async logoutAll(staffUserId: string): Promise<void> {
-    await this.sessionService.revokeAllStaffSessions(staffUserId);
+  async logoutAll(staffUserId: string, context?: AuditContext): Promise<void> {
+    await this.databaseService.db.transaction(async (tx) => {
+      await this.sessionService.revokeAllStaffSessions(staffUserId, tx);
+      if (this.auditService) {
+        await this.auditService.record(tx, {
+          actorType: 'staff',
+          actorId: staffUserId,
+          action: 'staff.logout_all',
+          entityType: 'staff_user',
+          entityId: staffUserId,
+          context,
+        });
+      }
+    });
   }
 
   async getMe(staffUserId: string): Promise<StaffProfileDTO> {
@@ -158,7 +230,10 @@ export class StaffAdminService {
     };
   }
 
-  async listCustomers(query: AdminCustomerListQuery): Promise<AdminCustomerListResponseDTO> {
+  async listCustomers(
+    query: AdminCustomerListQuery,
+    audit?: { actorStaffId: string; context?: AuditContext },
+  ): Promise<AdminCustomerListResponseDTO> {
     const whereClause =
       query.q && query.q.length > 0
         ? or(ilike(customers.email, `%${query.q}%`), ilike(customers.fullName, `%${query.q}%`))
@@ -184,6 +259,24 @@ export class StaffAdminService {
       .orderBy(desc(customers.createdAt), asc(customers.id))
       .limit(query.limit)
       .offset(query.offset);
+
+    if (this.auditService && audit) {
+      // Record read audit without customer payload content
+      await this.auditService.recordStandalone({
+        actorType: 'staff',
+        actorId: audit.actorStaffId,
+        action: 'customers.listed',
+        entityType: 'customer',
+        entityId: 'list',
+        metadata: {
+          limit: query.limit,
+          offset: query.offset,
+          hasQuery: Boolean(query.q && query.q.length > 0),
+          returnedCount: rows.length,
+        },
+        context: audit.context,
+      });
+    }
 
     const items: AdminCustomerListItemDTO[] = rows.map((row) => ({
       id: row.id,
@@ -249,6 +342,7 @@ export class StaffAdminService {
     actorStaffId: string;
     targetStaffId: string;
     roleCodes: StaffRoleCode[];
+    context?: AuditContext;
   }): Promise<{
     staff: AdminStaffListItemDTO;
     beforeRoles: string[];
@@ -340,6 +434,19 @@ export class StaffAdminService {
         })),
       );
 
+      if (this.auditService) {
+        await this.auditService.record(tx, {
+          actorType: 'staff',
+          actorId: input.actorStaffId,
+          action: 'staff.roles_updated',
+          entityType: 'staff_user',
+          entityId: target.id,
+          before: { roles: beforeRoles },
+          after: { roles: uniqueRoleCodes },
+          context: input.context,
+        });
+      }
+
       const staffDto: AdminStaffListItemDTO = {
         id: target.id,
         email: target.email,
@@ -362,6 +469,8 @@ export class StaffAdminService {
     password: string;
     fullName: string;
     roleCodes: StaffRoleCode[];
+    actorStaffId?: string | null;
+    context?: AuditContext;
   }): Promise<AdminStaffListItemDTO> {
     const email = normalizeEmail(input.email);
     const normalizedPassword = this.passwordService.validatePolicy(input.password, email);
@@ -414,6 +523,23 @@ export class StaffAdminService {
           roleId: r.id,
         })),
       );
+
+      if (this.auditService) {
+        await this.auditService.record(tx, {
+          actorType: input.actorStaffId ? 'staff' : 'system',
+          actorId: input.actorStaffId ?? null,
+          action: 'staff.created',
+          entityType: 'staff_user',
+          entityId: created.id,
+          before: null,
+          after: {
+            email: created.email,
+            fullName: created.fullName,
+            roles: uniqueRoles,
+          },
+          context: input.context,
+        });
+      }
 
       return {
         id: created.id,

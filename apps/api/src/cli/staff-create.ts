@@ -10,6 +10,7 @@ import {
   SessionService,
   StaffAdminService,
 } from '../modules/identity/index.js';
+import { AuditService } from '../modules/platform/index.js';
 
 function parseArgs(argv: string[]): { email: string; roles: StaffRoleCode[]; fullName: string } {
   let email = '';
@@ -84,11 +85,13 @@ async function main(): Promise<void> {
   const rbacSeedService = new RbacSeedService(dbService, passwordService);
   const sessionService = new SessionService(dbService);
   const rateLimiter = new InMemoryRateLimiter();
+  const auditService = new AuditService(dbService);
   const staffAdminService = new StaffAdminService(
     dbService,
     passwordService,
     sessionService,
     rateLimiter,
+    auditService,
   );
 
   try {
