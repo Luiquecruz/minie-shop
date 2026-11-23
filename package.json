@@ -1,0 +1,20 @@
+{
+  "name": "progressive-minieshop",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "dev:storefront": "turbo run dev --filter=@minieshop/storefront",
+    "dev:api": "turbo run dev --filter=@minieshop/api"
+  },
+  "devDependencies": {
+    "turbo": "2.11.13"
+  }
+}
