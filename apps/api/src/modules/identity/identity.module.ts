@@ -5,6 +5,8 @@ import { loadEnv } from '../../config/env.js';
 import { CsrfService } from './csrf.service.js';
 import { CustomerAuthController } from './customer-auth.controller.js';
 import { CustomerAuthService } from './customer-auth.service.js';
+import { CustomerProfileController } from './customer-profile.controller.js';
+import { CustomerProfileService } from './customer-profile.service.js';
 import { EmailTokenService } from './email-token.service.js';
 import { IdentityGuard } from './identity.guard.js';
 import { createMailTransport, MAIL_TRANSPORT_TOKEN } from './mail-transport.js';
@@ -17,7 +19,7 @@ import { StaffAdminController } from './staff-admin.controller.js';
 import { StaffAdminService } from './staff-admin.service.js';
 
 @Module({
-  controllers: [CustomerAuthController, StaffAdminController],
+  controllers: [CustomerAuthController, CustomerProfileController, StaffAdminController],
   providers: [
     {
       provide: CLOCK_TOKEN,
@@ -37,6 +39,7 @@ import { StaffAdminService } from './staff-admin.service.js';
     EmailTokenService,
     MailerOutboxHandler,
     CustomerAuthService,
+    CustomerProfileService,
     RbacSeedService,
     StaffAdminService,
     IdentityGuard,
@@ -55,6 +58,7 @@ import { StaffAdminService } from './staff-admin.service.js';
     EmailTokenService,
     MailerOutboxHandler,
     CustomerAuthService,
+    CustomerProfileService,
     RbacSeedService,
     StaffAdminService,
     IdentityGuard,
