@@ -241,4 +241,56 @@ describe('HttpClient', () => {
     ).resolves.toBeUndefined();
     expect(ApiError).toBeDefined();
   });
+
+  it('converts response-body transport failures into NetworkError', async () => {
+    const brokenResponse = {
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: new Headers(),
+      text: () => Promise.reject(new TypeError('stream reset')),
+    } as unknown as Response;
+
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(brokenResponse);
+    const client = new HttpClient({
+      baseUrl: 'http://localhost:3001',
+      fetchFn: fetchMock,
+    });
+
+    await expect(
+      client.get('/products', clientProductListResponseSchema),
+    ).rejects.toSatisfy(
+      (err: unknown) => err instanceof NetworkError && err.isTimeout === false,
+    );
+  });
+
+  it('keeps timeout active while consuming a stalled response body', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((_input, init) => {
+      const stalledResponse = {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+        text: () =>
+          new Promise<string>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              reject(new DOMException('Body read aborted', 'AbortError'));
+            });
+          }),
+      } as unknown as Response;
+      return Promise.resolve(stalledResponse);
+    });
+
+    const client = new HttpClient({
+      baseUrl: 'http://localhost:3001',
+      timeoutMs: 25,
+      fetchFn: fetchMock,
+    });
+
+    await expect(
+      client.get('/products', clientProductListResponseSchema),
+    ).rejects.toSatisfy(
+      (err: unknown) => err instanceof NetworkError && err.isTimeout === true,
+    );
+  });
 });

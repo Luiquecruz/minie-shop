@@ -61,4 +61,14 @@ describe('catalogUrlParams Zod parser & serializer', () => {
     expect(parsed.maxPrice).toBeUndefined();
     expect(parsed.sort).toBe('price_asc');
   });
+
+  it('preserves inStock=false distinctly from omitted inStock', () => {
+    const parsed = parseCatalogUrlParams(new URLSearchParams('inStock=false'));
+    expect(parsed.inStock).toBe(false);
+    expect(hasActiveCatalogFilters(parsed)).toBe(true);
+
+    const serialized = serializeCatalogUrlParams(parsed);
+    expect(serialized.get('inStock')).toBe('false');
+    expect(parseCatalogUrlParams(serialized).inStock).toBe(false);
+  });
 });

@@ -112,76 +112,94 @@ export class HttpClient {
           }, timeoutMs)
         : null;
 
-    let response: Response;
-    try {
-      response = await this.fetchFn(url, {
-        method,
-        credentials: 'include',
-        ...(hasDevChaos ? { cache: 'no-store' as const } : {}),
-        headers,
-        body: serializedBody,
-        signal: controller.signal,
-      });
-    } catch (error: unknown) {
+    const toTransportError = (error: unknown): unknown => {
       if (timedOut) {
-        throw new NetworkError(
+        return new NetworkError(
           `Request to ${path} timed out after ${timeoutMs}ms.`,
           { isTimeout: true, cause: error },
         );
       }
       if (options.signal?.aborted || isAbortError(error)) {
-        throw error;
+        return error;
       }
-      throw new NetworkError(
+      return new NetworkError(
         `Network error while requesting ${path}. Check your connection and try again.`,
         { isTimeout: false, cause: error },
       );
+    };
+
+    try {
+      let response: Response;
+      try {
+        response = await this.fetchFn(url, {
+          method,
+          credentials: 'include',
+          ...(hasDevChaos ? { cache: 'no-store' as const } : {}),
+          headers,
+          body: serializedBody,
+          signal: controller.signal,
+        });
+      } catch (error: unknown) {
+        throw toTransportError(error);
+      }
+
+      if (!response.ok) {
+        let errorPayload: unknown;
+        try {
+          errorPayload = await parseJsonSafe(response);
+        } catch (error: unknown) {
+          throw toTransportError(error);
+        }
+
+        const parsedError = clientApiErrorResponseSchema.safeParse(errorPayload);
+        const fallbackRequestId =
+          response.headers.get('x-request-id') ?? 'unavailable';
+
+        if (parsedError.success) {
+          throw new ApiError({
+            status: response.status,
+            code: parsedError.data.error.code,
+            message: parsedError.data.error.message,
+            requestId: parsedError.data.error.requestId,
+            details: parsedError.data.error.details,
+          });
+        }
+
+        throw new ApiError({
+          status: response.status,
+          code: 'UNKNOWN_ERROR',
+          message: `HTTP ${response.status} ${response.statusText || 'Error'} while requesting ${path}`,
+          requestId: fallbackRequestId,
+        });
+      }
+
+      if (response.status === 204 || !options.schema) {
+        return undefined as T;
+      }
+
+      let jsonPayload: unknown;
+      try {
+        jsonPayload = await parseJsonSafe(response);
+      } catch (error: unknown) {
+        throw toTransportError(error);
+      }
+
+      const parsed = options.schema.safeParse(jsonPayload);
+      if (!parsed.success) {
+        console.error('[HttpClient] ContractViolationError', {
+          endpoint: path,
+          issues: parsed.error.issues,
+        });
+        throw new ContractViolationError(path, parsed.error.issues);
+      }
+
+      return parsed.data;
     } finally {
       if (timeoutId !== null) {
         clearTimeout(timeoutId);
       }
       options.signal?.removeEventListener('abort', onExternalAbort);
     }
-
-    if (!response.ok) {
-      const errorPayload = await parseJsonSafe(response);
-      const parsedError = clientApiErrorResponseSchema.safeParse(errorPayload);
-      const fallbackRequestId =
-        response.headers.get('x-request-id') ?? 'unavailable';
-
-      if (parsedError.success) {
-        throw new ApiError({
-          status: response.status,
-          code: parsedError.data.error.code,
-          message: parsedError.data.error.message,
-          requestId: parsedError.data.error.requestId,
-          details: parsedError.data.error.details,
-        });
-      }
-
-      throw new ApiError({
-        status: response.status,
-        code: 'UNKNOWN_ERROR',
-        message: `HTTP ${response.status} ${response.statusText || 'Error'} while requesting ${path}`,
-        requestId: fallbackRequestId,
-      });
-    }
-
-    if (response.status === 204 || !options.schema) {
-      return undefined as T;
-    }
-
-    const jsonPayload = await parseJsonSafe(response);
-    const parsed = options.schema.safeParse(jsonPayload);
-    if (!parsed.success) {
-      console.error('[HttpClient] ContractViolationError', {
-        endpoint: path,
-        issues: parsed.error.issues,
-      });
-      throw new ContractViolationError(path, parsed.error.issues);
-    }
-
-    return parsed.data;
   }
 
   get<T>(

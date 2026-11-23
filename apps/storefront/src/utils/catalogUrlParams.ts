@@ -65,7 +65,8 @@ export function parseCatalogUrlParams(
   }
 
   const rawInStock = searchParams.get('inStock');
-  const inStock = rawInStock === 'true' ? true : undefined;
+  const inStock =
+    rawInStock === 'true' ? true : rawInStock === 'false' ? false : undefined;
 
   const rawSort = searchParams.get('sort');
   const parsedSort = rawSort ? productSortSchema.safeParse(rawSort) : null;
@@ -155,8 +156,8 @@ export function serializeCatalogUrlParams(
   if (state.maxPrice !== undefined) {
     params.set('maxPrice', String(Math.trunc(state.maxPrice)));
   }
-  if (state.inStock === true) {
-    params.set('inStock', 'true');
+  if (state.inStock !== undefined) {
+    params.set('inStock', String(state.inStock));
   }
   if (
     state.sort &&
@@ -202,7 +203,7 @@ export function hasActiveCatalogFilters(state: CatalogUrlState): boolean {
       state.q ||
       state.minPrice !== undefined ||
       state.maxPrice !== undefined ||
-      state.inStock === true ||
+      state.inStock !== undefined ||
       (state.attributes && Object.keys(state.attributes).length > 0) ||
       (state.numericAttributes &&
         Object.keys(state.numericAttributes).length > 0),

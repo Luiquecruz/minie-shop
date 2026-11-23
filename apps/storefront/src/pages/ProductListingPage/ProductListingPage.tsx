@@ -174,7 +174,8 @@ export function ProductListingPage() {
   };
 
   const showInitialSkeleton = productsQuery.isPending;
-  const showErrorState = productsQuery.isError;
+  const showErrorState =
+    productsQuery.isError && !productsQuery.isFetchNextPageError;
   const showResults = !showInitialSkeleton && !showErrorState;
   const isTransitioningFilters =
     productsQuery.isPlaceholderData && productsQuery.isFetching;

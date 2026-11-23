@@ -24,7 +24,7 @@ export function t(
 
   return Object.entries(params).reduce(
     (acc, [paramKey, paramValue]) =>
-      acc.replaceAll(`{${paramKey}}`, String(paramValue)),
+      acc.replaceAll(`{${paramKey}}`, () => String(paramValue)),
     template,
   );
 }

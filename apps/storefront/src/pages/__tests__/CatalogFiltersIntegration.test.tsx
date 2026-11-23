@@ -246,4 +246,28 @@ describe('Catalog URL Filters, Facets Parity, History Back/Forward & Out-of-orde
       screen.getByRole('searchbox', { name: /Search products/i }),
     ).toHaveValue('');
   });
+
+  it('restores SearchBar input value on Clear -> History Back navigation', async () => {
+    const repository = new MockProductRepository();
+    const user = userEvent.setup();
+
+    renderCatalog(repository, ['/?q=Fone']);
+
+    const searchInput = screen.getByRole('searchbox', {
+      name: /Search products/i,
+    });
+    expect(searchInput).toHaveValue('Fone');
+
+    await user.click(screen.getByRole('button', { name: /Clear search input/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId('current-url')).toHaveTextContent(/^\/$/);
+    });
+    expect(searchInput).toHaveValue('');
+
+    await user.click(screen.getByRole('button', { name: 'History Back' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('current-url')).toHaveTextContent('/?q=Fone');
+    });
+    expect(searchInput).toHaveValue('Fone');
+  });
 });

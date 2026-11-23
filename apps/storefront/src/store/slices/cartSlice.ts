@@ -113,15 +113,19 @@ export const cartSlice = createSlice({
 
       if (!product || !product.id) return state;
 
-      const maxStock = resolveMaxStock(explicitStock, product.inStock);
-      if (maxStock <= 0) {
-        return state;
-      }
-
       const existingIndex = state.items.findIndex((item) => item.id === product.id);
 
       if (existingIndex >= 0) {
         const existing = state.items[existingIndex];
+        const maxStock =
+          explicitStock !== undefined
+            ? resolveMaxStock(explicitStock, product.inStock)
+            : product.inStock
+              ? existing.stock
+              : 0;
+        if (maxStock <= 0) {
+          return state;
+        }
         const targetQty = existing.quantity + safeAddQty;
         const clampedQty = targetQty > maxStock ? maxStock : targetQty;
         const warningMsg =
@@ -146,6 +150,11 @@ export const cartSlice = createSlice({
           ),
           isOpen: true,
         };
+      }
+
+      const maxStock = resolveMaxStock(explicitStock, product.inStock);
+      if (maxStock <= 0) {
+        return state;
       }
 
       const initialQty = Math.min(safeAddQty, maxStock);

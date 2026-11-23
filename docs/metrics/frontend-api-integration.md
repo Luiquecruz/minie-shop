@@ -32,6 +32,7 @@ O baseline de renderização do carrinho (Etapa 4, anterior à integração com 
     --runs=5 --distDir="$PWD/apps/storefront/dist"
 
   # Antes (build de produção da tag pre-monorepo via git archive temporário)
+  mkdir -p /tmp/minieshop-pre-monorepo
   git archive pre-monorepo | tar -x -C /tmp/minieshop-pre-monorepo
   (cd /tmp/minieshop-pre-monorepo && npm ci && npm run build && npx vite preview --host 127.0.0.1 --port 4173 --strictPort)
   pnpm --filter @minieshop/storefront metrics -- \

@@ -55,6 +55,11 @@ describe('ProductImage with resilient inline SVG fallback', () => {
       'src',
       SECOND_IMAGE.variants[SECOND_IMAGE.variants.length - 1].url,
     );
+
+    // Returning to the original image (A -> B -> A) retries A rather than sticking on fallback
+    rerender(<ProductImage image={SAMPLE_IMAGE} productName="Fone Pro" />);
+    const retriedImg = screen.getByRole('img', { name: SAMPLE_IMAGE.alt });
+    expect(retriedImg.tagName).toBe('IMG');
   });
 
   it('populates srcset from real variant widths, sets alt fallback, and supports priority eager loading', () => {

@@ -141,8 +141,9 @@ pnpm build                # Build topológico de todos os pacotes (contracts -> 
 pnpm lint                 # Lint em todos os pacotes (ESLint no backend, Oxlint no storefront)
 pnpm typecheck            # Verificação estrita de tipos em todo o monorepo
 pnpm test                 # Testes unitários/componente/Profiler de todos os pacotes
-pnpm dev:storefront       # Sobe apenas o Vite do storefront fora do Docker
-pnpm dev:api              # Sobe apenas a API fora do Docker
+pnpm dev:storefront       # Sobe apenas o Vite do storefront fora do Docker (lê VITE_API_URL do .env raiz)
+# Para subir apenas a API no host (fora do Docker), carregue as variáveis com endpoints em localhost:
+set -a && source .env && set +a && DATABASE_URL=postgresql://minieshop:minieshop_dev_password@localhost:5432/minieshop S3_ENDPOINT=http://localhost:8333 MEILI_HOST=http://localhost:7700 pnpm dev:api
 ```
 
 ### Operação do Stack (Docker Compose / Makefile)
@@ -170,7 +171,7 @@ docker build -f apps/storefront/Dockerfile --target production \
 ## Troubleshooting
 
 1. **Porta já em uso (`5199`, `3001`, `5432`, `7700`, `8333`):**
-   Ajuste `STOREFRONT_PORT`, `API_PORT`, `POSTGRES_PORT`, `MEILI_PORT` ou `S3_PORT` no `.env` da raiz (lembrando de atualizar `VITE_API_URL` e `CORS_ORIGINS` se mudar `API_PORT` ou `STOREFRONT_PORT`).
+   Ajuste `STOREFRONT_PORT`, `POSTGRES_PORT`, `MEILI_PORT` ou `S3_PORT` no `.env` da raiz. Para trocar a porta publicada da API no host (ex.: `3005`), mantenha a porta interna fixa em `3001` no container/healthcheck (alterando apenas o mapeamento do host `${API_HOST_PORT:-3001}:3001` em `infra/compose.yaml`, ou ajustando também `PORT`, `ports` e `healthcheck` juntos) e atualize `VITE_API_URL` e `CORS_ORIGINS` no `.env`.
 2. **Catálogo vazio ao abrir http://localhost:5199 pela primeira vez:**
    Execute `docker compose --profile seed run --rm seed` (ou `make -C infra reset`).
 3. **Erro de CORS ou favoritos não persistindo:**

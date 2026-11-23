@@ -36,16 +36,11 @@ function inputValueToCents(raw: string): number | undefined {
   return Math.round(num * 100);
 }
 
-interface PriceDraftState {
-  urlSignature: string;
-  minText: string;
-  maxText: string;
-}
-
 interface NumericAttrDraftProps {
   facet: FacetAttributeDTO;
   currentMin: number | undefined;
   currentMax: number | undefined;
+  resetSignal: number;
   onCommit: (min: number | undefined, max: number | undefined) => void;
 }
 
@@ -53,28 +48,25 @@ function NumericAttributeFacet({
   facet,
   currentMin,
   currentMax,
+  resetSignal,
   onCommit,
 }: NumericAttrDraftProps) {
   const idPrefix = useId();
   const urlSig = `${currentMin ?? ''}:${currentMax ?? ''}`;
-  const [draft, setDraft] = useState({
-    urlSig,
-    minText: currentMin !== undefined ? String(currentMin) : '',
-    maxText: currentMax !== undefined ? String(currentMax) : '',
-  });
+  const [prevSyncKey, setPrevSyncKey] = useState(`${urlSig}|${resetSignal}`);
+  const [minText, setMinText] = useState(
+    currentMin !== undefined ? String(currentMin) : '',
+  );
+  const [maxText, setMaxText] = useState(
+    currentMax !== undefined ? String(currentMax) : '',
+  );
 
-  const minText =
-    draft.urlSig === urlSig
-      ? draft.minText
-      : currentMin !== undefined
-        ? String(currentMin)
-        : '';
-  const maxText =
-    draft.urlSig === urlSig
-      ? draft.maxText
-      : currentMax !== undefined
-        ? String(currentMax)
-        : '';
+  const syncKey = `${urlSig}|${resetSignal}`;
+  if (prevSyncKey !== syncKey) {
+    setPrevSyncKey(syncKey);
+    setMinText(currentMin !== undefined ? String(currentMin) : '');
+    setMaxText(currentMax !== undefined ? String(currentMax) : '');
+  }
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onCommitRef = useRef(onCommit);
@@ -82,7 +74,7 @@ function NumericAttributeFacet({
     onCommitRef.current = onCommit;
   }, [onCommit]);
 
-  // Cancel any pending debounce whenever external URL state changes (e.g. Clear all / Back-Forward) or on unmount
+  // Cancel any pending debounce whenever external URL state changes, Clear all runs, or on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current !== null) {
@@ -90,7 +82,7 @@ function NumericAttributeFacet({
         timerRef.current = null;
       }
     };
-  }, [urlSig]);
+  }, [urlSig, resetSignal]);
 
   const scheduleCommit = (nextMinText: string, nextMaxText: string): void => {
     if (timerRef.current !== null) {
@@ -150,7 +142,7 @@ function NumericAttributeFacet({
             }
             onChange={(e) => {
               const nextMinText = e.target.value;
-              setDraft({ urlSig, minText: nextMinText, maxText });
+              setMinText(nextMinText);
               scheduleCommit(nextMinText, maxText);
             }}
             className="catalog-filters__input"
@@ -173,7 +165,7 @@ function NumericAttributeFacet({
             }
             onChange={(e) => {
               const nextMaxText = e.target.value;
-              setDraft({ urlSig, minText, maxText: nextMaxText });
+              setMaxText(nextMaxText);
               scheduleCommit(minText, nextMaxText);
             }}
             className="catalog-filters__input"
@@ -198,21 +190,21 @@ export function CatalogFilters({
   const maxPriceId = useId();
   const inStockId = useId();
 
+  const [resetSignal, setResetSignal] = useState(0);
   const priceUrlSignature = `${state.minPrice ?? ''}:${state.maxPrice ?? ''}`;
-  const [priceDraft, setPriceDraft] = useState<PriceDraftState>({
-    urlSignature: priceUrlSignature,
-    minText: centsToInputValue(state.minPrice),
-    maxText: centsToInputValue(state.maxPrice),
-  });
+  const [prevPriceSig, setPrevPriceSig] = useState(priceUrlSignature);
+  const [minPriceText, setMinPriceText] = useState(
+    centsToInputValue(state.minPrice),
+  );
+  const [maxPriceText, setMaxPriceText] = useState(
+    centsToInputValue(state.maxPrice),
+  );
 
-  const minPriceText =
-    priceDraft.urlSignature === priceUrlSignature
-      ? priceDraft.minText
-      : centsToInputValue(state.minPrice);
-  const maxPriceText =
-    priceDraft.urlSignature === priceUrlSignature
-      ? priceDraft.maxText
-      : centsToInputValue(state.maxPrice);
+  if (prevPriceSig !== priceUrlSignature) {
+    setPrevPriceSig(priceUrlSignature);
+    setMinPriceText(centsToInputValue(state.minPrice));
+    setMaxPriceText(centsToInputValue(state.maxPrice));
+  }
 
   const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onUpdateRef = useRef(onUpdate);
@@ -220,7 +212,7 @@ export function CatalogFilters({
     onUpdateRef.current = onUpdate;
   }, [onUpdate]);
 
-  // Cancel any pending price debounce whenever external URL state changes (Clear all, Back/Forward) or on unmount
+  // Cancel any pending price debounce whenever external URL state changes, Clear all runs, or on unmount
   useEffect(() => {
     return () => {
       if (priceTimerRef.current !== null) {
@@ -228,7 +220,18 @@ export function CatalogFilters({
         priceTimerRef.current = null;
       }
     };
-  }, [priceUrlSignature]);
+  }, [priceUrlSignature, resetSignal]);
+
+  const handleClearAllClick = (): void => {
+    if (priceTimerRef.current !== null) {
+      clearTimeout(priceTimerRef.current);
+      priceTimerRef.current = null;
+    }
+    setMinPriceText('');
+    setMaxPriceText('');
+    setResetSignal((prev) => prev + 1);
+    onClearAll();
+  };
 
   const schedulePriceCommit = (nextMinText: string, nextMaxText: string): void => {
     if (priceTimerRef.current !== null) {
@@ -320,7 +323,7 @@ export function CatalogFilters({
             <button
               type="button"
               className="catalog-filters__clear-btn"
-              onClick={onClearAll}
+              onClick={handleClearAllClick}
             >
               {t('filters.clearAll')}
             </button>
@@ -451,11 +454,7 @@ export function CatalogFilters({
                 }
                 onChange={(e) => {
                   const nextMinText = e.target.value;
-                  setPriceDraft({
-                    urlSignature: priceUrlSignature,
-                    minText: nextMinText,
-                    maxText: maxPriceText,
-                  });
+                  setMinPriceText(nextMinText);
                   schedulePriceCommit(nextMinText, maxPriceText);
                 }}
                 className="catalog-filters__input"
@@ -483,11 +482,7 @@ export function CatalogFilters({
                 }
                 onChange={(e) => {
                   const nextMaxText = e.target.value;
-                  setPriceDraft({
-                    urlSignature: priceUrlSignature,
-                    minText: minPriceText,
-                    maxText: nextMaxText,
-                  });
+                  setMaxPriceText(nextMaxText);
                   schedulePriceCommit(minPriceText, nextMaxText);
                 }}
                 className="catalog-filters__input"
@@ -506,6 +501,7 @@ export function CatalogFilters({
                 facet={attrFacet}
                 currentMin={currentRange?.min}
                 currentMax={currentRange?.max}
+                resetSignal={resetSignal}
                 onCommit={(nextMin, nextMax) => {
                   onUpdate(
                     (prev) => {

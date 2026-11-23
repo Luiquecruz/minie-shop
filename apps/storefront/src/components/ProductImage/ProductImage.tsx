@@ -29,14 +29,21 @@ export function ProductImage({
   decorative = false,
   className = '',
 }: ProductImageProps) {
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
-
   const variants = image?.variants ?? [];
   const sortedVariants = [...variants].sort((a, b) => a.width - b.width);
   const primaryVariant =
     sortedVariants[sortedVariants.length - 1] ?? sortedVariants[0];
   const primarySrc = primaryVariant?.url ?? '';
+
+  const [prevSrc, setPrevSrc] = useState<string>(primarySrc);
+  const [hasFailed, setHasFailed] = useState<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+
+  if (prevSrc !== primarySrc) {
+    setPrevSrc(primarySrc);
+    setHasFailed(false);
+    setIsLoaded(false);
+  }
 
   const srcSet =
     sortedVariants.length > 0
@@ -44,9 +51,7 @@ export function ProductImage({
       : undefined;
 
   const hasValidImage = Boolean(image && primarySrc.length > 0);
-  const hasFailed = hasValidImage && failedSrc === primarySrc;
   const showFallback = !hasValidImage || hasFailed;
-  const isLoaded = hasValidImage && loadedSrc === primarySrc;
 
   const resolvedAlt = decorative
     ? ''
@@ -110,8 +115,8 @@ export function ProductImage({
           fetchPriority={priority ? 'high' : 'auto'}
           decoding={priority ? 'sync' : 'async'}
           className="product-image__img"
-          onLoad={() => setLoadedSrc(primarySrc)}
-          onError={() => setFailedSrc(primarySrc)}
+          onLoad={() => setIsLoaded(true)}
+          onError={() => setHasFailed(true)}
         />
       )}
     </div>

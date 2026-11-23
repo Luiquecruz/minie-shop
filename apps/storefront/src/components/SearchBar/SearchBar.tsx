@@ -21,12 +21,13 @@ export function SearchBar({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const urlQuery = searchParams.get('q') ?? '';
-  const [draft, setDraft] = useState<{ baseUrl: string; value: string }>({
-    baseUrl: urlQuery,
-    value: urlQuery,
-  });
+  const [prevUrlQuery, setPrevUrlQuery] = useState<string>(urlQuery);
+  const [inputValue, setInputValue] = useState<string>(urlQuery);
 
-  const inputValue = draft.baseUrl === urlQuery ? draft.value : urlQuery;
+  if (prevUrlQuery !== urlQuery) {
+    setPrevUrlQuery(urlQuery);
+    setInputValue(urlQuery);
+  }
 
   const cancelPendingDebounce = useCallback((): void => {
     if (debounceTimerRef.current !== null) {
@@ -64,17 +65,24 @@ export function SearchBar({
     [setSearchParams],
   );
 
+  const applySearchToUrlRef = useRef(applySearchToUrl);
+  const urlQueryRef = useRef(urlQuery);
+  useEffect(() => {
+    applySearchToUrlRef.current = applySearchToUrl;
+    urlQueryRef.current = urlQuery;
+  }, [applySearchToUrl, urlQuery]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const nextValue = e.target.value;
-    setDraft({ baseUrl: urlQuery, value: nextValue });
+    setInputValue(nextValue);
 
     if (location.pathname !== '/') return;
 
     cancelPendingDebounce();
     debounceTimerRef.current = setTimeout(() => {
       debounceTimerRef.current = null;
-      if (nextValue.trim() === urlQuery.trim()) return;
-      applySearchToUrl(nextValue, true);
+      if (nextValue.trim() === urlQueryRef.current.trim()) return;
+      applySearchToUrlRef.current(nextValue, true);
     }, 300);
   };
 
@@ -98,7 +106,7 @@ export function SearchBar({
 
   const handleClear = (): void => {
     cancelPendingDebounce();
-    setDraft({ baseUrl: urlQuery, value: '' });
+    setInputValue('');
     if (location.pathname === '/') {
       applySearchToUrl('', false);
     }

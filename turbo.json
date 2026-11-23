@@ -22,7 +22,37 @@
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": [
+        "NODE_ENV",
+        "PORT",
+        "HOST",
+        "LOG_LEVEL",
+        "DATABASE_URL",
+        "S3_*",
+        "CORS_ORIGINS",
+        "STOREFRONT_URL",
+        "COOKIE_*",
+        "CSRF_SECRET",
+        "EMAIL_TOKEN_SECRET",
+        "TRUST_PROXY",
+        "CUSTOMER_SESSION_*",
+        "STAFF_SESSION_*",
+        "SESSION_*",
+        "ARGON2_*",
+        "MAIL_*",
+        "SMTP_*",
+        "RESEND_API_KEY",
+        "ADMIN_*",
+        "CHAOS_ENABLED",
+        "MEILI_*",
+        "WORKER_*",
+        "OUTBOX_*",
+        "EMBEDDINGS_*",
+        "SEARCH_*",
+        "RECOMMENDATIONS_*",
+        "VITE_*"
+      ]
     }
   }
 }
