@@ -1,26 +1,16 @@
 import { Link } from 'react-router-dom';
-import type { CurrencyCode } from '../../types';
-import { useCurrency } from '../../hooks/useCurrency';
 import { useCart } from '../../hooks/useCart';
-import Dropdown, { type DropdownOption } from '../Dropdown/Dropdown';
+import { t } from '../../i18n';
 import SearchBar from '../SearchBar/SearchBar';
 import './Navbar.css';
 
 export function Navbar() {
-  const { currentCurrency, changeCurrency, supportedCurrencies } = useCurrency();
   const { cartCount, toggleCart } = useCart();
-
-  const currencyOptions: DropdownOption<CurrencyCode>[] = Object.values(
-    supportedCurrencies,
-  ).map((curr) => ({
-    value: curr.code,
-    label: curr.label,
-  }));
 
   return (
     <header className="navbar">
       <div className="navbar__inner">
-        <Link to="/" className="navbar__brand" aria-label="Minie Shop Home">
+        <Link to="/" className="navbar__brand" aria-label={t('nav.brandAria')}>
           <span className="navbar__brand-badge" aria-hidden="true">
             <svg
               fill="none"
@@ -39,26 +29,17 @@ export function Navbar() {
           <span className="navbar__tag">V1.0</span>
         </Link>
 
-        {/* Global Autocomplete Search Bar */}
+        {/* Global Catalog Search Bar synced with URL ?q= (Hybrid /search & autocomplete in Phase 7) */}
         <div className="navbar__search">
           <SearchBar />
         </div>
 
         <div className="navbar__actions">
-          {/* Custom Multi-Currency Dropdown */}
-          <Dropdown<CurrencyCode>
-            options={currencyOptions}
-            value={currentCurrency}
-            onChange={changeCurrency}
-            ariaLabel="Select store currency"
-            align="right"
-          />
-
           <button
             type="button"
             className="navbar__cart-btn"
             onClick={toggleCart}
-            aria-label={`Shopping cart with ${cartCount} items`}
+            aria-label={t('nav.cartAria', { count: cartCount })}
           >
             <svg
               width="20"
@@ -67,6 +48,7 @@ export function Navbar() {
               stroke="currentColor"
               strokeWidth="2"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -74,7 +56,7 @@ export function Navbar() {
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
               />
             </svg>
-            <span>Cart</span>
+            <span>{t('nav.cartLabel')}</span>
             <span className="navbar__cart-count">{cartCount}</span>
           </button>
         </div>

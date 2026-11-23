@@ -1,27 +1,42 @@
-import type { CalculatedPrice, Product } from './product';
+import type {
+  ImageDTO,
+  MoneyDTO,
+  ProductCardDTO,
+  ProductDetailDTO,
+} from '@minieshop/contracts';
 
 /**
- * Shopping cart line item persisted in Redux and localStorage.
+ * Product payload accepted by `addToCart` (either catalog card or PDP detail).
+ */
+export type CartProductInput = ProductCardDTO | ProductDetailDTO;
+
+/**
+ * Shopping cart line item snapshot persisted in Redux and versioned localStorage (v2).
+ * All prices are stored strictly as integer cents (`MoneyDTO`).
  */
 export interface CartItem {
-  id: number;
+  id: string;
+  slug: string;
+  categorySlug: string;
   name: string;
-  price: CalculatedPrice;
-  image: string;
-  category: string;
+  price: MoneyDTO;
+  image: ImageDTO | null;
+  inStock: boolean;
   stock: number;
   quantity: number;
 }
 
 /**
- * Map of product IDs to active stock warning messages.
+ * Map of product UUIDs to active stock warning messages.
  */
-export type StockWarningsMap = Record<number, string>;
+export type StockWarningsMap = Record<string, string>;
 
 /**
  * Supported payload shapes for `addToCart` action.
  */
-export type AddToCartPayload = { product: Product; quantity?: number } | Product;
+export type AddToCartPayload =
+  | { product: CartProductInput; quantity?: number; stock?: number }
+  | CartProductInput;
 
 /**
  * Supported shipping method identifiers for CartPage.
@@ -29,13 +44,13 @@ export type AddToCartPayload = { product: Product; quantity?: number } | Product
 export type ShippingMethodId = 'standard' | 'express' | 'pickup';
 
 /**
- * Shipping option metadata priced in base BRL currency.
+ * Shipping option metadata priced in integer BRL cents.
  */
 export interface ShippingOption {
   id: ShippingMethodId;
   name: string;
   eta: string;
-  basePriceBrl: number;
+  basePriceCents: number;
 }
 
 /**

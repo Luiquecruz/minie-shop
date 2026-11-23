@@ -350,3 +350,37 @@
     width: 100%;
   }
 }
+
+/* Cursor pagination "Load more" CTA */
+.plp-load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.plp-load-more__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 180px;
+  padding: 12px 28px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-heading);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.plp-load-more__btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.plp-load-more__btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}

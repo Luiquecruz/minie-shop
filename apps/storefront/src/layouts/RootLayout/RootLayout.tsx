@@ -1,9 +1,13 @@
+import { lazy, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from '../../components/Navbar/Navbar';
 import MiniCart from '../../components/MiniCart/MiniCart';
-import ApiDebugFab from '../../components/ApiDebugFab/ApiDebugFab';
 
 const CURRENT_YEAR = new Date().getFullYear();
+
+const DevChaosFab = import.meta.env.DEV
+  ? lazy(() => import('../../components/ApiDebugFab/ApiDebugFab'))
+  : null;
 
 /**
  * RootLayout component
@@ -22,7 +26,11 @@ export function RootLayout() {
         </div>
       </footer>
       <MiniCart />
-      <ApiDebugFab />
+      {DevChaosFab && (
+        <Suspense fallback={null}>
+          <DevChaosFab />
+        </Suspense>
+      )}
     </div>
   );
 }

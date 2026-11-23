@@ -6,8 +6,9 @@ import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { PRODUCTS_MOCK } from '../../../data/products';
-import { productsApi } from '../../../services/api';
+import { ProductRepositoryProvider } from '../../../context/ProductRepositoryProvider';
+import { MockProductRepository } from '../../../infrastructure/repositories/MockProductRepository';
+import { FIXTURE_PRODUCTS_DETAIL } from '../../../test/fixtures/catalogFixture';
 import { createAppStore } from '../../../store';
 import { addToCart } from '../../../store/slices/cartSlice';
 import { useCartItemIds } from '../../../hooks/useCart';
@@ -96,14 +97,13 @@ function ProfiledReduxCartHarness({
 
 describe('AFTER Migration: CartPage with Redux Toolkit + createSelector + React.memo (React Profiler)', () => {
   it('isolates re-renders strictly to affected components across every interaction', async () => {
-    const validateSpy = vi
-      .spyOn(productsApi, 'validateStock')
-      .mockResolvedValue({ available: true, maxStock: 99, message: 'OK' });
+    const repository = new MockProductRepository();
+    const getProductSpy = vi.spyOn(repository, 'getProductBySlug');
 
     const user = userEvent.setup();
     const store = createAppStore();
-    store.dispatch(addToCart({ product: PRODUCTS_MOCK[0], quantity: 1 }));
-    store.dispatch(addToCart({ product: PRODUCTS_MOCK[1], quantity: 1 }));
+    store.dispatch(addToCart({ product: FIXTURE_PRODUCTS_DETAIL[0], quantity: 1 }));
+    store.dispatch(addToCart({ product: FIXTURE_PRODUCTS_DETAIL[2], quantity: 1 }));
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -118,13 +118,15 @@ describe('AFTER Migration: CartPage with Redux Toolkit + createSelector + React.
 
     render(
       <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <Provider store={store}>
-            <MemoryRouter>
-              <ProfiledReduxCartHarness onRenderCounts={counts} />
-            </MemoryRouter>
-          </Provider>
-        </QueryClientProvider>
+        <ProductRepositoryProvider repository={repository}>
+          <QueryClientProvider client={queryClient}>
+            <Provider store={store}>
+              <MemoryRouter>
+                <ProfiledReduxCartHarness onRenderCounts={counts} />
+              </MemoryRouter>
+            </Provider>
+          </QueryClientProvider>
+        </ProductRepositoryProvider>
       </HelmetProvider>,
     );
 
@@ -173,22 +175,22 @@ describe('AFTER Migration: CartPage with Redux Toolkit + createSelector + React.
       CartOrderSummary: 1,
     });
 
-    // 4. Incrementing Item #1 quantity (wait for mocked stock validation query to settle cleanly)
+    // 4. Incrementing Item #1 quantity (debounced availability validation via ProductRepository)
     resetCounts();
     const incrementButtons = screen.getAllByRole('button', {
       name: /increase quantity/i,
     });
     await user.click(incrementButtons[0]);
-    expect(validateSpy).not.toHaveBeenCalled();
+    expect(getProductSpy).not.toHaveBeenCalled();
     expect(screen.queryByLabelText('Validating stock')).not.toBeInTheDocument();
     await vi.waitFor(() => {
-      expect(validateSpy).toHaveBeenCalledExactlyOnceWith(
-        PRODUCTS_MOCK[0].id, 2, expect.any(AbortSignal),
+      expect(getProductSpy).toHaveBeenCalledExactlyOnceWith(
+        FIXTURE_PRODUCTS_DETAIL[0].slug,
+        expect.any(AbortSignal),
       );
     });
     const item1QtyCounts = { ...counts };
 
-    // CartItem1 renders on qty change + stock validation cycle, while CartItem2 and sibling panels stay at 0
     expect(item1QtyCounts.CartItem2).toBe(0);
     expect(item1QtyCounts.CartPromoBox).toBe(0);
     expect(item1QtyCounts.CartShippingSelector).toBe(0);
@@ -197,15 +199,14 @@ describe('AFTER Migration: CartPage with Redux Toolkit + createSelector + React.
     expect(item1QtyCounts.CartOrderSummary).toBe(1);
     expect(item1QtyCounts.CartItem1).toBeGreaterThanOrEqual(1);
     expect(item1QtyCounts.CartItem1).toBeLessThanOrEqual(3);
-
-    validateSpy.mockRestore();
   });
 
   it('allows clearing quantity draft and committing on Enter/blur, plus coupons, removal, and clear cart', async () => {
+    const repository = new MockProductRepository();
     const user = userEvent.setup();
     const store = createAppStore();
-    store.dispatch(addToCart({ product: PRODUCTS_MOCK[0], quantity: 1 }));
-    store.dispatch(addToCart({ product: PRODUCTS_MOCK[1], quantity: 1 }));
+    store.dispatch(addToCart({ product: FIXTURE_PRODUCTS_DETAIL[0], quantity: 1 }));
+    store.dispatch(addToCart({ product: FIXTURE_PRODUCTS_DETAIL[2], quantity: 1 }));
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -213,18 +214,20 @@ describe('AFTER Migration: CartPage with Redux Toolkit + createSelector + React.
 
     render(
       <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <Provider store={store}>
-            <MemoryRouter>
-              <CartPage />
-            </MemoryRouter>
-          </Provider>
-        </QueryClientProvider>
+        <ProductRepositoryProvider repository={repository}>
+          <QueryClientProvider client={queryClient}>
+            <Provider store={store}>
+              <MemoryRouter>
+                <CartPage />
+              </MemoryRouter>
+            </Provider>
+          </QueryClientProvider>
+        </ProductRepositoryProvider>
       </HelmetProvider>,
     );
 
     const qtyInput = screen.getByLabelText(
-      `Quantity for ${PRODUCTS_MOCK[0].name}`,
+      `Quantity for ${FIXTURE_PRODUCTS_DETAIL[0].name}`,
     );
     await user.clear(qtyInput);
     expect(qtyInput).toHaveValue(null);
@@ -247,10 +250,12 @@ describe('AFTER Migration: CartPage with Redux Toolkit + createSelector + React.
 
     await user.click(
       screen.getByRole('button', {
-        name: `Remove ${PRODUCTS_MOCK[0].name} from cart`,
+        name: `Remove ${FIXTURE_PRODUCTS_DETAIL[0].name} from cart`,
       }),
     );
-    expect(screen.queryByText(PRODUCTS_MOCK[0].name)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(FIXTURE_PRODUCTS_DETAIL[0].name),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('1 unit')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /clear cart/i }));

@@ -1,17 +1,33 @@
 import { Link } from 'react-router-dom';
-import type { Product } from '../../types';
+import type { ProductCardDTO } from '@minieshop/contracts';
 import { useCart } from '../../hooks/useCart';
 import { useFavorites } from '../../hooks/useFavorites';
+import { t } from '../../i18n';
+import AttributeIcon from '../AttributeIcon/AttributeIcon';
 import PriceBox from '../PriceBox/PriceBox';
 import './ProductCard.css';
 
 export interface ProductCardProps {
-  product: Product | null | undefined;
+  product: ProductCardDTO | null | undefined;
   onFavoriteError?: (error: Error) => void;
-  onAddToCart?: (product: Product) => void;
+  onAddToCart?: (product: ProductCardDTO) => void;
 }
 
-export function ProductCard({ product, onAddToCart, onFavoriteError }: ProductCardProps) {
+function formatAttributeHighlight(
+  value: string | number | boolean,
+  unit?: string,
+): string {
+  if (typeof value === 'boolean') {
+    return value ? t('filters.yes') : t('filters.no');
+  }
+  return unit ? `${value} ${unit}` : String(value);
+}
+
+export function ProductCard({
+  product,
+  onAddToCart,
+  onFavoriteError,
+}: ProductCardProps) {
   const { addToCart } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites(onFavoriteError);
 
@@ -19,38 +35,48 @@ export function ProductCard({ product, onAddToCart, onFavoriteError }: ProductCa
 
   const {
     id,
+    slug,
     name,
     price,
-    category,
+    categorySlug,
     image,
-    description,
-    rating = { rate: 0, count: 0 },
-    stock,
+    inStock,
+    highlights,
   } = product;
 
+  const productPath = `/${categorySlug}/${slug}`;
   const favorited = isFavorite(id);
+  const previewSrc = image?.variants[1]?.url ?? image?.variants[0]?.url ?? '';
 
   return (
-    <article className="product-card" data-product-id={id}>
+    <article className="product-card" data-product-id={id} data-product-slug={slug}>
       <div className="product-card__media">
         <Link
-          to={`/product/${id}`}
+          to={productPath}
           className="product-card__image-link"
-          aria-label={`View ${name} details`}
+          aria-label={t('card.viewDetails', { name })}
         >
           <div className="product-card__image-container">
-            <span className="product-card__category">{category}</span>
-            {typeof stock === 'number' && (
-              <span className="product-card__stock-badge">
-                {stock > 0 ? `${stock} in stock` : 'Out of stock'}
-              </span>
+            <span className="product-card__category">{categorySlug}</span>
+            <span className="product-card__stock-badge">
+              {inStock ? t('card.inStock') : t('card.outOfStock')}
+            </span>
+            {previewSrc ? (
+              <img
+                src={previewSrc}
+                alt={image?.alt || name}
+                loading="lazy"
+                className="product-card__image"
+              />
+            ) : (
+              <div
+                className="product-card__image product-card__image--empty"
+                role="img"
+                aria-label={t('image.unavailable')}
+              >
+                {t('image.unavailable')}
+              </div>
             )}
-            <img
-              src={image}
-              alt={name}
-              loading="lazy"
-              className="product-card__image"
-            />
           </div>
         </Link>
 
@@ -63,10 +89,10 @@ export function ProductCard({ product, onAddToCart, onFavoriteError }: ProductCa
           aria-pressed={favorited}
           aria-label={
             favorited
-              ? `Remove ${name} from favorites`
-              : `Add ${name} to favorites`
+              ? t('card.removeFavoriteAria', { name })
+              : t('card.addFavoriteAria', { name })
           }
-          title={favorited ? 'Remove from favorites' : 'Save to favorites'}
+          title={favorited ? t('card.removeFavorite') : t('card.saveFavorite')}
         >
           <svg
             width="18"
@@ -87,35 +113,24 @@ export function ProductCard({ product, onAddToCart, onFavoriteError }: ProductCa
       </div>
 
       <div className="product-card__content">
-        <div
-          className="product-card__rating"
-          aria-label={`Rating ${rating.rate} out of 5 stars`}
-        >
-          <span className="product-card__stars" aria-hidden="true">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-          </span>
-          <span className="product-card__rating-value">
-            {rating.rate.toFixed(1)}
-          </span>
-          <span className="product-card__rating-count">({rating.count})</span>
-        </div>
-
-        <Link to={`/product/${id}`} className="product-card__title-link">
+        <Link to={productPath} className="product-card__title-link">
           <h3 className="product-card__title" title={name}>
             {name}
           </h3>
         </Link>
 
-        <p className="product-card__description" title={description}>
-          {description}
-        </p>
+        {highlights.length > 0 && (
+          <ul className="product-card__highlights" aria-label="Product highlights">
+            {highlights.slice(0, 3).map((attr) => (
+              <li key={attr.code} className="product-card__highlight-item">
+                <AttributeIcon iconKey={attr.icon} size={14} />
+                <span>
+                  {attr.label}: {formatAttributeHighlight(attr.value, attr.unit)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="product-card__footer">
           <PriceBox price={price} size="md" />
@@ -123,6 +138,7 @@ export function ProductCard({ product, onAddToCart, onFavoriteError }: ProductCa
           <button
             type="button"
             className="product-card__btn"
+            disabled={!inStock}
             onClick={() => {
               if (onAddToCart) {
                 onAddToCart(product);
@@ -130,7 +146,7 @@ export function ProductCard({ product, onAddToCart, onFavoriteError }: ProductCa
                 addToCart(product);
               }
             }}
-            aria-label={`Add ${name} to cart`}
+            aria-label={t('card.addToCartAria', { name })}
           >
             <svg
               className="product-card__btn-icon"
@@ -138,6 +154,7 @@ export function ProductCard({ product, onAddToCart, onFavoriteError }: ProductCa
               stroke="currentColor"
               strokeWidth="2"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -145,7 +162,7 @@ export function ProductCard({ product, onAddToCart, onFavoriteError }: ProductCa
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
               />
             </svg>
-            Add to Cart
+            {inStock ? t('card.addToCart') : t('card.outOfStock')}
           </button>
         </div>
       </div>

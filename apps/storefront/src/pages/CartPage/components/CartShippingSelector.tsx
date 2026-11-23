@@ -29,7 +29,7 @@ export const CartShippingSelector = memo(function CartShippingSelector() {
         {SHIPPING_OPTIONS.map((option) => {
           const isSelected = shippingMethod === option.id;
           const isFree =
-            option.basePriceBrl === 0 ||
+            option.basePriceCents === 0 ||
             hasFreeShippingCoupon ||
             (option.id === 'standard' && qualifiesForFreeStandard);
 
@@ -57,7 +57,7 @@ export const CartShippingSelector = memo(function CartShippingSelector() {
                   isFree ? 'cart-shipping__price--free' : ''
                 }`}
               >
-                {isFree ? 'Free' : formatPrice(option.basePriceBrl)}
+                {isFree ? 'Free' : formatPrice(option.basePriceCents)}
               </span>
             </label>
           );

@@ -1,139 +1,112 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDebounce } from '../../hooks/useDebounce';
-import { useProductSearchQuery } from '../../hooks/useProducts';
-import PriceBox from '../PriceBox/PriceBox';
+import { t } from '../../i18n';
 import './SearchBar.css';
 
 export interface SearchBarProps {
   placeholder?: string;
 }
 
-interface HighlightMatchProps {
-  text: string;
-  query: string;
-}
-
 /**
- * Highlights matching substring within product title.
+ * Debounced catalog search bar synced directly with URL `?q=` parameter
+ * (GET /products?q=...). Hybrid search (/search) and autocomplete enter in Phase 7.
  */
-function HighlightMatch({ text, query }: HighlightMatchProps) {
-  if (!query || !query.trim()) return <span>{text}</span>;
-
-  const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
-
-  return (
-    <span>
-      {parts.map((part, index) =>
-        part.toLowerCase() === query.trim().toLowerCase() ? (
-          <mark key={index} className="search-bar__highlight">
-            {part}
-          </mark>
-        ) : (
-          part
-        ),
-      )}
-    </span>
-  );
-}
-
 export function SearchBar({
-  placeholder = 'Search products by name or category...',
+  placeholder = t('search.placeholder'),
 }: SearchBarProps) {
-  const [query, setQuery] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const debouncedQuery = useDebounce(query, 300);
-  const {
-    data: results = [],
-    isLoading,
-    isFetching,
-    isError,
-    error,
-    refetch,
-  } = useProductSearchQuery(debouncedQuery, 6);
+  const urlQuery = searchParams.get('q') ?? '';
+  const [draft, setDraft] = useState<{ baseUrl: string; value: string }>({
+    baseUrl: urlQuery,
+    value: urlQuery,
+  });
 
-  const hasQuery = query.trim().length > 0;
-  const isWaitingDebounce = hasQuery && query.trim() !== debouncedQuery.trim();
-  const showSpinner = isLoading || isFetching || isWaitingDebounce;
-  const showDropdown = isOpen && hasQuery;
-  const showSuggestions = showDropdown && !isError && results.length > 0;
+  const inputValue = draft.baseUrl === urlQuery ? draft.value : urlQuery;
+  const debouncedValue = useDebounce(inputValue, 300);
 
-  // Handle click outside to close dropdown
+  // Live typing on catalog route updates `?q=` via replace (does not spam browser history)
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent): void => {
-      if (
-        containerRef.current &&
-        e.target instanceof Node &&
-        !containerRef.current.contains(e.target)
-      ) {
-        setIsOpen(false);
+    if (location.pathname !== '/') return;
+    const trimmedNext = debouncedValue.trim();
+    const trimmedCurrent = urlQuery.trim();
+    if (trimmedNext === trimmedCurrent) return;
+
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (trimmedNext.length === 0) {
+          next.delete('q');
+          if (next.get('sort') === 'relevance') {
+            next.delete('sort');
+          }
+        } else {
+          next.set('q', trimmedNext);
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  }, [debouncedValue, location.pathname, setSearchParams, urlQuery]);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+    e.preventDefault();
+    const trimmed = inputValue.trim();
+
+    if (location.pathname !== '/') {
+      const nextParams = new URLSearchParams();
+      if (trimmed.length > 0) {
+        nextParams.set('q', trimmed);
       }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const handleSelectProduct = (productId: number): void => {
-    setIsOpen(false);
-    setQuery('');
-    navigate(`/product/${productId}`);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (!showDropdown) {
-      if (e.key === 'ArrowDown' && hasQuery) {
-        setIsOpen(true);
-      }
+      const queryStr = nextParams.toString();
+      navigate(queryStr ? `/?${queryStr}` : '/');
       return;
     }
 
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      setIsOpen(false);
-      return;
-    }
-
-    if (!showSuggestions) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
-      return;
-    }
-
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
-      return;
-    }
-
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (activeIndex >= 0 && results[activeIndex]) {
-        handleSelectProduct(results[activeIndex].id);
-      }
-    }
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (trimmed.length === 0) {
+          next.delete('q');
+          if (next.get('sort') === 'relevance') {
+            next.delete('sort');
+          }
+        } else {
+          next.set('q', trimmed);
+        }
+        return next;
+      },
+      { replace: false },
+    );
   };
 
   const handleClear = (): void => {
-    setQuery('');
-    setIsOpen(false);
+    setDraft({ baseUrl: urlQuery, value: '' });
+    if (location.pathname === '/') {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('q');
+          if (next.get('sort') === 'relevance') {
+            next.delete('sort');
+          }
+          return next;
+        },
+        { replace: false },
+      );
+    }
     inputRef.current?.focus();
   };
 
+  const hasQuery = inputValue.trim().length > 0;
+
   return (
-    <div ref={containerRef} className="search-bar" role="search">
+    <form className="search-bar" role="search" onSubmit={handleSubmit}>
       <div className="search-bar__input-wrapper">
-        {/* Search Icon */}
         <span className="search-bar__icon" aria-hidden="true">
           <svg
             width="18"
@@ -151,57 +124,23 @@ export function SearchBar({
           </svg>
         </span>
 
-        {/* Search Input with ARIA combobox pattern */}
         <input
           ref={inputRef}
-          type="text"
+          type="search"
+          name="q"
           className="search-bar__input"
           placeholder={placeholder}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setActiveIndex(-1);
-            setIsOpen(true);
-          }}
-          onFocus={() => {
-            if (hasQuery) setIsOpen(true);
-          }}
-          onKeyDown={handleKeyDown}
-          role="combobox"
-          aria-expanded={showDropdown}
-          aria-autocomplete="list"
-          aria-haspopup="listbox"
-          aria-label="Search products"
+          value={inputValue}
+          onChange={(e) => setDraft({ baseUrl: urlQuery, value: e.target.value })}
+          aria-label={t('search.ariaLabel')}
         />
 
-        {/* Loading Spinner */}
-        {showSpinner && (
-          <span className="search-bar__spinner" aria-label="Searching...">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <circle
-                className="search-bar__spinner-track"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="3"
-              />
-              <path
-                className="search-bar__spinner-head"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-          </span>
-        )}
-
-        {/* Clear Button */}
         {hasQuery && (
           <button
             type="button"
             className="search-bar__clear-btn"
             onClick={handleClear}
-            aria-label="Clear search input"
+            aria-label={t('search.clearAria')}
           >
             <svg
               width="14"
@@ -210,6 +149,7 @@ export function SearchBar({
               stroke="currentColor"
               strokeWidth="2"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -220,130 +160,7 @@ export function SearchBar({
           </button>
         )}
       </div>
-
-      {/* Autocomplete Dropdown Panel */}
-      {showDropdown && (
-        <div
-          className="search-bar__dropdown"
-          role="listbox"
-          aria-label="Search suggestions"
-        >
-          {isError ? (
-            <div className="search-bar__error" role="alert">
-              <p className="search-bar__error-title">Search request failed</p>
-              <span className="search-bar__error-text">
-                {error instanceof Error
-                  ? error.message
-                  : 'Unable to fetch suggestions right now.'}
-              </span>
-              <button
-                type="button"
-                className="search-bar__retry-btn"
-                onClick={() => {
-                  void refetch();
-                }}
-              >
-                Try Again
-              </button>
-            </div>
-          ) : (isLoading || isWaitingDebounce) && results.length === 0 ? (
-            <div className="search-bar__status">
-              <div className="search-bar__skeleton-item">
-                <div className="search-bar__skeleton-thumb" />
-                <div className="search-bar__skeleton-lines">
-                  <div className="search-bar__skeleton-line search-bar__skeleton-line--title" />
-                  <div className="search-bar__skeleton-line search-bar__skeleton-line--sub" />
-                </div>
-              </div>
-              <div className="search-bar__skeleton-item">
-                <div className="search-bar__skeleton-thumb" />
-                <div className="search-bar__skeleton-lines">
-                  <div className="search-bar__skeleton-line search-bar__skeleton-line--title" />
-                  <div className="search-bar__skeleton-line search-bar__skeleton-line--sub" />
-                </div>
-              </div>
-            </div>
-          ) : showSuggestions ? (
-            <>
-              <div className="search-bar__header">
-                <span className="search-bar__header-title">
-                  {results.length} product{results.length > 1 ? 's' : ''} found
-                </span>
-                <span className="search-bar__header-hint">
-                  Press Enter to view
-                </span>
-              </div>
-              <ul className="search-bar__results" role="none">
-                {results.map((product, index) => {
-                  const isActive = index === activeIndex;
-                  return (
-                    <li
-                      key={product.id}
-                      role="option"
-                      aria-selected={isActive}
-                      className={`search-bar__item ${isActive ? 'search-bar__item--active' : ''}`}
-                      onClick={() => handleSelectProduct(product.id)}
-                      onMouseEnter={() => setActiveIndex(index)}
-                    >
-                      <img
-                        src={product.image}
-                        alt=""
-                        aria-hidden="true"
-                        className="search-bar__item-image"
-                        loading="lazy"
-                      />
-                      <div className="search-bar__item-details">
-                        <div className="search-bar__item-meta">
-                          <span className="search-bar__item-category">
-                            {product.category}
-                          </span>
-                          {product.stock > 0 ? (
-                            <span className="search-bar__item-stock">
-                              In stock
-                            </span>
-                          ) : (
-                            <span className="search-bar__item-stock search-bar__item-stock--out">
-                              Out of stock
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="search-bar__item-title">
-                          <HighlightMatch text={product.name} query={query} />
-                        </h4>
-                      </div>
-                      <div className="search-bar__item-price">
-                        <PriceBox price={product.price} size="sm" />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          ) : (
-            <div className="search-bar__empty">
-              <svg
-                width="24"
-                height="24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.182 16.318A4.486 4.486 0 0012.016 15a4.486 4.486 0 00-3.198 1.318M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm6 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75z"
-                />
-              </svg>
-              <p>
-                No products found for &ldquo;<strong>{query}</strong>&rdquo;
-              </p>
-              <span>Try checking for typos or searching by category name</span>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    </form>
   );
 }
 

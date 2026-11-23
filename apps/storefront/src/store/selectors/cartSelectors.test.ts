@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { PRODUCTS_MOCK } from '../../data/products';
+import { FIXTURE_PRODUCTS_DETAIL } from '../../test/fixtures/catalogFixture';
 import type { RootState } from '../index';
 import cartReducer, {
   addToCart,
   applyCoupon,
-  FREE_SHIPPING_THRESHOLD_BRL,
+  FREE_SHIPPING_THRESHOLD_CENTS,
   initialCartState,
   setCouponInput,
   setOrderNote,
@@ -37,47 +37,45 @@ function buildRootState(
   };
 }
 
-describe('cartSelectors memoization & calculations', () => {
+describe('cartSelectors memoization & integer-cents calculations', () => {
   const cheapProduct =
-    PRODUCTS_MOCK.find((p) => p.price.final_price < 200) ?? PRODUCTS_MOCK[0];
+    FIXTURE_PRODUCTS_DETAIL.find(
+      (p) => p.inStock && p.price.amount < 20_000,
+    ) ?? FIXTURE_PRODUCTS_DETAIL[1];
   const secondProduct =
-    PRODUCTS_MOCK.find((p) => p.id !== cheapProduct.id) ?? PRODUCTS_MOCK[1];
+    FIXTURE_PRODUCTS_DETAIL.find(
+      (p) => p.inStock && p.id !== cheapProduct.id && p.price.amount >= 40_000,
+    ) ?? FIXTURE_PRODUCTS_DETAIL[2];
 
-  it('calculates subtotal, discount, shipping rules, free-shipping threshold, and total', () => {
+  it('calculates subtotal, discount, shipping rules, free-shipping threshold, and total in integer cents', () => {
     let cart = cartReducer(
       initialCartState,
       addToCart({ product: cheapProduct, quantity: 1 }),
     );
     const rootLow = buildRootState(cart);
 
-    const expectedSubtotal = cheapProduct.price.final_price;
+    const expectedSubtotal = cheapProduct.price.amount;
     expect(selectCartHasItems(rootLow)).toBe(true);
     expect(selectCartCount(rootLow)).toBe(1);
-    expect(selectCartSubtotal(rootLow)).toBeCloseTo(expectedSubtotal, 2);
+    expect(selectCartSubtotal(rootLow)).toBe(expectedSubtotal);
+    expect(Number.isInteger(selectCartSubtotal(rootLow))).toBe(true);
 
-    if (expectedSubtotal < FREE_SHIPPING_THRESHOLD_BRL) {
-      expect(selectCartQualifiesForFreeStandardShipping(rootLow)).toBe(false);
-      expect(selectCartShippingCost(rootLow)).toBe(19.9);
-      expect(selectCartFreeShippingRemaining(rootLow)).toBeCloseTo(
-        FREE_SHIPPING_THRESHOLD_BRL - expectedSubtotal,
-        2,
-      );
-      expect(selectCartTotal(rootLow)).toBeCloseTo(
-        expectedSubtotal + 19.9,
-        2,
-      );
-    }
+    expect(selectCartQualifiesForFreeStandardShipping(rootLow)).toBe(false);
+    expect(selectCartShippingCost(rootLow)).toBe(1_990);
+    expect(selectCartFreeShippingRemaining(rootLow)).toBe(
+      FREE_SHIPPING_THRESHOLD_CENTS - expectedSubtotal,
+    );
+    expect(selectCartTotal(rootLow)).toBe(expectedSubtotal + 1_990);
 
     cart = cartReducer(cart, applyCoupon('MINIE10'));
     const rootDiscounted = buildRootState(cart);
-    expect(selectCartDiscountAmount(rootDiscounted)).toBeCloseTo(
-      expectedSubtotal * 0.1,
-      2,
+    expect(selectCartDiscountAmount(rootDiscounted)).toBe(
+      Math.round((expectedSubtotal * 10) / 100),
     );
 
     cart = cartReducer(cart, setShippingMethod('express'));
     const rootExpress = buildRootState(cart);
-    expect(selectCartShippingCost(rootExpress)).toBe(49.9);
+    expect(selectCartShippingCost(rootExpress)).toBe(4_990);
 
     cart = cartReducer(cart, applyCoupon('FREESHIP'));
     const rootFreeship = buildRootState(cart);
@@ -109,14 +107,11 @@ describe('cartSelectors memoization & calculations', () => {
     const total1 = selectCartTotal(state1);
     expect(ids1).toEqual([cheapProduct.id, secondProduct.id]);
     expect(count1).toBe(2);
-    expect(selectCartItemById(state1, secondProduct.id)).toBe(
-      cart.items[1],
-    );
+    expect(selectCartItemById(state1, secondProduct.id)).toBe(cart.items[1]);
     expect(selectCartStockWarningById(state1, secondProduct.id)).toBeNull();
     expect(selectCartSubtotal.recomputations()).toBe(1);
     expect(selectCartTotal.recomputations()).toBe(1);
 
-    // Mutating orderNote, couponInput, and currency must NOT recompute item/subtotal/shipping/total selectors
     const withNote = cartReducer(cart, setOrderNote('Deliver after 18h'));
     const withCouponInput = cartReducer(withNote, setCouponInput('MIN'));
     const state2 = buildRootState(withCouponInput, 'USD');
@@ -133,7 +128,6 @@ describe('cartSelectors memoization & calculations', () => {
     expect(selectCartShippingCost.recomputations()).toBe(1);
     expect(selectCartTotal.recomputations()).toBe(1);
 
-    // Updating item #1 preserves item #2's exact object reference
     const withQty = cartReducer(
       withCouponInput,
       updateQuantity({ id: cheapProduct.id, quantity: 2 }),

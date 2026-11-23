@@ -3,7 +3,7 @@ import { shallowEqual } from 'react-redux';
 import type {
   AppliedCoupon,
   CartItem,
-  Product,
+  CartProductInput,
   ShippingMethodId,
   StockWarningsMap,
 } from '../types';
@@ -47,10 +47,10 @@ import {
 } from '../store/selectors/cartSelectors';
 
 export interface CartActions {
-  addToCart: (product: Product, quantity?: number) => void;
-  updateQuantity: (id: number, quantity: number) => void;
-  setStockWarning: (id: number, message: string | null) => void;
-  removeFromCart: (id: number) => void;
+  addToCart: (product: CartProductInput, quantity?: number) => void;
+  updateQuantity: (id: string, quantity: number) => void;
+  setStockWarning: (id: string, message: string | null) => void;
+  removeFromCart: (id: string) => void;
   clearCart: () => void;
   setCouponInput: (value: string) => void;
   applyCoupon: (codeOverride?: string) => void;
@@ -78,16 +78,16 @@ export function useCartActions(): CartActions {
 
   return useMemo<CartActions>(
     () => ({
-      addToCart: (product: Product, quantity: number = 1) => {
+      addToCart: (product: CartProductInput, quantity: number = 1) => {
         dispatch(addToCartAction({ product, quantity }));
       },
-      updateQuantity: (id: number, quantity: number) => {
+      updateQuantity: (id: string, quantity: number) => {
         dispatch(updateQuantityAction({ id, quantity }));
       },
-      setStockWarning: (id: number, message: string | null) => {
+      setStockWarning: (id: string, message: string | null) => {
         dispatch(setStockWarningAction({ id, message }));
       },
-      removeFromCart: (id: number) => {
+      removeFromCart: (id: string) => {
         dispatch(removeFromCartAction(id));
       },
       clearCart: () => {
@@ -143,35 +143,21 @@ export function useCart(): UseCartReturn {
   };
 }
 
-/**
- * Granular CartPage hook returning only item presence.
- */
 export function useCartHasItems(): boolean {
   return useAppSelector(selectCartHasItems);
 }
 
-/**
- * Granular CartPage hook returning only item presence and total unit count.
- */
 export function useCartPageMeta(): { totalUnits: number; hasItems: boolean } {
   const totalUnits = useAppSelector(selectCartCount);
   const hasItems = useAppSelector(selectCartHasItems);
   return { totalUnits, hasItems };
 }
 
-/**
- * Granular CartPage hook returning memoized item IDs with shallow equality
- * so quantity edits on one item do not re-render the list container.
- */
-export function useCartItemIds(): number[] {
+export function useCartItemIds(): string[] {
   return useAppSelector(selectCartItemIds, shallowEqual);
 }
 
-/**
- * Granular CartPage hook subscribing a single CartItemRow only to its own
- * item reference and stock warning.
- */
-export function useCartItemState(id: number): {
+export function useCartItemState(id: string): {
   item: CartItem | undefined;
   stockWarning: string | null;
 } {
@@ -182,9 +168,6 @@ export function useCartItemState(id: number): {
   return { item, stockWarning };
 }
 
-/**
- * Granular CartPage hook for promo coupon state.
- */
 export function useCartPromoState(): {
   couponInput: string;
   appliedCoupon: AppliedCoupon | null;
@@ -196,9 +179,6 @@ export function useCartPromoState(): {
   return { couponInput, appliedCoupon, couponError };
 }
 
-/**
- * Granular CartPage hook for shipping selection state.
- */
 export function useCartShippingState(): {
   shippingMethod: ShippingMethodId;
   qualifiesForFreeStandard: boolean;
@@ -212,16 +192,10 @@ export function useCartShippingState(): {
   return { shippingMethod, qualifiesForFreeStandard, hasFreeShippingCoupon };
 }
 
-/**
- * Granular CartPage hook for order note state.
- */
 export function useCartOrderNoteState(): string {
   return useAppSelector(selectCartOrderNote);
 }
 
-/**
- * Granular CartPage hook for sticky Order Summary pricing breakdown.
- */
 export function useCartSummaryState(): {
   totalUnits: number;
   subtotal: number;

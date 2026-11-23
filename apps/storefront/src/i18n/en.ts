@@ -104,14 +104,6 @@ export const enMessages = {
 
   // Favorites error
   'favorites.toggleError': 'Could not update favorite status. Your change has been reverted.',
-
-  // Dev Chaos Panel
-  'chaos.title': 'Dev Chaos Controls',
-  'chaos.delayLabel': 'Artificial Delay (ms or min-max)',
-  'chaos.failLabel': 'Force Failure (x-chaos-fail=1)',
-  'chaos.statusLabel': 'Forced HTTP Status (400-599)',
-  'chaos.invalidateCache': 'Invalidate Cache',
-  'chaos.reset': 'Reset Chaos',
 } as const;
 
 export type MessageKey = keyof typeof enMessages;

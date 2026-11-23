@@ -1,58 +1,85 @@
 import { useCallback, useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
+import { ONE_MINUTE_MS } from '../query/queryClient';
 import { queryKeys } from '../query/queryKeys';
-import { productsApi } from '../services/api';
+import { useProductRepository } from './useProductRepository';
 
 interface FavoriteChanges {
-  confirmed: number[];
-  pending: Map<symbol, number>;
+  confirmed: string[];
+  pending: Map<symbol, string>;
 }
 
 const favoriteChangesByClient = new WeakMap<QueryClient, FavoriteChanges>();
 
-function projectFavorites({ confirmed, pending }: FavoriteChanges): number[] {
+function projectFavorites({ confirmed, pending }: FavoriteChanges): string[] {
   const favorites = new Set(confirmed);
   for (const productId of pending.values()) {
-    if (!favorites.delete(productId)) favorites.add(productId);
+    if (!favorites.delete(productId)) {
+      favorites.add(productId);
+    }
   }
   return [...favorites];
 }
 
 /**
- * Fetches persisted favorite product IDs.
+ * Fetches persisted favorite product UUIDs from GET /favorites.
  */
 export function useFavoritesQuery() {
   const queryClient = useQueryClient();
+  const repository = useProductRepository();
 
   return useQuery({
     queryKey: queryKeys.favorites.all,
-    queryFn: ({ signal }) => {
+    staleTime: ONE_MINUTE_MS,
+    queryFn: async ({ signal }) => {
       const changes = favoriteChangesByClient.get(queryClient);
-      // A read during a toggle could already include its write. Reconcile after the queue drains.
-      return changes ? projectFavorites(changes) : productsApi.getFavorites(100, signal);
+      if (changes) {
+        return projectFavorites(changes);
+      }
+      const response = await repository.getFavorites(signal);
+      return response.productIds;
     },
   });
 }
 
+interface ToggleFavoriteVariables {
+  productId: string;
+  currentlyFavorited: boolean;
+}
+
 /**
- * Toggles a product in favorites using optimistic cache updates,
- * automatic rollback on error, and targeted list invalidation.
+ * Toggles a product favorite via POST / DELETE /favorites/:productId with
+ * optimistic cache updates, automatic rollback on error, and minimal invalidation.
  */
-export function useToggleFavoriteMutation(onFavoriteError?: (error: Error) => void) {
+export function useToggleFavoriteMutation(
+  onFavoriteError?: (error: Error) => void,
+) {
   const queryClient = useQueryClient();
+  const repository = useProductRepository();
   const favoritesKey = queryKeys.favorites.all;
 
-  return useMutation<number[], Error, number, symbol>({
-    // Run writes in order so each full response can become the confirmed baseline.
+  return useMutation<boolean, Error, ToggleFavoriteVariables, symbol>({
     scope: { id: 'favorites' },
-    mutationFn: (productId) => productsApi.toggleFavorite(productId),
-    onMutate: async (productId) => {
+    mutationFn: async ({ productId, currentlyFavorited }) => {
+      if (currentlyFavorited) {
+        await repository.removeFavorite(productId);
+        return false;
+      }
+      await repository.addFavorite(productId);
+      return true;
+    },
+    onMutate: async ({ productId }) => {
       await queryClient.cancelQueries({ queryKey: favoritesKey });
 
       let changes = favoriteChangesByClient.get(queryClient);
       if (!changes) {
         changes = {
-          confirmed: queryClient.getQueryData<number[]>(favoritesKey) ?? [],
+          confirmed: queryClient.getQueryData<string[]>(favoritesKey) ?? [],
           pending: new Map(),
         };
         favoriteChangesByClient.set(queryClient, changes);
@@ -63,10 +90,18 @@ export function useToggleFavoriteMutation(onFavoriteError?: (error: Error) => vo
       queryClient.setQueryData(favoritesKey, projectFavorites(changes));
       return change;
     },
-    onSettled: (confirmed, error, _productId, change) => {
+    onSettled: (nextFavorited, error, variables, change) => {
       const changes = favoriteChangesByClient.get(queryClient);
       if (changes && change !== undefined) {
-        if (confirmed !== undefined) changes.confirmed = confirmed;
+        if (!error && nextFavorited !== undefined) {
+          const nextConfirmed = new Set(changes.confirmed);
+          if (nextFavorited) {
+            nextConfirmed.add(variables.productId);
+          } else {
+            nextConfirmed.delete(variables.productId);
+          }
+          changes.confirmed = [...nextConfirmed];
+        }
         changes.pending.delete(change);
         queryClient.setQueryData(favoritesKey, projectFavorites(changes));
 
@@ -76,27 +111,15 @@ export function useToggleFavoriteMutation(onFavoriteError?: (error: Error) => vo
         }
       }
 
-      if (error) onFavoriteError?.(error);
-
-      // Only invalidate Favorites-filtered catalog lists so normal catalog pages stay cached
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.products.lists(),
-        predicate: (query) => {
-          const maybeFilters = query.queryKey[2];
-          return (
-            typeof maybeFilters === 'object' &&
-            maybeFilters !== null &&
-            'favoritesOnly' in maybeFilters &&
-            maybeFilters.favoritesOnly === true
-          );
-        },
-      });
+      if (error) {
+        onFavoriteError?.(error);
+      }
     },
   });
 }
 
 /**
- * Convenience facade exposing favorite IDs, lookup helper, optimistic toggle, and error state.
+ * Convenience facade exposing favorite UUIDs, lookup helper, optimistic toggle, and error state.
  */
 export function useFavorites(onFavoriteError?: (error: Error) => void) {
   const favoritesQuery = useFavoritesQuery();
@@ -110,15 +133,18 @@ export function useFavorites(onFavoriteError?: (error: Error) => void) {
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
 
   const isFavorite = useCallback(
-    (productId: number): boolean => favoriteSet.has(productId),
+    (productId: string): boolean => favoriteSet.has(productId),
     [favoriteSet],
   );
 
   const toggleFavorite = useCallback(
-    (productId: number): void => {
-      mutation.mutate(productId);
+    (productId: string): void => {
+      mutation.mutate({
+        productId,
+        currentlyFavorited: favoriteSet.has(productId),
+      });
     },
-    [mutation],
+    [mutation, favoriteSet],
   );
 
   return {

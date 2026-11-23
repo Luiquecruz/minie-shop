@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FREE_SHIPPING_THRESHOLD_BRL,
+  FREE_SHIPPING_THRESHOLD_CENTS,
   SHIPPING_OPTIONS,
 } from '../../../store/slices/cartSlice';
 import { useCartSummaryState } from '../../../hooks/useCart';
@@ -40,7 +40,7 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
 
   const progressRatio = Math.min(
     100,
-    Math.round((subtotal / FREE_SHIPPING_THRESHOLD_BRL) * 100),
+    Math.round((subtotal / FREE_SHIPPING_THRESHOLD_CENTS) * 100),
   );
 
   const handleCheckout = (): void => {

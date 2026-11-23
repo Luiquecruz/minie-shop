@@ -1,4 +1,5 @@
-import type { CalculatedPrice, CurrencyCode, RawPriceInput } from '../types';
+import type { CurrencyCode } from '../types';
+import type { CalculatedPrice, RawPriceInput } from '../types/product';
 import { formatCurrencyWithCode, DEFAULT_CURRENCY } from './currency';
 
 /**

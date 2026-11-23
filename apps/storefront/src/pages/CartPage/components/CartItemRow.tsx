@@ -7,7 +7,7 @@ import { useStockValidationQuery } from '../../../hooks/useProducts';
 import { resolveMaxStock } from '../../../store/slices/cartSlice';
 
 export interface CartItemRowProps {
-  itemId: number;
+  itemId: string;
 }
 
 /**
@@ -26,9 +26,15 @@ export const CartItemRow = memo(function CartItemRow({
   const [draftQty, setDraftQty] = useState<string | null>(null);
 
   const quantity = item?.quantity ?? 0;
+  const slug = item?.slug ?? '';
   const debouncedQuantity = useDebounce(quantity, 300);
-  const shouldValidate = Boolean(item) && hasEditedQuantity && debouncedQuantity === quantity;
-  const stockQuery = useStockValidationQuery(itemId, debouncedQuantity, shouldValidate);
+  const shouldValidate =
+    Boolean(item) && hasEditedQuantity && debouncedQuantity === quantity;
+  const stockQuery = useStockValidationQuery(
+    slug,
+    debouncedQuantity,
+    shouldValidate,
+  );
 
   if (!item) return null;
 
@@ -42,10 +48,12 @@ export const CartItemRow = memo(function CartItemRow({
   const activeWarning = localWarning ?? apiStockWarning ?? stockWarning ?? null;
   const isValidating = shouldValidate && stockQuery.isFetching;
 
-  const maxStock = Math.max(1, resolveMaxStock(item.stock));
-  const unitFinalPrice = item.price?.final_price || 0;
-  const unitRegularPrice = item.price?.regular_price || 0;
-  const lineTotal = unitFinalPrice * item.quantity;
+  const maxStock = Math.max(1, resolveMaxStock(item.stock, true));
+  const unitPriceCents = item.price.amount;
+  const lineTotalCents = unitPriceCents * item.quantity;
+  const productPath = `/${item.categorySlug}/${item.slug}`;
+  const thumbSrc =
+    item.image?.variants[0]?.url ?? item.image?.variants[1]?.url ?? '';
 
   const handleIncrement = (): void => {
     setDraftQty(null);
@@ -116,21 +124,25 @@ export const CartItemRow = memo(function CartItemRow({
   return (
     <li className="cart-item" data-product-id={item.id}>
       <Link
-        to={`/product/${item.id}`}
+        to={productPath}
         className="cart-item__image-link"
         aria-label={`View ${item.name}`}
       >
-        <img
-          src={item.image}
-          alt={item.name}
-          className="cart-item__image"
-          loading="lazy"
-        />
+        {thumbSrc ? (
+          <img
+            src={thumbSrc}
+            alt={item.image?.alt || item.name}
+            className="cart-item__image"
+            loading="lazy"
+          />
+        ) : (
+          <div className="cart-item__image cart-item__image--empty" aria-hidden="true" />
+        )}
       </Link>
 
       <div className="cart-item__content">
         <div className="cart-item__meta-row">
-          <span className="cart-item__category">{item.category}</span>
+          <span className="cart-item__category">{item.categorySlug}</span>
 
           <div className="cart-item__meta-right">
             <button
@@ -159,24 +171,14 @@ export const CartItemRow = memo(function CartItemRow({
           </div>
         </div>
 
-        <Link to={`/product/${item.id}`} className="cart-item__title">
+        <Link to={productPath} className="cart-item__title">
           {item.name}
         </Link>
 
         <div className="cart-item__unit-pricing">
           <span className="cart-item__unit-current">
-            {formatPrice(unitFinalPrice)} each
+            {formatPrice(unitPriceCents, item.price.currency)} each
           </span>
-          {item.price.has_discount && (
-            <>
-              <span className="cart-item__unit-regular">
-                {formatPrice(unitRegularPrice)}
-              </span>
-              <span className="cart-item__discount-badge">
-                -{item.price.discount_percentage}%
-              </span>
-            </>
-          )}
         </div>
 
         {activeWarning && (
@@ -292,7 +294,7 @@ export const CartItemRow = memo(function CartItemRow({
           <div className="cart-item__line-total-group">
             <span className="cart-item__line-total-label">Line Total</span>
             <span className="cart-item__line-total">
-              {formatPrice(lineTotal)}
+              {formatPrice(lineTotalCents, item.price.currency)}
             </span>
           </div>
         </div>

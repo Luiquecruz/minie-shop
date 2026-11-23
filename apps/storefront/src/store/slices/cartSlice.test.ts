@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PRODUCTS_MOCK } from '../../data/products';
+import { FIXTURE_PRODUCTS_DETAIL } from '../../test/fixtures/catalogFixture';
 import { createAppStore, hydrateCartState } from '../index';
 import {
   CART_ITEMS_STORAGE_KEY,
   CART_PREFS_STORAGE_KEY,
+  CART_STORAGE_VERSION,
 } from '../persistence/cartStorage';
 import cartReducer, {
   addToCart,
@@ -35,8 +36,8 @@ function deepFreeze<T>(obj: T): T {
 }
 
 describe('cartSlice pure functional reducers & immutability', () => {
-  const productA = PRODUCTS_MOCK[0];
-  const productB = PRODUCTS_MOCK[1];
+  const productA = FIXTURE_PRODUCTS_DETAIL[0];
+  const productB = FIXTURE_PRODUCTS_DETAIL[1];
 
   it('adds items immutably without mutating frozen previous state', () => {
     const frozenInitial = deepFreeze({ ...initialCartState });
@@ -48,6 +49,8 @@ describe('cartSlice pure functional reducers & immutability', () => {
     expect(afterFirst).not.toBe(frozenInitial);
     expect(afterFirst.items).toHaveLength(1);
     expect(afterFirst.items[0].id).toBe(productA.id);
+    expect(afterFirst.items[0].slug).toBe(productA.slug);
+    expect(afterFirst.items[0].price.amount).toBe(productA.price.amount);
     expect(afterFirst.items[0].quantity).toBe(2);
     expect(afterFirst.isOpen).toBe(true);
     expect(frozenInitial.items).toHaveLength(0);
@@ -61,14 +64,14 @@ describe('cartSlice pure functional reducers & immutability', () => {
     expect(afterSecond.items[1].quantity).toBe(1);
   });
 
-  it('rejects out-of-stock (stock <= 0) products and sanitizes NaN/non-positive quantities', () => {
-    const outOfStockProduct = { ...productA, stock: 0 };
-    const afterZeroStock = cartReducer(
+  it('rejects out-of-stock products and sanitizes NaN/non-positive quantities', () => {
+    const outOfStockProduct = { ...productA, inStock: false };
+    const afterOutOfStock = cartReducer(
       initialCartState,
       addToCart(outOfStockProduct),
     );
-    expect(afterZeroStock).toBe(initialCartState);
-    expect(afterZeroStock.items).toHaveLength(0);
+    expect(afterOutOfStock).toBe(initialCartState);
+    expect(afterOutOfStock.items).toHaveLength(0);
 
     const afterNaNAdd = cartReducer(
       initialCartState,
@@ -89,22 +92,22 @@ describe('cartSlice pure functional reducers & immutability', () => {
     expect(afterNaNUpdate).toBe(afterNegativeAdd);
   });
 
-  it('clamps addToCart quantity at product.stock and preserves items ref when already maxed', () => {
+  it('clamps addToCart quantity at stock bound and preserves items ref when already maxed', () => {
     const state1 = cartReducer(
       initialCartState,
-      addToCart({ product: productA, quantity: productA.stock + 5 }),
+      addToCart({ product: productA, quantity: 10, stock: 5 }),
     );
 
-    expect(state1.items[0].quantity).toBe(productA.stock);
-    expect(state1.stockWarnings[productA.id]).toContain(`${productA.stock}`);
+    expect(state1.items[0].quantity).toBe(5);
+    expect(state1.stockWarnings[productA.id]).toContain('5');
 
     deepFreeze(state1);
     const state2 = cartReducer(
       state1,
-      addToCart({ product: productA, quantity: 1 }),
+      addToCart({ product: productA, quantity: 1, stock: 5 }),
     );
     expect(state2.items).toBe(state1.items);
-    expect(state2.items[0].quantity).toBe(productA.stock);
+    expect(state2.items[0].quantity).toBe(5);
     expect(state2.stockWarnings[productA.id]).toContain('Max stock reached');
   });
 
@@ -113,7 +116,10 @@ describe('cartSlice pure functional reducers & immutability', () => {
       initialCartState,
       addToCart({ product: productA, quantity: 5 }),
     );
-    const updated = cartReducer(state, addToCart({ ...productA, stock: 5.9 }));
+    const updated = cartReducer(
+      state,
+      addToCart({ product: productA, quantity: 1, stock: 5.9 }),
+    );
 
     expect(updated.items[0]).not.toBe(state.items[0]);
     expect(updated.items[0]).toMatchObject({ quantity: 5, stock: 5 });
@@ -140,7 +146,10 @@ describe('cartSlice pure functional reducers & immutability', () => {
   });
 
   it('clamps updateQuantity between 1 and stock and returns same reference on no-op', () => {
-    const withItem = cartReducer(initialCartState, addToCart(productA));
+    const withItem = cartReducer(
+      initialCartState,
+      addToCart({ product: productA, quantity: 1, stock: 10 }),
+    );
     deepFreeze(withItem);
 
     const clampedLow = cartReducer(
@@ -151,11 +160,11 @@ describe('cartSlice pure functional reducers & immutability', () => {
 
     const clampedHigh = cartReducer(
       withItem,
-      updateQuantity({ id: productA.id, quantity: productA.stock + 10 }),
+      updateQuantity({ id: productA.id, quantity: 20 }),
     );
-    expect(clampedHigh.items[0].quantity).toBe(productA.stock);
+    expect(clampedHigh.items[0].quantity).toBe(10);
     expect(clampedHigh.stockWarnings[productA.id]).toContain(
-      `Only ${productA.stock} units in stock.`,
+      'Only 10 units in stock.',
     );
   });
 
@@ -235,7 +244,7 @@ describe('cartSlice pure functional reducers & immutability', () => {
     expect(cartReducer(closed, closeCart())).toBe(closed);
   });
 
-  it('keeps cartReducer pure and persists add, update, remove, and clear across reloads', async () => {
+  it('keeps cartReducer pure and persists versioned v2 state across reloads', async () => {
     const pureResult: CartState = cartReducer(
       initialCartState,
       addToCart(productA),
@@ -251,8 +260,12 @@ describe('cartSlice pure functional reducers & immutability', () => {
     store.dispatch(setShippingMethod('express'));
     store.dispatch(setOrderNote('Ring doorbell'));
 
-    // Allow debounced orderNote listener (250ms) to flush
     await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const persistedRaw = JSON.parse(
+      window.localStorage.getItem(CART_ITEMS_STORAGE_KEY) ?? '{}',
+    ) as { version?: number; items?: unknown[] };
+    expect(persistedRaw.version).toBe(CART_STORAGE_VERSION);
 
     let hydrated = hydrateCartState();
     expect(hydrated.items).toHaveLength(2);
@@ -261,18 +274,43 @@ describe('cartSlice pure functional reducers & immutability', () => {
     expect(hydrated.shippingMethod).toBe('express');
     expect(hydrated.orderNote).toBe('Ring doorbell');
 
-    // Removing an item persists and does not return after reload
     store.dispatch(removeFromCart(productA.id));
     hydrated = hydrateCartState();
     expect(hydrated.items).toHaveLength(1);
     expect(hydrated.items[0].id).toBe(productB.id);
 
-    // Clearing the cart persists empty items and cleared prefs
     store.dispatch(clearCart());
     hydrated = hydrateCartState();
     expect(hydrated.items).toEqual([]);
     expect(hydrated.appliedCoupon).toBeNull();
     expect(hydrated.orderNote).toBe('');
+  });
+
+  it('safely discards legacy v1 localStorage cart payloads (numeric IDs / float prices)', () => {
+    window.localStorage.setItem(
+      CART_ITEMS_STORAGE_KEY,
+      JSON.stringify([
+        {
+          id: 1,
+          name: 'Legacy Product',
+          price: {
+            regular_price: 299.9,
+            special_price: null,
+            final_price: 299.9,
+            discount_percentage: 0,
+            has_discount: false,
+          },
+          image: 'https://example.com/old.jpg',
+          category: 'Eletrônicos',
+          stock: 10,
+          quantity: 2,
+        },
+      ]),
+    );
+
+    const hydrated = hydrateCartState();
+    expect(hydrated.items).toEqual([]);
+    expect(window.localStorage.getItem(CART_ITEMS_STORAGE_KEY)).toBeNull();
   });
 
   it('flushes the latest pending note on pagehide without a second write', async () => {
@@ -296,38 +334,36 @@ describe('cartSlice pure functional reducers & immutability', () => {
     }
   });
 
-  it('rejects tampered/non-finite localStorage items and invalid coupons safely', () => {
+  it('rejects tampered v2 localStorage items and invalid coupons safely', () => {
     window.localStorage.setItem(
       CART_ITEMS_STORAGE_KEY,
-      JSON.stringify([
-        {
-          id: productA.id,
-          name: productA.name,
-          price: { ...productA.price, final_price: null },
-          image: productA.image,
-          category: productA.category,
-          stock: 5,
-          quantity: 1,
-        },
-        {
-          id: productA.id,
-          name: productA.name,
-          price: productA.price,
-          image: productA.image,
-          category: productA.category,
-          stock: 5,
-          quantity: -2,
-        },
-        {
-          id: productA.id,
-          name: productA.name,
-          price: productA.price,
-          image: productA.image,
-          category: productA.category,
-          stock: 5,
-          quantity: 12,
-        },
-      ]),
+      JSON.stringify({
+        version: CART_STORAGE_VERSION,
+        items: [
+          {
+            id: productA.id,
+            slug: productA.slug,
+            categorySlug: productA.category.slug,
+            name: productA.name,
+            price: { amount: -100, currency: 'BRL' },
+            image: null,
+            inStock: true,
+            stock: 5,
+            quantity: 1,
+          },
+          {
+            id: productA.id,
+            slug: productA.slug,
+            categorySlug: productA.category.slug,
+            name: productA.name,
+            price: productA.price,
+            image: null,
+            inStock: true,
+            stock: 5,
+            quantity: 12,
+          },
+        ],
+      }),
     );
 
     window.localStorage.setItem(

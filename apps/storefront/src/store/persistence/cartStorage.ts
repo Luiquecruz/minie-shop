@@ -1,6 +1,9 @@
+import {
+  clientImageDtoSchema,
+  clientMoneySchema,
+} from '@minieshop/contracts/catalog/client';
 import type {
   AppliedCoupon,
-  CalculatedPrice,
   CartItem,
   ShippingMethodId,
 } from '../../types';
@@ -8,6 +11,12 @@ import { PROMO_COUPONS } from '../slices/cartConstants';
 
 export const CART_ITEMS_STORAGE_KEY = 'minieshop_cart';
 export const CART_PREFS_STORAGE_KEY = 'minieshop_cart_prefs';
+export const CART_STORAGE_VERSION = 2;
+
+export interface PersistedCartEnvelopeV2 {
+  version: typeof CART_STORAGE_VERSION;
+  items: CartItem[];
+}
 
 export interface PersistedCartPrefs {
   appliedCoupon: AppliedCoupon | null;
@@ -21,53 +30,49 @@ const DEFAULT_PREFS: PersistedCartPrefs = {
   orderNote: '',
 };
 
-const isNonNegativeFinite = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value) && value >= 0;
-
-const isCalculatedPrice = (value: unknown): value is CalculatedPrice => {
-  if (typeof value !== 'object' || value === null) return false;
-  return (
-    'regular_price' in value &&
-    isNonNegativeFinite(value.regular_price) &&
-    'special_price' in value &&
-    (value.special_price === null || isNonNegativeFinite(value.special_price)) &&
-    'final_price' in value &&
-    isNonNegativeFinite(value.final_price) &&
-    'discount_percentage' in value &&
-    isNonNegativeFinite(value.discount_percentage) &&
-    'has_discount' in value &&
-    typeof value.has_discount === 'boolean'
-  );
-};
-
 export const isValidCartItem = (item: unknown): item is CartItem => {
   if (typeof item !== 'object' || item === null) return false;
-  if (
-    !('id' in item) ||
-    typeof item.id !== 'number' ||
-    !Number.isInteger(item.id) ||
-    item.id <= 0
-  ) {
+  const candidate = item as Record<string, unknown>;
+
+  if (typeof candidate.id !== 'string' || candidate.id.trim().length === 0) {
     return false;
   }
-  if (!('name' in item) || typeof item.name !== 'string') return false;
-  if (!('price' in item) || !isCalculatedPrice(item.price)) return false;
-  if (!('image' in item) || typeof item.image !== 'string') return false;
-  if (!('category' in item) || typeof item.category !== 'string') return false;
-  if (
-    !('stock' in item) ||
-    typeof item.stock !== 'number' ||
-    !Number.isInteger(item.stock) ||
-    item.stock < 1
-  ) {
+  if (typeof candidate.slug !== 'string' || candidate.slug.trim().length === 0) {
     return false;
   }
   if (
-    !('quantity' in item) ||
-    typeof item.quantity !== 'number' ||
-    !Number.isInteger(item.quantity) ||
-    item.quantity < 1 ||
-    item.quantity > item.stock
+    typeof candidate.categorySlug !== 'string' ||
+    candidate.categorySlug.trim().length === 0
+  ) {
+    return false;
+  }
+  if (typeof candidate.name !== 'string' || candidate.name.trim().length === 0) {
+    return false;
+  }
+  if (!clientMoneySchema.safeParse(candidate.price).success) {
+    return false;
+  }
+  if (
+    candidate.image !== null &&
+    !clientImageDtoSchema.safeParse(candidate.image).success
+  ) {
+    return false;
+  }
+  if (typeof candidate.inStock !== 'boolean') {
+    return false;
+  }
+  if (
+    typeof candidate.stock !== 'number' ||
+    !Number.isInteger(candidate.stock) ||
+    candidate.stock < 1
+  ) {
+    return false;
+  }
+  if (
+    typeof candidate.quantity !== 'number' ||
+    !Number.isInteger(candidate.quantity) ||
+    candidate.quantity < 1 ||
+    candidate.quantity > candidate.stock
   ) {
     return false;
   }
@@ -110,7 +115,9 @@ const resolvePersistedCoupon = (value: unknown): AppliedCoupon | null => {
 };
 
 /**
- * Safely reads persisted cart line items from localStorage.
+ * Safely reads versioned (v2) persisted cart line items from localStorage.
+ * Legacy v1 snapshots (unversioned arrays with numeric IDs and float prices)
+ * are discarded safely and cleared so the cart starts cleanly on the API schema.
  */
 export const loadPersistedCartItems = (): CartItem[] => {
   try {
@@ -118,9 +125,20 @@ export const loadPersistedCartItems = (): CartItem[] => {
       const stored = window.localStorage.getItem(CART_ITEMS_STORAGE_KEY);
       if (stored) {
         const parsed: unknown = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(isValidCartItem);
+        if (
+          typeof parsed === 'object' &&
+          parsed !== null &&
+          !Array.isArray(parsed) &&
+          'version' in parsed &&
+          parsed.version === CART_STORAGE_VERSION &&
+          'items' in parsed &&
+          Array.isArray(parsed.items)
+        ) {
+          return parsed.items.filter(isValidCartItem);
         }
+
+        // Legacy v1 or incompatible schema version: discard safely
+        window.localStorage.removeItem(CART_ITEMS_STORAGE_KEY);
       }
     }
   } catch (error: unknown) {
@@ -130,12 +148,16 @@ export const loadPersistedCartItems = (): CartItem[] => {
 };
 
 /**
- * Safely persists cart line items to localStorage.
+ * Safely persists versioned (v2) cart line items to localStorage.
  */
 export const savePersistedCartItems = (items: CartItem[]): void => {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(CART_ITEMS_STORAGE_KEY, JSON.stringify(items));
+      const envelope: PersistedCartEnvelopeV2 = {
+        version: CART_STORAGE_VERSION,
+        items,
+      };
+      window.localStorage.setItem(CART_ITEMS_STORAGE_KEY, JSON.stringify(envelope));
     }
   } catch (error: unknown) {
     console.warn('Failed to persist cart items to localStorage:', error);

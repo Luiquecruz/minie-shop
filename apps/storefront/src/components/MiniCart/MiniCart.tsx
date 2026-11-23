@@ -9,13 +9,13 @@ import './MiniCart.css';
 
 interface CartItemProps {
   item: CartItemType;
-  onUpdateQuantity: (id: number, quantity: number) => void;
-  onRemove: (id: number) => void;
+  onUpdateQuantity: (id: string, quantity: number) => void;
+  onRemove: (id: string) => void;
   warning?: string;
 }
 
 /**
- * Individual Cart Item with debounced React Query stock validation and guardrails.
+ * Individual Cart Item with debounced React Query availability check and guardrails.
  */
 function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) {
   const { formatPrice } = useCurrency();
@@ -25,7 +25,7 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
   const debouncedQuantity = useDebounce(item.quantity, 300);
   const shouldValidate = hasEditedQuantity && debouncedQuantity === item.quantity;
   const stockQuery = useStockValidationQuery(
-    item.id,
+    item.slug,
     debouncedQuantity,
     shouldValidate,
   );
@@ -37,11 +37,13 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
         ? 'Could not validate stock right now.'
         : null;
 
-  // Active warning derived from local guardrail, React Query stock validation, or store warning
   const activeWarning = localWarning ?? apiStockWarning ?? warning ?? null;
   const isValidating = shouldValidate && stockQuery.isFetching;
 
   const maxStock = typeof item.stock === 'number' ? item.stock : 99;
+  const productPath = `/${item.categorySlug}/${item.slug}`;
+  const thumbSrc =
+    item.image?.variants[0]?.url ?? item.image?.variants[1]?.url ?? '';
 
   const handleIncrement = (): void => {
     if (item.quantity >= maxStock) {
@@ -54,7 +56,6 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
   };
 
   const handleDecrement = (): void => {
-    // Guardrail: prevent negative or zero items
     if (item.quantity <= 1) {
       return;
     }
@@ -69,7 +70,6 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
 
     const parsed = parseInt(rawValue, 10);
     if (Number.isNaN(parsed) || parsed < 1) {
-      // Guardrail: enforce minimum of 1
       setLocalWarning(null);
       setHasEditedQuantity(true);
       onUpdateQuantity(item.id, 1);
@@ -88,20 +88,27 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
     onUpdateQuantity(item.id, parsed);
   };
 
-  const itemTotal = (item.price?.final_price || 0) * item.quantity;
+  const itemTotalCents = item.price.amount * item.quantity;
 
   return (
     <li className="mini-cart__item" data-product-id={item.id}>
-      <img
-        src={item.image}
-        alt=""
-        aria-hidden="true"
-        className="mini-cart__item-image"
-      />
+      {thumbSrc ? (
+        <img
+          src={thumbSrc}
+          alt=""
+          aria-hidden="true"
+          className="mini-cart__item-image"
+        />
+      ) : (
+        <div
+          className="mini-cart__item-image mini-cart__item-image--empty"
+          aria-hidden="true"
+        />
+      )}
 
       <div className="mini-cart__item-info">
         <div className="mini-cart__item-top">
-          <span className="mini-cart__item-category">{item.category}</span>
+          <span className="mini-cart__item-category">{item.categorySlug}</span>
           <button
             type="button"
             className="mini-cart__item-remove"
@@ -126,26 +133,24 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
         </div>
 
         <Link
-          to={`/product/${item.id}`}
+          to={productPath}
           className="mini-cart__item-title"
           title={item.name}
         >
           {item.name}
         </Link>
 
-        {/* Price display */}
         <div className="mini-cart__item-pricing">
           <span className="mini-cart__item-total">
-            {formatPrice(itemTotal)}
+            {formatPrice(itemTotalCents, item.price.currency)}
           </span>
           {item.quantity > 1 && (
             <span className="mini-cart__item-unit-price">
-              ({formatPrice(item.price?.final_price || 0)} each)
+              ({formatPrice(item.price.amount, item.price.currency)} each)
             </span>
           )}
         </div>
 
-        {/* Stock warning notification */}
         {activeWarning && (
           <div className="mini-cart__item-warning" role="alert">
             <svg
@@ -166,7 +171,6 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
           </div>
         )}
 
-        {/* Quantity Controls with Guardrails */}
         <div className="mini-cart__quantity-row">
           <div className="mini-cart__qty-selector">
             <button
@@ -272,7 +276,6 @@ export function MiniCart() {
   const drawerRef = useRef<HTMLDivElement | null>(null);
   const [feedbackNotice, setFeedbackNotice] = useState('');
 
-  // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape' && isOpen) {
@@ -283,7 +286,6 @@ export function MiniCart() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, closeCart]);
 
-  // Trap scroll on body when open on mobile
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -320,7 +322,6 @@ export function MiniCart() {
         onClick={(e) => e.stopPropagation()}
         aria-label="Shopping Cart Drawer"
       >
-        {/* Header */}
         <header className="mini-cart__header">
           <div className="mini-cart__header-title-wrapper">
             <h2 className="mini-cart__title">Your Cart</h2>
@@ -350,47 +351,15 @@ export function MiniCart() {
           </button>
         </header>
 
-        {/* Feedback message banner */}
         {feedbackNotice && (
           <div className="mini-cart__notice" role="status">
-            <svg
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
-              />
-            </svg>
             <span>{feedbackNotice}</span>
           </div>
         )}
 
-        {/* Items List or Empty State */}
         <div className="mini-cart__body">
           {items.length === 0 ? (
             <div className="mini-cart__empty">
-              <div className="mini-cart__empty-icon">
-                <svg
-                  width="48"
-                  height="48"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-                  />
-                </svg>
-              </div>
               <h3 className="mini-cart__empty-title">Your cart is empty</h3>
               <p className="mini-cart__empty-desc">
                 Looks like you haven&apos;t added any products to your cart yet.
@@ -418,7 +387,6 @@ export function MiniCart() {
           )}
         </div>
 
-        {/* Footer with Subtotal, Total and Action CTAs */}
         {items.length > 0 && (
           <footer className="mini-cart__footer">
             <div className="mini-cart__totals">
@@ -442,30 +410,14 @@ export function MiniCart() {
             </div>
 
             <div className="mini-cart__actions">
-              {/* Primary CTA: Finalize purchase */}
               <button
                 type="button"
                 className="mini-cart__btn mini-cart__btn--primary"
                 onClick={handleCheckout}
               >
-                <svg
-                  width="18"
-                  height="18"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
-                  />
-                </svg>
                 <span>Proceed to Checkout</span>
               </button>
 
-              {/* Secondary action: Go to cart */}
               <button
                 type="button"
                 className="mini-cart__btn mini-cart__btn--secondary"

@@ -1,6 +1,9 @@
 import type { AppliedCoupon, ShippingOption } from '../../types';
 
-export const FREE_SHIPPING_THRESHOLD_BRL = 500;
+/**
+ * Free standard shipping threshold in integer BRL cents (R$ 500,00).
+ */
+export const FREE_SHIPPING_THRESHOLD_CENTS = 50_000;
 export const MAX_ORDER_NOTE_LENGTH = 200;
 export const DEFAULT_FALLBACK_STOCK = 99;
 
@@ -9,19 +12,19 @@ export const SHIPPING_OPTIONS: readonly ShippingOption[] = [
     id: 'standard',
     name: 'Standard Delivery',
     eta: '5-7 business days',
-    basePriceBrl: 19.9,
+    basePriceCents: 1_990,
   },
   {
     id: 'express',
     name: 'Express Courier',
     eta: '1-2 business days',
-    basePriceBrl: 49.9,
+    basePriceCents: 4_990,
   },
   {
     id: 'pickup',
     name: 'Store Pickup',
     eta: 'Ready in 2 hours',
-    basePriceBrl: 0,
+    basePriceCents: 0,
   },
 ];
 

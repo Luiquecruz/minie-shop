@@ -3,8 +3,8 @@ import type {
   Product,
   ProductSpec,
   RawProduct,
-} from '../types';
-import { calculatePrice } from '../utils/price';
+} from '../../types/product';
+import { calculatePrice } from '../../utils/price';
 
 const RAW_PRODUCTS: RawProduct[] = [
   {

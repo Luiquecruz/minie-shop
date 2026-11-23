@@ -1,116 +1,122 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { queryKeys, type ProductListFilters } from '../query/queryKeys';
-import { productsApi } from '../services/api';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+} from '@tanstack/react-query';
+import type { CatalogFilterParams } from '../domain/repositories/ProductRepository';
+import {
+  FIVE_MINUTES_MS,
+  TWO_MINUTES_MS,
+} from '../query/queryClient';
+import {
+  queryKeys,
+  type ProductInfiniteFilters,
+} from '../query/queryKeys';
+import { useProductRepository } from './useProductRepository';
 
-const FIVE_MINUTES_MS = 5 * 60 * 1000;
-const ONE_MINUTE_MS = 60 * 1000;
 const THIRTY_SECONDS_MS = 30 * 1000;
 
 /**
- * Fetches paginated, filtered, and sorted catalog products with
- * `keepPreviousData` so page transitions do not flash loading skeletons.
+ * Fetches cursor-paginated, filtered, and sorted catalog products via
+ * `useInfiniteQuery` with `placeholderData: keepPreviousData` so filter
+ * transitions never flash blank skeletons.
  */
-export function useProductsQuery(filters: ProductListFilters) {
-  return useQuery({
-    queryKey: queryKeys.products.list(filters),
-    queryFn: ({ signal }) =>
-      productsApi.getProducts({
-        category: filters.category,
-        sortBy: filters.sortBy || undefined,
-        page: filters.page,
-        limit: filters.limit,
-        favoritesOnly: filters.favoritesOnly,
-        delayMs: 220,
+export function useProductsQuery(filters: ProductInfiniteFilters) {
+  const repository = useProductRepository();
+
+  return useInfiniteQuery({
+    queryKey: queryKeys.products.infinite(filters),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) =>
+      repository.listProducts(
+        {
+          ...filters,
+          cursor: pageParam,
+        },
         signal,
-      }),
+      ),
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     placeholderData: keepPreviousData,
+    staleTime: TWO_MINUTES_MS,
   });
 }
 
 /**
- * Fetches catalog category names with a longer 5-minute staleTime.
+ * Fetches the hierarchical category tree with a 5-minute staleTime.
  */
 export function useCategoriesQuery() {
+  const repository = useProductRepository();
+
   return useQuery({
     queryKey: queryKeys.categories.all,
-    queryFn: ({ signal }) => productsApi.getCategories(120, signal),
+    queryFn: ({ signal }) => repository.getCategories(signal),
     staleTime: FIVE_MINUTES_MS,
   });
 }
 
 /**
- * Fetches a single product by route ID.
+ * Fetches disjunctive catalog facets matching the active filters.
  */
-export function useProductQuery(id: string | undefined) {
+export function useFacetsQuery(filters: CatalogFilterParams) {
+  const repository = useProductRepository();
+
   return useQuery({
-    queryKey: queryKeys.products.detail(id ?? ''),
+    queryKey: queryKeys.products.facets(filters),
+    queryFn: ({ signal }) => repository.getFacets(filters, signal),
+    placeholderData: keepPreviousData,
+    staleTime: TWO_MINUTES_MS,
+  });
+}
+
+/**
+ * Fetches a single product detail by slug.
+ */
+export function useProductQuery(slug: string | undefined) {
+  const repository = useProductRepository();
+
+  return useQuery({
+    queryKey: queryKeys.products.detail(slug ?? ''),
     queryFn: ({ signal }) => {
-      if (!id) {
-        return Promise.reject(new Error('Product ID is missing.'));
+      if (!slug) {
+        return Promise.reject(new Error('Product slug is missing.'));
       }
-      return productsApi.getProductById(id, 200, signal);
+      return repository.getProductBySlug(slug, signal);
     },
-    enabled: Boolean(id),
+    enabled: Boolean(slug),
+    staleTime: TWO_MINUTES_MS,
   });
 }
 
-/**
- * Fetches related products for a PDP once the main product category is resolved.
- */
-export function useRelatedProductsQuery(
-  productId: number | undefined,
-  category: string | undefined,
-  limit: number = 4,
-) {
-  return useQuery({
-    queryKey: queryKeys.products.related(productId ?? 0, category ?? '', limit),
-    queryFn: ({ signal }) =>
-      productsApi.getRelatedProducts(
-        productId ?? 0,
-        category ?? '',
-        limit,
-        150,
-        signal,
-      ),
-    enabled: Boolean(productId && category),
-  });
+export interface StockValidationResult {
+  available: boolean;
+  maxStock: number;
+  message: string | null;
 }
 
 /**
- * Searches products for SearchBar autocomplete with 1-minute cache per query term.
- */
-export function useProductSearchQuery(
-  debouncedQuery: string,
-  limit: number = 6,
-) {
-  const trimmed = debouncedQuery.trim();
-  return useQuery({
-    queryKey: queryKeys.products.search(trimmed, limit),
-    queryFn: ({ signal }) =>
-      productsApi.searchProducts({
-        query: trimmed,
-        limit,
-        delayMs: 200,
-        signal,
-      }),
-    enabled: trimmed.length >= 1,
-    staleTime: ONE_MINUTE_MS,
-  });
-}
-
-/**
- * Validates requested cart item stock through React Query with abort support.
+ * Validates product availability (`inStock`) through the catalog repository
+ * when cart item quantities are edited.
  */
 export function useStockValidationQuery(
-  productId: number,
+  slug: string,
   debouncedQuantity: number,
   enabled: boolean,
 ) {
-  return useQuery({
-    queryKey: queryKeys.products.stock(productId, debouncedQuantity),
-    queryFn: ({ signal }) =>
-      productsApi.validateStock(productId, debouncedQuantity, signal),
-    enabled: enabled && debouncedQuantity >= 1,
+  const repository = useProductRepository();
+
+  return useQuery<StockValidationResult>({
+    queryKey: queryKeys.products.stock(slug, debouncedQuantity),
+    queryFn: async ({ signal }) => {
+      const detail = await repository.getProductBySlug(slug, signal);
+      return {
+        available: detail.inStock,
+        maxStock: detail.inStock ? 99 : 0,
+        message: detail.inStock
+          ? null
+          : 'This product is currently out of stock.',
+      };
+    },
+    enabled: enabled && Boolean(slug) && debouncedQuantity >= 1,
     staleTime: THIRTY_SECONDS_MS,
     retry: 0,
   });

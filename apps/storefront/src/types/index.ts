@@ -1,26 +1,14 @@
-export type { CurrencyCode, CurrencyConfig } from './currency';
 export type {
-  RawPriceInput,
-  CalculatedPrice,
-  ProductRating,
-  ProductSpec,
-  ManufacturerInfo,
-  RawProduct,
-  Product,
-  ProductSortOption,
-} from './product';
+  CurrencyCode,
+  CurrencyConfig,
+} from './currency';
+
 export type {
-  CartItem,
-  StockWarningsMap,
   AddToCartPayload,
+  AppliedCoupon,
+  CartItem,
+  CartProductInput,
   ShippingMethodId,
   ShippingOption,
-  AppliedCoupon,
+  StockWarningsMap,
 } from './cart';
-export type {
-  GetProductsParams,
-  PaginatedProductsResponse,
-  SearchProductsParams,
-  StockValidationResult,
-  ApiErrorSimulationState,
-} from './api';

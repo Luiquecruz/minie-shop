@@ -1,27 +1,33 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Fragment, useEffect, useState } from 'react';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useCart } from '../../hooks/useCart';
 import { useFavorites } from '../../hooks/useFavorites';
-import {
-  useProductQuery,
-  useRelatedProductsQuery,
-} from '../../hooks/useProducts';
-import { ProductNotFoundError } from '../../services/api';
+import { useProductQuery } from '../../hooks/useProducts';
+import { ApiError } from '../../infrastructure/http/errors';
+import { t } from '../../i18n';
+import AttributeIcon from '../../components/AttributeIcon/AttributeIcon';
 import PriceBox from '../../components/PriceBox/PriceBox';
-import ProductCard from '../../components/ProductCard/ProductCard';
+import NotFoundPage from '../NotFoundPage/NotFoundPage';
 import './ProductDetailPage.css';
 
-type DetailTab = 'description' | 'manufacturer' | 'specs';
+type DetailTab = 'description' | 'specs';
 
-const TABS: { id: DetailTab; label: string }[] = [
-  { id: 'description', label: 'Description' },
-  { id: 'manufacturer', label: 'Manufacturer' },
-  { id: 'specs', label: 'Technical Specs' },
-];
+function formatAttributeValue(
+  value: string | number | boolean,
+  unit?: string,
+): string {
+  if (typeof value === 'boolean') {
+    return value ? t('filters.yes') : t('filters.no');
+  }
+  return unit ? `${value} ${unit}` : String(value);
+}
 
 export function ProductDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { category: categoryParam, slug } = useParams<{
+    category: string;
+    slug: string;
+  }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const {
@@ -32,27 +38,20 @@ export function ProductDetailPage() {
   } = useFavorites();
 
   const [tabSelection, setTabSelection] = useState<{
-    productId: string | undefined;
+    productSlug: string | undefined;
     tab: DetailTab;
-  }>({ productId: id, tab: 'description' });
+  }>({ productSlug: slug, tab: 'description' });
   const [addedNotice, setAddedNotice] = useState<string>('');
 
   const activeTab: DetailTab =
-    tabSelection.productId === id ? tabSelection.tab : 'description';
+    tabSelection.productSlug === slug ? tabSelection.tab : 'description';
 
-  const productQuery = useProductQuery(id);
+  const productQuery = useProductQuery(slug);
   const product = productQuery.data;
-
-  const relatedQuery = useRelatedProductsQuery(
-    product?.id,
-    product?.category,
-    4,
-  );
-  const relatedProducts = relatedQuery.data ?? [];
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
     if (!favoriteError) return;
@@ -62,61 +61,8 @@ export function ProductDetailPage() {
     return () => clearTimeout(timer);
   }, [favoriteError, resetFavoriteError]);
 
-  const handleAddToCart = (): void => {
-    if (product) {
-      addToCart(product);
-      setAddedNotice(`"${product.name}" added to cart!`);
-      setTimeout(() => setAddedNotice(''), 3000);
-    }
-  };
-
-  const handleBuyNow = (): void => {
-    if (product) {
-      addToCart(product);
-      setAddedNotice(`Proceeding to checkout with "${product.name}"!`);
-      setTimeout(() => setAddedNotice(''), 3000);
-    }
-  };
-
-  if (!id) {
-    return (
-      <div className="pdp-container pdp-error-state">
-        <Helmet>
-          <title>Product Not Found | Minie Shop</title>
-          <meta
-            name="description"
-            content="The requested product could not be found."
-          />
-        </Helmet>
-        <div className="pdp-error-content">
-          <div className="pdp-error-icon">
-            <svg
-              width="48"
-              height="48"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-              />
-            </svg>
-          </div>
-          <h2>Product Not Found</h2>
-          <p>We could not find the product you were looking for.</p>
-          <button
-            type="button"
-            className="pdp-btn pdp-btn--primary"
-            onClick={() => navigate('/')}
-          >
-            Back to Catalog
-          </button>
-        </div>
-      </div>
-    );
+  if (!slug) {
+    return <NotFoundPage />;
   }
 
   if (productQuery.isPending) {
@@ -139,24 +85,23 @@ export function ProductDetailPage() {
   }
 
   if (productQuery.isError || !product) {
-    const isNotFound = productQuery.error instanceof ProductNotFoundError;
+    const isNotFound =
+      productQuery.error instanceof ApiError && productQuery.error.isNotFound;
+
+    if (isNotFound) {
+      return <NotFoundPage />;
+    }
+
     const errorMessage =
       productQuery.error instanceof Error
         ? productQuery.error.message
-        : 'We could not load this product right now.';
+        : t('pdp.errorFallback');
 
     return (
       <div className="pdp-container pdp-error-state" role="alert">
         <Helmet>
-          <title>
-            {isNotFound
-              ? 'Product Not Found | Minie Shop'
-              : 'Error Loading Product | Minie Shop'}
-          </title>
-          <meta
-            name="description"
-            content="The requested product could not be loaded."
-          />
+          <title>{`${t('pdp.errorTitle')} | Minie Shop`}</title>
+          <meta name="description" content={t('pdp.errorFallback')} />
         </Helmet>
         <div className="pdp-error-content">
           <div className="pdp-error-icon">
@@ -167,6 +112,7 @@ export function ProductDetailPage() {
               stroke="currentColor"
               strokeWidth="1.5"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -175,29 +121,25 @@ export function ProductDetailPage() {
               />
             </svg>
           </div>
-          <h2>{isNotFound ? 'Product Not Found' : 'Could Not Load Product'}</h2>
+          <h2>{t('pdp.errorTitle')}</h2>
           <p>{errorMessage}</p>
           <div className="pdp-error-actions">
-            {!isNotFound && (
-              <button
-                type="button"
-                className="pdp-btn pdp-btn--primary"
-                onClick={() => {
-                  void productQuery.refetch();
-                }}
-                disabled={productQuery.isFetching}
-              >
-                {productQuery.isFetching ? 'Retrying...' : 'Try Again'}
-              </button>
-            )}
             <button
               type="button"
-              className={`pdp-btn ${
-                isNotFound ? 'pdp-btn--primary' : 'pdp-btn--secondary'
-              }`}
+              className="pdp-btn pdp-btn--primary"
+              onClick={() => {
+                void productQuery.refetch();
+              }}
+              disabled={productQuery.isFetching}
+            >
+              {productQuery.isFetching ? t('plp.retrying') : t('plp.retry')}
+            </button>
+            <button
+              type="button"
+              className="pdp-btn pdp-btn--secondary"
               onClick={() => navigate('/')}
             >
-              Back to Catalog
+              {t('pdp.backToCatalog')}
             </button>
           </div>
         </div>
@@ -205,19 +147,45 @@ export function ProductDetailPage() {
     );
   }
 
+  // Canonicalize category segment for SEO / structured data consistency
+  if (categoryParam && categoryParam !== product.category.slug) {
+    return (
+      <Navigate to={`/${product.category.slug}/${product.slug}`} replace />
+    );
+  }
+
   const {
+    id,
     name,
     category,
+    breadcrumbs,
     price,
     description,
-    images = [product.image],
-    rating = { rate: 0, count: 0 },
-    stock = 0,
-    specs = [],
-    manufacturer,
+    images,
+    inStock,
+    attributes,
   } = product;
 
-  const favorited = isFavorite(product.id);
+  const favorited = isFavorite(id);
+  const primaryThumb =
+    images[0]?.variants[0]?.url ?? images[0]?.variants[1]?.url ?? '';
+
+  const handleAddToCart = (): void => {
+    addToCart(product);
+    setAddedNotice(t('pdp.addedToCart', { name }));
+    setTimeout(() => setAddedNotice(''), 3000);
+  };
+
+  const handleBuyNow = (): void => {
+    addToCart(product);
+    setAddedNotice(t('pdp.proceedingToCheckout', { name }));
+    setTimeout(() => setAddedNotice(''), 3000);
+  };
+
+  const tabs: { id: DetailTab; label: string }[] = [
+    { id: 'description', label: t('pdp.tabDescription') },
+    { id: 'specs', label: t('pdp.tabSpecs') },
+  ];
 
   return (
     <div className="pdp-wrapper">
@@ -242,6 +210,7 @@ export function ProductDetailPage() {
             stroke="currentColor"
             strokeWidth="2"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -262,6 +231,7 @@ export function ProductDetailPage() {
             stroke="currentColor"
             strokeWidth="2"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -274,14 +244,27 @@ export function ProductDetailPage() {
       )}
 
       <main className="pdp-container">
-        {/* Breadcrumb */}
-        <nav className="pdp-breadcrumb" aria-label="Breadcrumb">
+        {/* API Breadcrumbs */}
+        <nav className="pdp-breadcrumb" aria-label={t('pdp.breadcrumbAria')}>
           <Link to="/" className="pdp-breadcrumb__link">
-            Catalog
+            {t('pdp.breadcrumbCatalog')}
           </Link>
-          <span className="pdp-breadcrumb__separator">/</span>
-          <span className="pdp-breadcrumb__category">{category}</span>
-          <span className="pdp-breadcrumb__separator">/</span>
+          {breadcrumbs.map((crumb) => (
+            <Fragment key={crumb.slug}>
+              <span className="pdp-breadcrumb__separator" aria-hidden="true">
+                /
+              </span>
+              <Link
+                to={`/?category=${encodeURIComponent(crumb.slug)}`}
+                className="pdp-breadcrumb__link"
+              >
+                {crumb.name}
+              </Link>
+            </Fragment>
+          ))}
+          <span className="pdp-breadcrumb__separator" aria-hidden="true">
+            /
+          </span>
           <span className="pdp-breadcrumb__current" aria-current="page">
             {name}
           </span>
@@ -289,59 +272,90 @@ export function ProductDetailPage() {
 
         {/* Main Product Layout: Left Gallery + Right Details */}
         <div className="pdp-grid">
-          {/* Left Column: Open Image Masonry Scroll (Desktop) & Swipe Peek (Mobile) */}
-          <section className="pdp-gallery" aria-label="Product Image Gallery">
+          <section className="pdp-gallery" aria-label={t('pdp.galleryAria')}>
             <div className="pdp-gallery__masonry">
-              {images.map((imgUrl, index) => (
-                <div key={index} className="pdp-gallery__item" data-index={index}>
-                  <img
-                    src={imgUrl}
-                    alt={`${name} - View ${index + 1}`}
-                    loading={index === 0 ? 'eager' : 'lazy'}
-                    className="pdp-gallery__image"
-                  />
-                  <span className="pdp-gallery__badge">
-                    {index + 1} / {images.length}
-                  </span>
+              {images.length > 0 ? (
+                images.map((img, index) => {
+                  const largestVariant =
+                    img.variants[img.variants.length - 1] ?? img.variants[0];
+                  return (
+                    <div
+                      key={img.id}
+                      className="pdp-gallery__item"
+                      data-index={index}
+                    >
+                      {largestVariant ? (
+                        <img
+                          src={largestVariant.url}
+                          alt={img.alt || `${name} - ${index + 1}`}
+                          loading={index === 0 ? 'eager' : 'lazy'}
+                          className="pdp-gallery__image"
+                        />
+                      ) : (
+                        <div
+                          className="pdp-gallery__image pdp-gallery__image--empty"
+                          role="img"
+                          aria-label={t('image.unavailable')}
+                        >
+                          {t('image.unavailable')}
+                        </div>
+                      )}
+                      {images.length > 1 && (
+                        <span className="pdp-gallery__badge">
+                          {index + 1} / {images.length}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="pdp-gallery__item" data-index={0}>
+                  <div
+                    className="pdp-gallery__image pdp-gallery__image--empty"
+                    role="img"
+                    aria-label={t('image.unavailable')}
+                  >
+                    {t('image.unavailable')}
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
-            {/* Visual swipe hint indicator for mobile */}
-            <div className="pdp-gallery__swipe-hint" aria-hidden="true">
-              <span>Swipe to explore views</span>
-              <svg
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                />
-              </svg>
-            </div>
+            {images.length > 1 && (
+              <div className="pdp-gallery__swipe-hint" aria-hidden="true">
+                <span>{t('pdp.swipeHint')}</span>
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            )}
           </section>
 
-          {/* Right Column: Product Information & Interactive Tabs */}
-          <section className="pdp-info" aria-label="Product Details">
+          <section className="pdp-info" aria-label={t('pdp.detailsAria')}>
             <div className="pdp-info__header">
               <div className="pdp-info__header-top">
-                <span className="pdp-info__category">{category}</span>
+                <span className="pdp-info__category">{category.name}</span>
                 <button
                   type="button"
                   className={`pdp-favorite-btn ${
                     favorited ? 'pdp-favorite-btn--active' : ''
                   }`}
-                  onClick={() => toggleFavorite(product.id)}
+                  onClick={() => toggleFavorite(id)}
                   aria-pressed={favorited}
                   aria-label={
                     favorited
-                      ? `Remove ${name} from favorites`
-                      : `Save ${name} to favorites`
+                      ? t('card.removeFavoriteAria', { name })
+                      : t('card.addFavoriteAria', { name })
                   }
                 >
                   <svg
@@ -359,58 +373,33 @@ export function ProductDetailPage() {
                       d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
                     />
                   </svg>
-                  <span>{favorited ? 'Saved' : 'Save'}</span>
+                  <span>{favorited ? t('pdp.saved') : t('pdp.save')}</span>
                 </button>
               </div>
 
               <h1 className="pdp-info__title">{name}</h1>
 
-              {/* Rating & Stock row */}
               <div className="pdp-info__meta">
-                <div
-                  className="pdp-info__rating"
-                  aria-label={`Rating ${rating.rate} out of 5 stars`}
-                >
-                  <div className="pdp-info__stars" aria-hidden="true">
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  </div>
-                  <span className="pdp-info__rating-value">
-                    {rating.rate?.toFixed(1)}
-                  </span>
-                  <span className="pdp-info__rating-count">
-                    ({rating.count} reviews)
-                  </span>
-                </div>
-
                 <div className="pdp-info__stock">
-                  {stock > 0 ? (
+                  {inStock ? (
                     <span className="pdp-stock-badge pdp-stock-badge--available">
                       <span className="pdp-stock-dot" />
-                      In Stock ({stock} available)
+                      {t('pdp.inStock')}
                     </span>
                   ) : (
                     <span className="pdp-stock-badge pdp-stock-badge--out">
                       <span className="pdp-stock-dot" />
-                      Out of Stock
+                      {t('pdp.outOfStock')}
                     </span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Price Box Section */}
             <div className="pdp-info__pricebox">
               <PriceBox price={price} size="lg" />
             </div>
 
-            {/* Quick Benefits / Assurance */}
             <div className="pdp-assurance">
               <div className="pdp-assurance__item">
                 <svg
@@ -420,6 +409,7 @@ export function ProductDetailPage() {
                   stroke="currentColor"
                   strokeWidth="2"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -427,7 +417,7 @@ export function ProductDetailPage() {
                     d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.25V3.75m0 3.75h3.75m-3.75 0a2.25 2.25 0 00-2.25 2.25v7.5"
                   />
                 </svg>
-                <span>Fast express shipping</span>
+                <span>{t('pdp.assuranceShipping')}</span>
               </div>
               <div className="pdp-assurance__item">
                 <svg
@@ -437,6 +427,7 @@ export function ProductDetailPage() {
                   stroke="currentColor"
                   strokeWidth="2"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -444,7 +435,7 @@ export function ProductDetailPage() {
                     d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
                   />
                 </svg>
-                <span>12-Month Official Warranty</span>
+                <span>{t('pdp.assuranceWarranty')}</span>
               </div>
               <div className="pdp-assurance__item">
                 <svg
@@ -454,6 +445,7 @@ export function ProductDetailPage() {
                   stroke="currentColor"
                   strokeWidth="2"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -461,17 +453,16 @@ export function ProductDetailPage() {
                     d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
                   />
                 </svg>
-                <span>30-Day Free Return Policy</span>
+                <span>{t('pdp.assuranceReturn')}</span>
               </div>
             </div>
 
-            {/* Desktop Action Buttons in Sidebar */}
             <div className="pdp-actions-inline">
               <button
                 type="button"
                 className="pdp-btn pdp-btn--secondary"
                 onClick={handleAddToCart}
-                disabled={stock <= 0}
+                disabled={!inStock}
               >
                 <svg
                   width="20"
@@ -480,6 +471,7 @@ export function ProductDetailPage() {
                   stroke="currentColor"
                   strokeWidth="2"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -487,13 +479,13 @@ export function ProductDetailPage() {
                     d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.144a.75.75 0 00-.712-.981H5.106m2.394 8.125L5.106 5.25m2.394 9l-1.026 3.078M16.5 21a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-9 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
                   />
                 </svg>
-                Add to Cart
+                {t('pdp.addToCart')}
               </button>
               <button
                 type="button"
                 className="pdp-btn pdp-btn--primary"
                 onClick={handleBuyNow}
-                disabled={stock <= 0}
+                disabled={!inStock}
               >
                 <svg
                   width="20"
@@ -502,6 +494,7 @@ export function ProductDetailPage() {
                   stroke="currentColor"
                   strokeWidth="2"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -509,14 +502,14 @@ export function ProductDetailPage() {
                     d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
                   />
                 </svg>
-                Buy Now
+                {t('pdp.buyNow')}
               </button>
             </div>
 
-            {/* Content Tabs (Description, Manufacturer Info, Technical Specs) */}
+            {/* Content Tabs */}
             <div className="pdp-tabs">
               <div className="pdp-tabs__nav" role="tablist">
-                {TABS.map((tab) => (
+                {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
@@ -524,9 +517,11 @@ export function ProductDetailPage() {
                     id={`tab-${tab.id}`}
                     aria-controls={`panel-${tab.id}`}
                     aria-selected={activeTab === tab.id}
-                    className={`pdp-tabs__tab ${activeTab === tab.id ? 'pdp-tabs__tab--active' : ''}`}
+                    className={`pdp-tabs__tab ${
+                      activeTab === tab.id ? 'pdp-tabs__tab--active' : ''
+                    }`}
                     onClick={() =>
-                      setTabSelection({ productId: id, tab: tab.id })
+                      setTabSelection({ productSlug: slug, tab: tab.id })
                     }
                   >
                     {tab.label}
@@ -535,7 +530,6 @@ export function ProductDetailPage() {
               </div>
 
               <div className="pdp-tabs__content">
-                {/* Tab 1: Description */}
                 {activeTab === 'description' && (
                   <div
                     id="panel-description"
@@ -544,86 +538,24 @@ export function ProductDetailPage() {
                     className="pdp-tab-panel"
                   >
                     <p className="pdp-description-text">{description}</p>
-                    <div className="pdp-highlights">
-                      <h4 className="pdp-highlights__title">
-                        Product Highlights
-                      </h4>
-                      <ul className="pdp-highlights__list">
-                        <li>
-                          Crafted from durable, premium materials engineered for
-                          longevity.
-                        </li>
-                        <li>
-                          Seamless integration with modern lifestyle and tech
-                          ecosystems.
-                        </li>
-                        <li>
-                          Factory inspected and verified to satisfy high
-                          international benchmarks.
-                        </li>
-                      </ul>
-                    </div>
+                    {attributes.length > 0 && (
+                      <div className="pdp-specs-grid">
+                        {attributes.map((attr) => (
+                          <div key={attr.code} className="pdp-specs-item">
+                            <dt className="pdp-specs-label">
+                              <AttributeIcon iconKey={attr.icon} size={15} />
+                              <span>{attr.label}</span>
+                            </dt>
+                            <dd className="pdp-specs-value">
+                              {formatAttributeValue(attr.value, attr.unit)}
+                            </dd>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Tab 2: Manufacturer Info */}
-                {activeTab === 'manufacturer' && (
-                  <div
-                    id="panel-manufacturer"
-                    role="tabpanel"
-                    aria-labelledby="tab-manufacturer"
-                    className="pdp-tab-panel"
-                  >
-                    <div className="pdp-manufacturer-card">
-                      <div className="pdp-manufacturer-item">
-                        <span className="pdp-manufacturer-label">
-                          Brand &amp; Authorization
-                        </span>
-                        <span className="pdp-manufacturer-value">
-                          {manufacturer?.brand || 'Minie Certified Partner'}
-                        </span>
-                      </div>
-                      <div className="pdp-manufacturer-item">
-                        <span className="pdp-manufacturer-label">
-                          Distribution &amp; Origin
-                        </span>
-                        <span className="pdp-manufacturer-value">
-                          {manufacturer?.origin ||
-                            'Global standard distribution'}
-                        </span>
-                      </div>
-                      <div className="pdp-manufacturer-item">
-                        <span className="pdp-manufacturer-label">
-                          Warranty Details
-                        </span>
-                        <span className="pdp-manufacturer-value">
-                          {manufacturer?.warrantyText ||
-                            '12-Month Official Warranty'}
-                        </span>
-                      </div>
-                      <div className="pdp-manufacturer-item">
-                        <span className="pdp-manufacturer-label">
-                          Sustainability &amp; Eco-Commitment
-                        </span>
-                        <span className="pdp-manufacturer-value">
-                          {manufacturer?.sustainability ||
-                            'Eco-compliant production processes'}
-                        </span>
-                      </div>
-                      <div className="pdp-manufacturer-item">
-                        <span className="pdp-manufacturer-label">
-                          Support Channels
-                        </span>
-                        <span className="pdp-manufacturer-value">
-                          {manufacturer?.support ||
-                            '24/7 online technical support'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tab 3: Technical Specs (Two-Column Grid) */}
                 {activeTab === 'specs' && (
                   <div
                     id="panel-specs"
@@ -631,63 +563,53 @@ export function ProductDetailPage() {
                     aria-labelledby="tab-specs"
                     className="pdp-tab-panel"
                   >
-                    <div className="pdp-specs-grid">
-                      {specs.map((item, idx) => (
-                        <div key={idx} className="pdp-specs-item">
-                          <dt className="pdp-specs-label">{item.label}</dt>
-                          <dd className="pdp-specs-value">{item.value}</dd>
-                        </div>
-                      ))}
-                    </div>
+                    {attributes.length > 0 ? (
+                      <dl className="pdp-specs-grid">
+                        {attributes.map((attr) => (
+                          <div key={attr.code} className="pdp-specs-item">
+                            <dt className="pdp-specs-label">
+                              <AttributeIcon iconKey={attr.icon} size={15} />
+                              <span>{attr.label}</span>
+                            </dt>
+                            <dd className="pdp-specs-value">
+                              {formatAttributeValue(attr.value, attr.unit)}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : (
+                      <p className="pdp-description-text">{t('pdp.noSpecs')}</p>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           </section>
         </div>
-
-        {/* Related Products Section */}
-        {relatedProducts.length > 0 && (
-          <section className="pdp-related" aria-label="Related Products">
-            <div className="pdp-related__header">
-              <span className="pdp-related__badge">Discover More</span>
-              <h2 className="pdp-related__title">Related Products</h2>
-              <p className="pdp-related__subtitle">
-                Explore handpicked alternatives from the {category} category.
-              </p>
-            </div>
-            <div className="pdp-related__grid">
-              {relatedProducts.map((related) => (
-                <ProductCard
-                  key={related.id}
-                  product={related}
-                  onAddToCart={(p) => {
-                    addToCart(p);
-                    setAddedNotice(`"${p.name}" added to cart!`);
-                    setTimeout(() => setAddedNotice(''), 3000);
-                  }}
-                />
-              ))}
-            </div>
-          </section>
-        )}
       </main>
 
-      {/* Floating Bottom Action Bar that sticks & follows navigation */}
+      {/* Floating Bottom Action Bar */}
       <aside className="pdp-floating-bar" aria-label="Floating Quick Actions">
         <div className="pdp-floating-bar__inner">
           <div className="pdp-floating-bar__product">
-            <img
-              src={images[0] || product.image}
-              alt=""
-              aria-hidden="true"
-              className="pdp-floating-bar__thumb"
-            />
+            {primaryThumb ? (
+              <img
+                src={primaryThumb}
+                alt=""
+                aria-hidden="true"
+                className="pdp-floating-bar__thumb"
+              />
+            ) : (
+              <div
+                className="pdp-floating-bar__thumb pdp-floating-bar__thumb--empty"
+                aria-hidden="true"
+              />
+            )}
             <div className="pdp-floating-bar__meta">
               <span className="pdp-floating-bar__title" title={name}>
                 {name}
               </span>
-              <span className="pdp-floating-bar__category">{category}</span>
+              <span className="pdp-floating-bar__category">{category.name}</span>
             </div>
           </div>
 
@@ -700,47 +622,19 @@ export function ProductDetailPage() {
               type="button"
               className="pdp-btn pdp-btn--secondary pdp-floating-bar__btn"
               onClick={handleAddToCart}
-              disabled={stock <= 0}
-              aria-label={`Add ${name} to cart`}
+              disabled={!inStock}
+              aria-label={t('card.addToCartAria', { name })}
             >
-              <svg
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.144a.75.75 0 00-.712-.981H5.106m2.394 8.125L5.106 5.25m2.394 9l-1.026 3.078M16.5 21a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-9 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
-                />
-              </svg>
-              <span>Add to Cart</span>
+              <span>{t('pdp.addToCart')}</span>
             </button>
             <button
               type="button"
               className="pdp-btn pdp-btn--primary pdp-floating-bar__btn"
               onClick={handleBuyNow}
-              disabled={stock <= 0}
+              disabled={!inStock}
               aria-label={`Buy ${name} now`}
             >
-              <svg
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
-                />
-              </svg>
-              <span>Buy Now</span>
+              <span>{t('pdp.buyNow')}</span>
             </button>
           </div>
         </div>

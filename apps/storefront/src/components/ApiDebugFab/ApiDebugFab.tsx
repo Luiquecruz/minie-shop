@@ -1,31 +1,40 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
-import { useMatch } from 'react-router-dom';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { apiErrorSimulator } from '../../services/api';
+import {
+  readDevChaosConfig,
+  resetDevChaosConfig,
+  subscribeDevChaos,
+  writeDevChaosKey,
+  type DevChaosConfig,
+} from '../../infrastructure/http/chaos';
 import './ApiDebugFab.css';
 
 /**
- * Discreet bottom-left floating debug control for simulating API failures
- * (queries and optimistic favorite mutations) and invalidating React Query cache.
+ * Development-only floating control for toggling API Chaos headers
+ * (`chaos.delay`, `chaos.fail`, `chaos.status` in localStorage) and invalidating
+ * React Query cache. Loaded strictly under `import.meta.env.DEV` so production
+ * builds contain zero chaos UI or strings.
  */
 export function ApiDebugFab() {
   const [isOpen, setIsOpen] = useState(false);
   const [notice, setNotice] = useState('');
+  const [config, setConfig] = useState<DevChaosConfig>(() => readDevChaosConfig());
   const containerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const popoverId = useId();
-  const isPdpRoute = Boolean(useMatch('/product/:id'));
   const queryClient = useQueryClient();
 
-  const simState = useSyncExternalStore(
-    apiErrorSimulator.subscribe,
-    apiErrorSimulator.getSnapshot,
-    apiErrorSimulator.getSnapshot,
-  );
+  useEffect(() => {
+    return subscribeDevChaos(() => {
+      setConfig(readDevChaosConfig());
+    });
+  }, []);
 
-  const hasActiveSimulation =
-    simState.failQueries || simState.failFavoritesMutation;
+  const hasActiveChaos =
+    config.delay.length > 0 ||
+    config.fail.length > 0 ||
+    config.status.length > 0;
 
   const closeAndRestoreFocus = (): void => {
     setIsOpen(false);
@@ -75,24 +84,21 @@ export function ApiDebugFab() {
   };
 
   return (
-    <div
-      ref={containerRef}
-      className={`api-debug-fab ${isPdpRoute ? 'api-debug-fab--pdp' : ''}`}
-    >
+    <div ref={containerRef} className="api-debug-fab">
       {isOpen && (
         <section
           id={popoverId}
           className="api-debug-fab__popover"
-          aria-label="API Error Simulation Controls"
+          aria-label="Dev Chaos Controls"
         >
           <header className="api-debug-fab__header">
-            <span className="api-debug-fab__title">API Debug Simulator</span>
+            <span className="api-debug-fab__title">Dev Chaos Controls</span>
             <button
               ref={closeButtonRef}
               type="button"
               className="api-debug-fab__close"
               onClick={closeAndRestoreFocus}
-              aria-label="Close API simulator"
+              aria-label="Close chaos controls"
             >
               <svg
                 width="14"
@@ -116,16 +122,30 @@ export function ApiDebugFab() {
             <label className="api-debug-fab__toggle">
               <div className="api-debug-fab__toggle-text">
                 <span className="api-debug-fab__toggle-label">
-                  Simulate Query Error
+                  Artificial Delay (ms or min-max)
                 </span>
-                <span className="api-debug-fab__toggle-hint">
-                  Fails catalog, PDP &amp; search fetches
+                <input
+                  type="text"
+                  value={config.delay}
+                  placeholder="e.g. 800 or 200-800"
+                  onChange={(e) => writeDevChaosKey('delay', e.target.value)}
+                  className="api-debug-fab__input"
+                />
+              </div>
+            </label>
+
+            <label className="api-debug-fab__toggle">
+              <div className="api-debug-fab__toggle-text">
+                <span className="api-debug-fab__toggle-label">
+                  Force Failure (x-chaos-fail=1)
                 </span>
               </div>
               <input
                 type="checkbox"
-                checked={simState.failQueries}
-                onChange={(e) => apiErrorSimulator.setFailQueries(e.target.checked)}
+                checked={config.fail === '1'}
+                onChange={(e) =>
+                  writeDevChaosKey('fail', e.target.checked ? '1' : '')
+                }
                 className="api-debug-fab__checkbox"
               />
             </label>
@@ -133,20 +153,16 @@ export function ApiDebugFab() {
             <label className="api-debug-fab__toggle">
               <div className="api-debug-fab__toggle-text">
                 <span className="api-debug-fab__toggle-label">
-                  Simulate Favorite Error
+                  Forced HTTP Status (400-599)
                 </span>
-                <span className="api-debug-fab__toggle-hint">
-                  Triggers optimistic rollback on heart click
-                </span>
+                <input
+                  type="text"
+                  value={config.status}
+                  placeholder="e.g. 503 or 429"
+                  onChange={(e) => writeDevChaosKey('status', e.target.value)}
+                  className="api-debug-fab__input"
+                />
               </div>
-              <input
-                type="checkbox"
-                checked={simState.failFavoritesMutation}
-                onChange={(e) =>
-                  apiErrorSimulator.setFailFavoritesMutation(e.target.checked)
-                }
-                className="api-debug-fab__checkbox"
-              />
             </label>
           </div>
 
@@ -158,16 +174,16 @@ export function ApiDebugFab() {
             >
               Invalidate Cache
             </button>
-            {hasActiveSimulation && (
+            {hasActiveChaos && (
               <button
                 type="button"
                 className="api-debug-fab__reset-btn"
                 onClick={() => {
-                  apiErrorSimulator.reset();
-                  showNotice('Simulations reset');
+                  resetDevChaosConfig();
+                  showNotice('Chaos cleared');
                 }}
               >
-                Reset
+                Reset Chaos
               </button>
             )}
           </footer>
@@ -184,13 +200,13 @@ export function ApiDebugFab() {
         ref={triggerRef}
         type="button"
         className={`api-debug-fab__trigger ${
-          hasActiveSimulation ? 'api-debug-fab__trigger--active' : ''
+          hasActiveChaos ? 'api-debug-fab__trigger--active' : ''
         }`}
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-controls={popoverId}
-        aria-label="Open API error simulator"
-        title="API Debug Simulator"
+        aria-label="Dev Chaos Controls"
+        title="Dev Chaos Controls"
       >
         <svg
           width="18"
@@ -207,8 +223,8 @@ export function ApiDebugFab() {
             d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
           />
         </svg>
-        <span className="api-debug-fab__trigger-label">API Sim</span>
-        {hasActiveSimulation && (
+        <span className="api-debug-fab__trigger-label">Chaos Dev</span>
+        {hasActiveChaos && (
           <span className="api-debug-fab__status-dot" aria-hidden="true" />
         )}
       </button>
