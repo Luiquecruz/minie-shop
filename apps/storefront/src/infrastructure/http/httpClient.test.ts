@@ -217,6 +217,7 @@ describe('HttpClient', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3001/products',
       expect.objectContaining({
+        cache: 'no-store',
         headers: expect.objectContaining({
           'x-chaos-delay': '400',
           'x-chaos-fail': '0.5',

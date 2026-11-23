@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { useDebounce } from '../../hooks/useDebounce';
 import { t } from '../../i18n';
 import './SearchBar.css';
 
@@ -19,6 +18,7 @@ export function SearchBar({
   const location = useLocation();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const urlQuery = searchParams.get('q') ?? '';
   const [draft, setDraft] = useState<{ baseUrl: string; value: string }>({
@@ -27,34 +27,60 @@ export function SearchBar({
   });
 
   const inputValue = draft.baseUrl === urlQuery ? draft.value : urlQuery;
-  const debouncedValue = useDebounce(inputValue, 300);
 
-  // Live typing on catalog route updates `?q=` via replace (does not spam browser history)
+  const cancelPendingDebounce = useCallback((): void => {
+    if (debounceTimerRef.current !== null) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+  }, []);
+
+  // Cancel any pending debounce whenever external URL state changes (Clear all, Back/Forward, route change) or on unmount
   useEffect(() => {
-    if (location.pathname !== '/') return;
-    const trimmedNext = debouncedValue.trim();
-    const trimmedCurrent = urlQuery.trim();
-    if (trimmedNext === trimmedCurrent) return;
+    return () => {
+      cancelPendingDebounce();
+    };
+  }, [urlQuery, location.pathname, cancelPendingDebounce]);
 
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (trimmedNext.length === 0) {
-          next.delete('q');
-          if (next.get('sort') === 'relevance') {
-            next.delete('sort');
+  const applySearchToUrl = useCallback(
+    (rawValue: string, replace: boolean): void => {
+      const trimmed = rawValue.trim();
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (trimmed.length === 0) {
+            next.delete('q');
+            if (next.get('sort') === 'relevance') {
+              next.delete('sort');
+            }
+          } else {
+            next.set('q', trimmed);
           }
-        } else {
-          next.set('q', trimmedNext);
-        }
-        return next;
-      },
-      { replace: true },
-    );
-  }, [debouncedValue, location.pathname, setSearchParams, urlQuery]);
+          return next;
+        },
+        { replace },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const nextValue = e.target.value;
+    setDraft({ baseUrl: urlQuery, value: nextValue });
+
+    if (location.pathname !== '/') return;
+
+    cancelPendingDebounce();
+    debounceTimerRef.current = setTimeout(() => {
+      debounceTimerRef.current = null;
+      if (nextValue.trim() === urlQuery.trim()) return;
+      applySearchToUrl(nextValue, true);
+    }, 300);
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
+    cancelPendingDebounce();
     const trimmed = inputValue.trim();
 
     if (location.pathname !== '/') {
@@ -67,37 +93,14 @@ export function SearchBar({
       return;
     }
 
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (trimmed.length === 0) {
-          next.delete('q');
-          if (next.get('sort') === 'relevance') {
-            next.delete('sort');
-          }
-        } else {
-          next.set('q', trimmed);
-        }
-        return next;
-      },
-      { replace: false },
-    );
+    applySearchToUrl(trimmed, false);
   };
 
   const handleClear = (): void => {
+    cancelPendingDebounce();
     setDraft({ baseUrl: urlQuery, value: '' });
     if (location.pathname === '/') {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete('q');
-          if (next.get('sort') === 'relevance') {
-            next.delete('sort');
-          }
-          return next;
-        },
-        { replace: false },
-      );
+      applySearchToUrl('', false);
     }
     inputRef.current?.focus();
   };
@@ -131,7 +134,7 @@ export function SearchBar({
           className="search-bar__input"
           placeholder={placeholder}
           value={inputValue}
-          onChange={(e) => setDraft({ baseUrl: urlQuery, value: e.target.value })}
+          onChange={handleInputChange}
           aria-label={t('search.ariaLabel')}
         />
 

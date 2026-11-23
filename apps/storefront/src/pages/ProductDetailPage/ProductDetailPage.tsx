@@ -527,7 +527,7 @@ export function ProductDetailPage() {
                   >
                     <p className="pdp-description-text">{description}</p>
                     {attributes.length > 0 && (
-                      <div className="pdp-specs-grid">
+                      <dl className="pdp-specs-grid">
                         {attributes.map((attr) => (
                           <div key={attr.code} className="pdp-specs-item">
                             <dt className="pdp-specs-label">
@@ -539,7 +539,7 @@ export function ProductDetailPage() {
                             </dd>
                           </div>
                         ))}
-                      </div>
+                      </dl>
                     )}
                   </div>
                 )}

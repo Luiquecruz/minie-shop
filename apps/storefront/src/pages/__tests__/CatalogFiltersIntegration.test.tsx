@@ -214,4 +214,36 @@ describe('Catalog URL Filters, Facets Parity, History Back/Forward & Out-of-orde
       screen.queryByText(FIXTURE_PRODUCTS_DETAIL[5].name),
     ).not.toBeInTheDocument();
   });
+
+  it('clears price range and search filters cleanly without stale debounce bounce-back', async () => {
+    const repository = new MockProductRepository();
+    const user = userEvent.setup();
+
+    renderCatalog(repository, ['/?minPrice=10000&maxPrice=50000&q=Fone']);
+
+    expect(
+      await screen.findByText(FIXTURE_PRODUCTS_DETAIL[0].name),
+    ).toBeInTheDocument();
+
+    // Categories outside matching facets must show 0 rather than unfiltered productCount
+    const perifericosBtn = screen.getByRole('button', { name: /Periféricos/i });
+    expect(perifericosBtn).toHaveTextContent('0');
+
+    // Click Clear all -> URL resets to '/' and MUST NOT bounce back after debounce window
+    await user.click(screen.getByRole('button', { name: /Clear all/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('current-url')).toHaveTextContent('/');
+    });
+
+    // Wait longer than the 350ms debounce window to confirm zero bounce-back
+    await new Promise((r) => setTimeout(r, 450));
+
+    expect(screen.getByTestId('current-url')).toHaveTextContent(/^\/$/);
+    expect(screen.getByLabelText(/Min price/i)).toHaveValue(null);
+    expect(screen.getByLabelText(/Max price/i)).toHaveValue(null);
+    expect(
+      screen.getByRole('searchbox', { name: /Search products/i }),
+    ).toHaveValue('');
+  });
 });

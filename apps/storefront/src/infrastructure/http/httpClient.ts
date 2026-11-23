@@ -74,9 +74,13 @@ export class HttpClient {
     const timeoutMs = options.timeoutMs ?? this.defaultTimeoutMs;
     const url = buildUrl(this.baseUrl, path);
 
+    const devChaosHeaders = import.meta.env.DEV ? getDevChaosHeaders() : {};
+    const hasDevChaos =
+      import.meta.env.DEV && Object.keys(devChaosHeaders).length > 0;
+
     const headers: Record<string, string> = {
       Accept: 'application/json',
-      ...(import.meta.env.DEV ? getDevChaosHeaders() : {}),
+      ...devChaosHeaders,
       ...options.headers,
     };
 
@@ -113,6 +117,7 @@ export class HttpClient {
       response = await this.fetchFn(url, {
         method,
         credentials: 'include',
+        ...(hasDevChaos ? { cache: 'no-store' as const } : {}),
         headers,
         body: serializedBody,
         signal: controller.signal,

@@ -1,10 +1,9 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type {
   CategoryDTO,
   FacetAttributeDTO,
   FacetsDTO,
 } from '@minieshop/contracts';
-import { useDebounce } from '../../hooks/useDebounce';
 import { t } from '../../i18n';
 import { formatCents } from '../../utils/money';
 import {
@@ -64,39 +63,68 @@ function NumericAttributeFacet({
     maxText: currentMax !== undefined ? String(currentMax) : '',
   });
 
-  const minText = draft.urlSig === urlSig ? draft.minText : currentMin !== undefined ? String(currentMin) : '';
-  const maxText = draft.urlSig === urlSig ? draft.maxText : currentMax !== undefined ? String(currentMax) : '';
+  const minText =
+    draft.urlSig === urlSig
+      ? draft.minText
+      : currentMin !== undefined
+        ? String(currentMin)
+        : '';
+  const maxText =
+    draft.urlSig === urlSig
+      ? draft.maxText
+      : currentMax !== undefined
+        ? String(currentMax)
+        : '';
 
-  const debouncedMin = useDebounce(minText, 350);
-  const debouncedMax = useDebounce(maxText, 350);
-
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCommitRef = useRef(onCommit);
   useEffect(() => {
-    const parsedMin =
-      debouncedMin.trim() === '' ? undefined : Number(debouncedMin.trim());
-    const parsedMax =
-      debouncedMax.trim() === '' ? undefined : Number(debouncedMax.trim());
+    onCommitRef.current = onCommit;
+  }, [onCommit]);
 
-    const safeMin =
-      parsedMin !== undefined && Number.isFinite(parsedMin)
-        ? parsedMin
-        : undefined;
-    const safeMax =
-      parsedMax !== undefined && Number.isFinite(parsedMax)
-        ? parsedMax
-        : undefined;
+  // Cancel any pending debounce whenever external URL state changes (e.g. Clear all / Back-Forward) or on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [urlSig]);
 
-    if (
-      safeMin !== undefined &&
-      safeMax !== undefined &&
-      safeMin > safeMax
-    ) {
-      return;
+  const scheduleCommit = (nextMinText: string, nextMaxText: string): void => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
     }
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      const parsedMin =
+        nextMinText.trim() === '' ? undefined : Number(nextMinText.trim());
+      const parsedMax =
+        nextMaxText.trim() === '' ? undefined : Number(nextMaxText.trim());
 
-    if (safeMin !== currentMin || safeMax !== currentMax) {
-      onCommit(safeMin, safeMax);
-    }
-  }, [debouncedMin, debouncedMax, currentMin, currentMax, onCommit]);
+      const safeMin =
+        parsedMin !== undefined && Number.isFinite(parsedMin)
+          ? parsedMin
+          : undefined;
+      const safeMax =
+        parsedMax !== undefined && Number.isFinite(parsedMax)
+          ? parsedMax
+          : undefined;
+
+      if (
+        safeMin !== undefined &&
+        safeMax !== undefined &&
+        safeMin > safeMax
+      ) {
+        return;
+      }
+
+      if (safeMin !== currentMin || safeMax !== currentMax) {
+        onCommitRef.current(safeMin, safeMax);
+      }
+    }, 350);
+  };
 
   return (
     <fieldset className="catalog-filters__group">
@@ -120,9 +148,11 @@ function NumericAttributeFacet({
             placeholder={
               facet.range ? String(facet.range.min) : t('filters.minValue')
             }
-            onChange={(e) =>
-              setDraft({ urlSig, minText: e.target.value, maxText })
-            }
+            onChange={(e) => {
+              const nextMinText = e.target.value;
+              setDraft({ urlSig, minText: nextMinText, maxText });
+              scheduleCommit(nextMinText, maxText);
+            }}
             className="catalog-filters__input"
           />
         </div>
@@ -141,9 +171,11 @@ function NumericAttributeFacet({
             placeholder={
               facet.range ? String(facet.range.max) : t('filters.maxValue')
             }
-            onChange={(e) =>
-              setDraft({ urlSig, minText, maxText: e.target.value })
-            }
+            onChange={(e) => {
+              const nextMaxText = e.target.value;
+              setDraft({ urlSig, minText, maxText: nextMaxText });
+              scheduleCommit(minText, nextMaxText);
+            }}
             className="catalog-filters__input"
           />
         </div>
@@ -182,34 +214,47 @@ export function CatalogFilters({
       ? priceDraft.maxText
       : centsToInputValue(state.maxPrice);
 
-  const debouncedMinPrice = useDebounce(minPriceText, 350);
-  const debouncedMaxPrice = useDebounce(maxPriceText, 350);
-
+  const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onUpdateRef = useRef(onUpdate);
   useEffect(() => {
-    const nextMin = inputValueToCents(debouncedMinPrice);
-    const nextMax = inputValueToCents(debouncedMaxPrice);
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
 
-    if (nextMin !== undefined && nextMax !== undefined && nextMin > nextMax) {
-      return;
-    }
+  // Cancel any pending price debounce whenever external URL state changes (Clear all, Back/Forward) or on unmount
+  useEffect(() => {
+    return () => {
+      if (priceTimerRef.current !== null) {
+        clearTimeout(priceTimerRef.current);
+        priceTimerRef.current = null;
+      }
+    };
+  }, [priceUrlSignature]);
 
-    if (nextMin !== state.minPrice || nextMax !== state.maxPrice) {
-      onUpdate(
-        (prev) => ({
-          ...prev,
-          minPrice: nextMin,
-          maxPrice: nextMax,
-        }),
-        { replace: true },
-      );
+  const schedulePriceCommit = (nextMinText: string, nextMaxText: string): void => {
+    if (priceTimerRef.current !== null) {
+      clearTimeout(priceTimerRef.current);
     }
-  }, [
-    debouncedMinPrice,
-    debouncedMaxPrice,
-    state.minPrice,
-    state.maxPrice,
-    onUpdate,
-  ]);
+    priceTimerRef.current = setTimeout(() => {
+      priceTimerRef.current = null;
+      const nextMin = inputValueToCents(nextMinText);
+      const nextMax = inputValueToCents(nextMaxText);
+
+      if (nextMin !== undefined && nextMax !== undefined && nextMin > nextMax) {
+        return;
+      }
+
+      if (nextMin !== state.minPrice || nextMax !== state.maxPrice) {
+        onUpdateRef.current(
+          (prev) => ({
+            ...prev,
+            minPrice: nextMin,
+            maxPrice: nextMax,
+          }),
+          { replace: true },
+        );
+      }
+    }, 350);
+  };
 
   const facetCategoryCountBySlug = useMemo(() => {
     const map = new Map<string, number>();
@@ -301,8 +346,9 @@ export function CatalogFilters({
               </button>
             </li>
             {categories.map((cat) => {
-              const rootCount =
-                facetCategoryCountBySlug.get(cat.slug) ?? cat.productCount;
+              const rootCount = facets
+                ? (facetCategoryCountBySlug.get(cat.slug) ?? 0)
+                : cat.productCount;
               const isRootActive = state.category === cat.slug;
               return (
                 <li key={cat.id} className="catalog-filters__cat-node">
@@ -321,9 +367,9 @@ export function CatalogFilters({
                   {cat.children.length > 0 && (
                     <ul className="catalog-filters__subcat-list">
                       {cat.children.map((child) => {
-                        const childCount =
-                          facetCategoryCountBySlug.get(child.slug) ??
-                          child.productCount;
+                        const childCount = facets
+                          ? (facetCategoryCountBySlug.get(child.slug) ?? 0)
+                          : child.productCount;
                         const isChildActive = state.category === child.slug;
                         return (
                           <li key={child.id}>
@@ -403,13 +449,15 @@ export function CatalogFilters({
                     ? String(Math.floor(facets.price.min / 100))
                     : '0'
                 }
-                onChange={(e) =>
+                onChange={(e) => {
+                  const nextMinText = e.target.value;
                   setPriceDraft({
                     urlSignature: priceUrlSignature,
-                    minText: e.target.value,
+                    minText: nextMinText,
                     maxText: maxPriceText,
-                  })
-                }
+                  });
+                  schedulePriceCommit(nextMinText, maxPriceText);
+                }}
                 className="catalog-filters__input"
               />
             </div>
@@ -433,13 +481,15 @@ export function CatalogFilters({
                     ? String(Math.ceil(facets.price.max / 100))
                     : '9999'
                 }
-                onChange={(e) =>
+                onChange={(e) => {
+                  const nextMaxText = e.target.value;
                   setPriceDraft({
                     urlSignature: priceUrlSignature,
                     minText: minPriceText,
-                    maxText: e.target.value,
-                  })
-                }
+                    maxText: nextMaxText,
+                  });
+                  schedulePriceCommit(minPriceText, nextMaxText);
+                }}
                 className="catalog-filters__input"
               />
             </div>

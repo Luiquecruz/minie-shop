@@ -334,6 +334,12 @@ export function ProductListingPage() {
                 className="plp-empty__reset-btn"
                 onClick={() => {
                   void productsQuery.refetch();
+                  if (facetsQuery.isError) {
+                    void facetsQuery.refetch();
+                  }
+                  if (categoriesQuery.isError) {
+                    void categoriesQuery.refetch();
+                  }
                 }}
                 disabled={productsQuery.isFetching}
               >
