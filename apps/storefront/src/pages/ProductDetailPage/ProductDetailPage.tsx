@@ -8,6 +8,7 @@ import { ApiError } from '../../infrastructure/http/errors';
 import { t } from '../../i18n';
 import AttributeIcon from '../../components/AttributeIcon/AttributeIcon';
 import PriceBox from '../../components/PriceBox/PriceBox';
+import ProductImage from '../../components/ProductImage/ProductImage';
 import NotFoundPage from '../NotFoundPage/NotFoundPage';
 import './ProductDetailPage.css';
 
@@ -167,8 +168,7 @@ export function ProductDetailPage() {
   } = product;
 
   const favorited = isFavorite(id);
-  const primaryThumb =
-    images[0]?.variants[0]?.url ?? images[0]?.variants[1]?.url ?? '';
+  const primaryImage = images[0] ?? null;
 
   const handleAddToCart = (): void => {
     addToCart(product);
@@ -275,48 +275,36 @@ export function ProductDetailPage() {
           <section className="pdp-gallery" aria-label={t('pdp.galleryAria')}>
             <div className="pdp-gallery__masonry">
               {images.length > 0 ? (
-                images.map((img, index) => {
-                  const largestVariant =
-                    img.variants[img.variants.length - 1] ?? img.variants[0];
-                  return (
-                    <div
-                      key={img.id}
-                      className="pdp-gallery__item"
-                      data-index={index}
-                    >
-                      {largestVariant ? (
-                        <img
-                          src={largestVariant.url}
-                          alt={img.alt || `${name} - ${index + 1}`}
-                          loading={index === 0 ? 'eager' : 'lazy'}
-                          className="pdp-gallery__image"
-                        />
-                      ) : (
-                        <div
-                          className="pdp-gallery__image pdp-gallery__image--empty"
-                          role="img"
-                          aria-label={t('image.unavailable')}
-                        >
-                          {t('image.unavailable')}
-                        </div>
-                      )}
-                      {images.length > 1 && (
-                        <span className="pdp-gallery__badge">
-                          {index + 1} / {images.length}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })
+                images.map((img, index) => (
+                  <div
+                    key={img.id}
+                    className="pdp-gallery__item"
+                    data-index={index}
+                  >
+                    <ProductImage
+                      image={img}
+                      productName={name}
+                      aspectRatio="4 / 3"
+                      sizes="(max-width: 900px) 100vw, 50vw"
+                      priority={index === 0}
+                      className="pdp-gallery__image"
+                    />
+                    {images.length > 1 && (
+                      <span className="pdp-gallery__badge">
+                        {index + 1} / {images.length}
+                      </span>
+                    )}
+                  </div>
+                ))
               ) : (
                 <div className="pdp-gallery__item" data-index={0}>
-                  <div
-                    className="pdp-gallery__image pdp-gallery__image--empty"
-                    role="img"
-                    aria-label={t('image.unavailable')}
-                  >
-                    {t('image.unavailable')}
-                  </div>
+                  <ProductImage
+                    image={null}
+                    productName={name}
+                    aspectRatio="4 / 3"
+                    priority
+                    className="pdp-gallery__image"
+                  />
                 </div>
               )}
             </div>
@@ -592,19 +580,14 @@ export function ProductDetailPage() {
       <aside className="pdp-floating-bar" aria-label="Floating Quick Actions">
         <div className="pdp-floating-bar__inner">
           <div className="pdp-floating-bar__product">
-            {primaryThumb ? (
-              <img
-                src={primaryThumb}
-                alt=""
-                aria-hidden="true"
-                className="pdp-floating-bar__thumb"
-              />
-            ) : (
-              <div
-                className="pdp-floating-bar__thumb pdp-floating-bar__thumb--empty"
-                aria-hidden="true"
-              />
-            )}
+            <ProductImage
+              image={primaryImage}
+              productName={name}
+              aspectRatio="1 / 1"
+              sizes="48px"
+              decorative
+              className="pdp-floating-bar__thumb"
+            />
             <div className="pdp-floating-bar__meta">
               <span className="pdp-floating-bar__title" title={name}>
                 {name}

@@ -5,6 +5,7 @@ import { useCurrency } from '../../../hooks/useCurrency';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useStockValidationQuery } from '../../../hooks/useProducts';
 import { resolveMaxStock } from '../../../store/slices/cartSlice';
+import ProductImage from '../../../components/ProductImage/ProductImage';
 
 export interface CartItemRowProps {
   itemId: string;
@@ -52,8 +53,6 @@ export const CartItemRow = memo(function CartItemRow({
   const unitPriceCents = item.price.amount;
   const lineTotalCents = unitPriceCents * item.quantity;
   const productPath = `/${item.categorySlug}/${item.slug}`;
-  const thumbSrc =
-    item.image?.variants[0]?.url ?? item.image?.variants[1]?.url ?? '';
 
   const handleIncrement = (): void => {
     setDraftQty(null);
@@ -128,16 +127,13 @@ export const CartItemRow = memo(function CartItemRow({
         className="cart-item__image-link"
         aria-label={`View ${item.name}`}
       >
-        {thumbSrc ? (
-          <img
-            src={thumbSrc}
-            alt={item.image?.alt || item.name}
-            className="cart-item__image"
-            loading="lazy"
-          />
-        ) : (
-          <div className="cart-item__image cart-item__image--empty" aria-hidden="true" />
-        )}
+        <ProductImage
+          image={item.image}
+          productName={item.name}
+          aspectRatio="1 / 1"
+          sizes="96px"
+          className="cart-item__image"
+        />
       </Link>
 
       <div className="cart-item__content">

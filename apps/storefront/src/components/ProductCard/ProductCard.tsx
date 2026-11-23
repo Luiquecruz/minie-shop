@@ -5,6 +5,7 @@ import { useFavorites } from '../../hooks/useFavorites';
 import { t } from '../../i18n';
 import AttributeIcon from '../AttributeIcon/AttributeIcon';
 import PriceBox from '../PriceBox/PriceBox';
+import ProductImage from '../ProductImage/ProductImage';
 import './ProductCard.css';
 
 export interface ProductCardProps {
@@ -46,7 +47,6 @@ export function ProductCard({
 
   const productPath = `/${categorySlug}/${slug}`;
   const favorited = isFavorite(id);
-  const previewSrc = image?.variants[1]?.url ?? image?.variants[0]?.url ?? '';
 
   return (
     <article className="product-card" data-product-id={id} data-product-slug={slug}>
@@ -61,22 +61,13 @@ export function ProductCard({
             <span className="product-card__stock-badge">
               {inStock ? t('card.inStock') : t('card.outOfStock')}
             </span>
-            {previewSrc ? (
-              <img
-                src={previewSrc}
-                alt={image?.alt || name}
-                loading="lazy"
-                className="product-card__image"
-              />
-            ) : (
-              <div
-                className="product-card__image product-card__image--empty"
-                role="img"
-                aria-label={t('image.unavailable')}
-              >
-                {t('image.unavailable')}
-              </div>
-            )}
+            <ProductImage
+              image={image}
+              productName={name}
+              aspectRatio="4 / 3"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
+              className="product-card__image"
+            />
           </div>
         </Link>
 

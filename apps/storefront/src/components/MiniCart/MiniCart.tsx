@@ -5,6 +5,7 @@ import { useCart } from '../../hooks/useCart';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useStockValidationQuery } from '../../hooks/useProducts';
+import ProductImage from '../ProductImage/ProductImage';
 import './MiniCart.css';
 
 interface CartItemProps {
@@ -42,8 +43,6 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
 
   const maxStock = typeof item.stock === 'number' ? item.stock : 99;
   const productPath = `/${item.categorySlug}/${item.slug}`;
-  const thumbSrc =
-    item.image?.variants[0]?.url ?? item.image?.variants[1]?.url ?? '';
 
   const handleIncrement = (): void => {
     if (item.quantity >= maxStock) {
@@ -92,19 +91,14 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
 
   return (
     <li className="mini-cart__item" data-product-id={item.id}>
-      {thumbSrc ? (
-        <img
-          src={thumbSrc}
-          alt=""
-          aria-hidden="true"
-          className="mini-cart__item-image"
-        />
-      ) : (
-        <div
-          className="mini-cart__item-image mini-cart__item-image--empty"
-          aria-hidden="true"
-        />
-      )}
+      <ProductImage
+        image={item.image}
+        productName={item.name}
+        aspectRatio="1 / 1"
+        sizes="72px"
+        decorative
+        className="mini-cart__item-image"
+      />
 
       <div className="mini-cart__item-info">
         <div className="mini-cart__item-top">
