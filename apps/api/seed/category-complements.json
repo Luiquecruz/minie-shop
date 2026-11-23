@@ -1,0 +1,71 @@
+{
+  "complements": [
+    { "categorySlug": "audio", "complementCategorySlug": "bolsas-e-mochilas", "position": 0 },
+    { "categorySlug": "audio", "complementCategorySlug": "tablets-e-energia", "position": 1 },
+    { "categorySlug": "audio", "complementCategorySlug": "wearables-e-vr", "position": 2 },
+
+    { "categorySlug": "perifericos", "complementCategorySlug": "suporte-e-setup", "position": 0 },
+    { "categorySlug": "perifericos", "complementCategorySlug": "home-office", "position": 1 },
+    { "categorySlug": "perifericos", "complementCategorySlug": "oculos-e-relogios", "position": 2 },
+
+    { "categorySlug": "wearables-e-vr", "complementCategorySlug": "audio", "position": 0 },
+    { "categorySlug": "wearables-e-vr", "complementCategorySlug": "esportivos", "position": 1 },
+    { "categorySlug": "wearables-e-vr", "complementCategorySlug": "dia-a-dia", "position": 2 },
+
+    { "categorySlug": "foto-video-e-drones", "complementCategorySlug": "bolsas-e-mochilas", "position": 0 },
+    { "categorySlug": "foto-video-e-drones", "complementCategorySlug": "tablets-e-energia", "position": 1 },
+
+    { "categorySlug": "tablets-e-energia", "complementCategorySlug": "suporte-e-setup", "position": 0 },
+    { "categorySlug": "tablets-e-energia", "complementCategorySlug": "audio", "position": 1 },
+    { "categorySlug": "tablets-e-energia", "complementCategorySlug": "bolsas-e-mochilas", "position": 2 },
+
+    { "categorySlug": "bolsas-e-mochilas", "complementCategorySlug": "dia-a-dia", "position": 0 },
+    { "categorySlug": "bolsas-e-mochilas", "complementCategorySlug": "audio", "position": 1 },
+    { "categorySlug": "bolsas-e-mochilas", "complementCategorySlug": "tablets-e-energia", "position": 2 },
+
+    { "categorySlug": "oculos-e-relogios", "complementCategorySlug": "dia-a-dia", "position": 0 },
+    { "categorySlug": "oculos-e-relogios", "complementCategorySlug": "bolsas-e-mochilas", "position": 1 },
+    { "categorySlug": "oculos-e-relogios", "complementCategorySlug": "casacos-e-moletons", "position": 2 },
+
+    { "categorySlug": "dia-a-dia", "complementCategorySlug": "bolsas-e-mochilas", "position": 0 },
+    { "categorySlug": "dia-a-dia", "complementCategorySlug": "cozinha-e-cafe", "position": 1 },
+
+    { "categorySlug": "suporte-e-setup", "complementCategorySlug": "perifericos", "position": 0 },
+    { "categorySlug": "suporte-e-setup", "complementCategorySlug": "home-office", "position": 1 },
+    { "categorySlug": "suporte-e-setup", "complementCategorySlug": "oculos-e-relogios", "position": 2 },
+
+    { "categorySlug": "home-office", "complementCategorySlug": "perifericos", "position": 0 },
+    { "categorySlug": "home-office", "complementCategorySlug": "suporte-e-setup", "position": 1 },
+    { "categorySlug": "home-office", "complementCategorySlug": "cozinha-e-cafe", "position": 2 },
+
+    { "categorySlug": "cozinha-e-cafe", "complementCategorySlug": "bem-estar", "position": 0 },
+    { "categorySlug": "cozinha-e-cafe", "complementCategorySlug": "dia-a-dia", "position": 1 },
+
+    { "categorySlug": "bem-estar", "complementCategorySlug": "cozinha-e-cafe", "position": 0 },
+    { "categorySlug": "bem-estar", "complementCategorySlug": "home-office", "position": 1 },
+
+    { "categorySlug": "camisetas", "complementCategorySlug": "casacos-e-moletons", "position": 0 },
+    { "categorySlug": "camisetas", "complementCategorySlug": "casuais", "position": 1 },
+    { "categorySlug": "camisetas", "complementCategorySlug": "oculos-e-relogios", "position": 2 },
+
+    { "categorySlug": "casacos-e-moletons", "complementCategorySlug": "camisetas", "position": 0 },
+    { "categorySlug": "casacos-e-moletons", "complementCategorySlug": "casuais", "position": 1 },
+    { "categorySlug": "casacos-e-moletons", "complementCategorySlug": "bolsas-e-mochilas", "position": 2 },
+
+    { "categorySlug": "esportivos", "complementCategorySlug": "wearables-e-vr", "position": 0 },
+    { "categorySlug": "esportivos", "complementCategorySlug": "dia-a-dia", "position": 1 },
+    { "categorySlug": "esportivos", "complementCategorySlug": "camisetas", "position": 2 },
+
+    { "categorySlug": "casuais", "complementCategorySlug": "camisetas", "position": 0 },
+    { "categorySlug": "casuais", "complementCategorySlug": "casacos-e-moletons", "position": 1 },
+    { "categorySlug": "casuais", "complementCategorySlug": "oculos-e-relogios", "position": 2 },
+
+    { "categorySlug": "eletronicos", "complementCategorySlug": "acessorios", "position": 10 },
+    { "categorySlug": "acessorios", "complementCategorySlug": "eletronicos", "position": 10 },
+    { "categorySlug": "casa-e-decoracao", "complementCategorySlug": "acessorios", "position": 10 },
+    { "categorySlug": "vestuario", "complementCategorySlug": "calcados", "position": 10 },
+    { "categorySlug": "vestuario", "complementCategorySlug": "acessorios", "position": 11 },
+    { "categorySlug": "calcados", "complementCategorySlug": "vestuario", "position": 10 },
+    { "categorySlug": "calcados", "complementCategorySlug": "acessorios", "position": 11 }
+  ]
+}

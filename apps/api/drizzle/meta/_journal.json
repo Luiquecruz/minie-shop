@@ -64,6 +64,13 @@
       "when": 1763950000000,
       "tag": "0008_catalog_product_embeddings",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1764000000000,
+      "tag": "0009_recommendations_schema",
+      "breakpoints": true
     }
   ]
 }

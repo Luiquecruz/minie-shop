@@ -7,6 +7,7 @@ import { DatabaseService } from '../database/database.service.js';
 import {
   attributeDefinitions,
   categories,
+  categoryComplements,
   products,
   productVariants,
   stockItems,
@@ -74,6 +75,7 @@ export interface SeedSummary {
   imagesUploaded: number;
   imagesDeduplicated: number;
   productsWithoutImage: number;
+  categoryComplementsCount: number;
 }
 
 export async function runSeed(options?: {
@@ -311,6 +313,42 @@ export async function runSeed(options?: {
         });
     }
 
+    // 4.5 Upsert category complements from versioned JSON (R02)
+    const rawComplements = await readFile(resolve(fixtureDir, 'category-complements.json'), 'utf8');
+    const complementsFixture = JSON.parse(rawComplements) as {
+      complements: Array<{
+        categorySlug: string;
+        complementCategorySlug: string;
+        position: number;
+      }>;
+    };
+
+    let categoryComplementsCount = 0;
+    for (const rule of complementsFixture.complements) {
+      const categoryId = categoryIdBySlug.get(rule.categorySlug);
+      const complementCategoryId = categoryIdBySlug.get(rule.complementCategorySlug);
+      if (!categoryId || !complementCategoryId) {
+        throw new Error(
+          `Missing category for complement rule "${rule.categorySlug}" -> "${rule.complementCategorySlug}"`,
+        );
+      }
+      await databaseService.db
+        .insert(categoryComplements)
+        .values({
+          categoryId,
+          complementCategoryId,
+          position: rule.position,
+        })
+        .onConflictDoUpdate({
+          target: [categoryComplements.categoryId, categoryComplements.complementCategoryId],
+          set: {
+            position: rule.position,
+            updatedAt: new Date(),
+          },
+        });
+      categoryComplementsCount += 1;
+    }
+
     // 5. Enqueue product.changed events in batch for outbox consumers (S05)
     const outboxService = new OutboxService(databaseService);
     const seededProductRows = await databaseService.db
@@ -338,6 +376,7 @@ export async function runSeed(options?: {
       imagesUploaded,
       imagesDeduplicated,
       productsWithoutImage,
+      categoryComplementsCount,
     };
   } finally {
     if (ownsDb) {

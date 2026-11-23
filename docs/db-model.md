@@ -12,8 +12,8 @@ Documentação do modelo relacional do **Progressive Minie Shop** em PostgreSQL 
   - `media` — metadados de ativos de mídia no object storage (bytes nunca vão para o banco).
   - `inventory` — controle de estoque físico e reservas por variante.
   - `identity` — tabelas de clientes, endereços, sessões opacas, tokens de e-mail, staff e RBAC (implementação de auth fica para fase posterior).
-  - `platform` — configurações da loja e trilha de auditoria.
-  - `recommendations` — schema reservado para fases futuras (sem tabelas na Fase 1; `product_embeddings` e `outbox` ficam fora da Fase 1).
+  - `platform` — configurações da loja, trilha de auditoria e outbox transacional (`platform.outbox`, `ADR-0012`).
+  - `recommendations` — relações pré-calculadas entre produtos (`recommendations.product_relations`) e mapa de categorias complementares (`recommendations.category_complements`), conforme [`ADR-0013`](./adr/0013-recomendacoes-pre-calculadas-e-curadoria.md).
 
 ---
 
@@ -209,6 +209,37 @@ erDiagram
   identity_permissions ||--o{ identity_role_permissions : permission_id
 ```
 
+### `recommendations` *(Fase 4 — `R02`)*
+
+```mermaid
+erDiagram
+  recommendations_product_relations {
+    uuid id PK
+    uuid product_id FK
+    uuid related_product_id FK
+    text type
+    text source
+    text method
+    numeric score
+    int position
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  recommendations_category_complements {
+    uuid category_id PK_FK
+    uuid complement_category_id PK_FK
+    int position
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  catalog_products ||--o{ recommendations_product_relations : product_id
+  catalog_products ||--o{ recommendations_product_relations : related_product_id
+  catalog_categories ||--o{ recommendations_category_complements : category_id
+  catalog_categories ||--o{ recommendations_category_complements : complement_category_id
+```
+
 ---
 
 ## 3. Constraints e Índices Principais
@@ -222,4 +253,7 @@ erDiagram
   - `attributes` (`jsonb`) indexado com **GIN**.
   - Índices B-tree em `category_id`, `regular_price_cents` e `special_price_cents`.
 - **Favoritos (`catalog.favorites`):** exige `customer_id IS NOT NULL OR session_id IS NOT NULL`, com índices únicos parciais por `(customer_id, product_id)` e `(session_id, product_id)`.
+- **Recomendações (`recommendations.product_relations` e `recommendations.category_complements`, migration `0009`):**
+  - `product_relations`: `product_id <> related_product_id` (sem auto-relação), `UNIQUE (product_id, related_product_id, type)`, `type IN ('related', 'upsell', 'cross_sell')`, `source IN ('manual', 'auto')` (extensível para `'behavior'` no futuro), `method IN ('vector', 'rule', 'manual')`, invariante `source = 'manual' => method = 'manual' AND score IS NULL` e `source = 'auto' => method IN ('vector', 'rule') AND score IS NOT NULL`, `position >= 0`, FKs `ON DELETE CASCADE` para `catalog.products(id)`. Índices `product_relations_lookup_idx (product_id, type, position)` e `product_relations_reverse_idx (related_product_id)`.
+  - `category_complements`: `PRIMARY KEY (category_id, complement_category_id)`, `category_id <> complement_category_id`, `position >= 0`, FKs `ON DELETE CASCADE` para `catalog.categories(id)`. Índice `category_complements_category_pos_idx (category_id, position)`.
 - **FKs entre schemas:** apontam exclusivamente para a chave primária (`id`) da tabela dona (`ADR-0006`).

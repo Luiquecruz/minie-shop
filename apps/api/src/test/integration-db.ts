@@ -57,6 +57,8 @@ export async function ensureTestDatabaseReady(databaseUrl: string): Promise<void
 export async function truncateCatalogAndMedia(db: NodePgDatabase<typeof schema>): Promise<void> {
   await db.execute(
     sql`TRUNCATE TABLE
+      "recommendations"."product_relations",
+      "recommendations"."category_complements",
       "catalog"."favorites",
       "catalog"."product_images",
       "catalog"."product_variants",
