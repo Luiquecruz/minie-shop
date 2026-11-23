@@ -35,3 +35,4 @@ This directory maintains an **incremental, append-only log** of architectural de
 | [ADR-0010](./0010-meilisearch-como-motor-de-busca.md) | Meilisearch como Motor de Busca atrás de `SearchPort` *(spec ADR-005)* | Backend Fase 3 (`S01`) | Accepted | 2026-11-22 |
 | [ADR-0011](./0011-pipeline-unico-de-embeddings-pgvector.md) | Pipeline Único de Embeddings com pgvector e Embedder `userProvided` *(spec ADR-006)* | Backend Fase 3 (`S01`) | Accepted | 2026-11-22 |
 | [ADR-0012](./0012-outbox-postgres-e-worker-segundo-entrypoint.md) | Outbox Transacional em PostgreSQL e Worker como Segundo Entrypoint *(spec ADR-010)* | Backend Fase 3 (`S03`) | Accepted | 2026-11-22 |
+| [ADR-0013](./0013-recomendacoes-pre-calculadas-e-curadoria.md) | Recomendações Pré-Calculadas em Tabela, Curadoria Manual e Fallback por Regra *(spec ADR-007)* | Backend Fase 4 (`R01`) | Accepted | 2026-11-22 |
