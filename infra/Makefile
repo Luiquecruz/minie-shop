@@ -24,7 +24,7 @@ seed:
 	$(COMPOSE) --profile seed run --rm --build seed
 
 test:
-	cd ../apps/api && pnpm test && pnpm test:integration
+	cd .. && pnpm --filter @minieshop/api test && pnpm --filter @minieshop/api test:integration
 
 reset:
 	$(COMPOSE) --profile ai down -v --remove-orphans

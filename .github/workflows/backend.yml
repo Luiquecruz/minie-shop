@@ -6,6 +6,10 @@ on:
       - main
       - 'feat/**'
     paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
       - 'apps/api/**'
       - 'packages/**'
       - 'infra/**'
@@ -13,6 +17,10 @@ on:
       - '.github/workflows/backend.yml'
   pull_request:
     paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
       - 'apps/api/**'
       - 'packages/**'
       - 'infra/**'
@@ -25,7 +33,7 @@ concurrency:
 
 jobs:
   lint-and-typecheck:
-    name: Lint & Typecheck
+    name: Lint, Typecheck & Build (Backend)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -40,52 +48,28 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+          cache: pnpm
 
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache pnpm store
+      - name: Cache Turborepo
         uses: actions/cache@v4
         with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-backend-${{ hashFiles('packages/contracts/pnpm-lock.yaml', 'apps/api/pnpm-lock.yaml') }}
+          path: .turbo
+          key: ${{ runner.os }}-turbo-backend-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-backend-
+            ${{ runner.os }}-turbo-backend-
 
-      - name: Install and check @minieshop/contracts
-        working-directory: packages/contracts
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm lint
-          pnpm typecheck
-          pnpm build
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Install and check @minieshop/email
-        working-directory: packages/email
+      - name: Build, lint and typecheck backend packages via Turbo
         run: |
-          pnpm install --frozen-lockfile
-          pnpm typecheck
-          pnpm build
-
-      - name: Install and check @minieshop/api
-        working-directory: apps/api
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm lint
-          pnpm typecheck
-          pnpm build
+          pnpm exec turbo run build --filter=@minieshop/api...
+          pnpm exec turbo run lint --filter=@minieshop/api...
+          pnpm exec turbo run typecheck --filter=@minieshop/api...
 
       - name: Dependency audit report (non-blocking)
         continue-on-error: true
-        run: |
-          echo "=== @minieshop/contracts ==="
-          (cd packages/contracts && pnpm audit)
-          echo "=== @minieshop/email ==="
-          (cd packages/email && pnpm audit)
-          echo "=== @minieshop/api ==="
-          (cd apps/api && pnpm audit)
+        run: pnpm audit
 
   api-integration-tests:
     name: API Unit & Integration Tests (Postgres + Meilisearch)
@@ -130,42 +114,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+          cache: pnpm
 
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-backend-${{ hashFiles('packages/contracts/pnpm-lock.yaml', 'apps/api/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-backend-
-
-      - name: Build @minieshop/contracts
-        working-directory: packages/contracts
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
-
-      - name: Build @minieshop/email
-        working-directory: packages/email
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
-
-      - name: Install @minieshop/api dependencies
-        working-directory: apps/api
+      - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run unit tests (contracts, errors, chaos, embedding-text)
-        working-directory: apps/api
-        run: pnpm exec tsx --test src/common/*.test.ts src/modules/search/*.test.ts
+      - name: Build workspace dependencies for API
+        run: pnpm exec turbo run build --filter=@minieshop/api^...
+
+      - name: Run API unit tests
+        run: pnpm --filter @minieshop/api test
 
       - name: Run HTTP API & Search integration suite (Vitest + app_test + Meilisearch)
-        working-directory: apps/api
         env:
           NODE_ENV: test
           TEST_DATABASE_URL: postgresql://minieshop:minieshop_dev_password@127.0.0.1:5432/app_test
@@ -181,10 +141,9 @@ jobs:
           EMBEDDINGS_PROVIDER: fake
           EMBEDDINGS_DIMENSIONS: '768'
           MAIL_TRANSPORT: memory
-        run: pnpm test:integration
+        run: pnpm --filter @minieshop/api test:integration
 
       - name: Run Phase 5 security & identity test suite
-        working-directory: apps/api
         env:
           NODE_ENV: test
           TEST_DATABASE_URL: postgresql://minieshop:minieshop_dev_password@127.0.0.1:5432/app_test
@@ -196,7 +155,7 @@ jobs:
           S3_PUBLIC_BUCKET: minieshop-catalog-public
           S3_PRIVATE_BUCKET: minieshop-private
           MAIL_TRANSPORT: memory
-        run: pnpm test:security
+        run: pnpm --filter @minieshop/api test:security
 
   seed-and-media-tests:
     name: Seed & Media Integration Tests (Postgres + SeaweedFS)
@@ -228,43 +187,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-backend-${{ hashFiles('packages/contracts/pnpm-lock.yaml', 'apps/api/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-backend-
+          cache: pnpm
 
       - name: Start SeaweedFS storage and initialize buckets
         run: |
           docker compose -f infra/compose.yaml --env-file infra/.env.example up -d storage
           docker compose -f infra/compose.yaml --env-file infra/.env.example up --exit-code-from init-buckets init-buckets
 
-      - name: Build @minieshop/contracts
-        working-directory: packages/contracts
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
-
-      - name: Build @minieshop/email
-        working-directory: packages/email
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
-
-      - name: Install @minieshop/api dependencies
-        working-directory: apps/api
+      - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build workspace dependencies for API
+        run: pnpm exec turbo run build --filter=@minieshop/api^...
+
       - name: Run Drizzle migrations and Phase 1 seed/media integration test (T10)
-        working-directory: apps/api
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://minieshop:minieshop_dev_password@127.0.0.1:5432/minieshop
@@ -276,8 +212,8 @@ jobs:
           S3_PUBLIC_BUCKET: minieshop-catalog-public
           S3_PRIVATE_BUCKET: minieshop-private
         run: |
-          pnpm db:migrate
-          pnpm exec tsx --test src/seed/seed-and-media.integration.test.ts
+          pnpm --filter @minieshop/api db:migrate
+          pnpm --filter @minieshop/api test:seed-media
 
       - name: Tear down storage containers
         if: always()
