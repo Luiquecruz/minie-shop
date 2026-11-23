@@ -64,6 +64,8 @@ Códigos estáveis (`ErrorCode`):
 | `DELETE` | `/favorites/:productId` | `no-store` | Remove produto dos favoritos (idempotente, `204`) |
 | `GET` | `/search` | `public, max-age=30` + `ETag` | Busca híbrida/textual via Meilisearch com hidratação no Postgres e fallback em 3 camadas |
 | `GET` | `/search/suggest` | `public, max-age=30` + `ETag` | Autocomplete lexical rápido (até 8 sugestões, sem embeddings) |
+| `GET` | `/products/:slug/recommendations` | `public, max-age=30` + `ETag` | Recomendações pré-calculadas da PDP (`related`, `upsell`, `cross_sell`) hidratadas com estoque atual |
+| `GET` | `/recommendations/cross-sell` | `public, max-age=30` + `ETag` | Cross-sell agregado para o carrinho a partir de `productIds` |
 
 > **Ordem de rotas:** `/products/facets` é registrada antes de `/products/:slug`, e o slug `facets` é reservado tanto por constraint no banco (`products_slug_not_reserved`) quanto na validação do parâmetro `:slug`.
 
@@ -194,6 +196,40 @@ curl -s "http://localhost:3001/search?q=oculos&mode=keyword&limit=5" | jq .
 
 # Autocomplete rápido (máx. 8 sugestões, sempre textual)
 curl -s "http://localhost:3001/search/suggest?q=cafet" | jq .
+```
+
+---
+
+### 4.7 Recomendações da PDP e do Carrinho (`GET /products/:slug/recommendations` e `GET /recommendations/cross-sell`)
+
+As recomendações são **pré-calculadas** em `recommendations.product_relations` (sem kNN na requisição), sempre ordenadas com **curadoria manual primeiro** (`position ASC`) e depois **automáticas** (`score DESC`). Na leitura, a API faz sobrebusca no pool armazenado, hidrata os cards via `CatalogService` (somente `status = 'published'`, preço e estoque sempre atuais), descarta produtos sem estoque (`inStock = false`) e corta no limite pedido.
+
+> **Convenção de chaves:** em `GET /products/:slug/recommendations`, as chaves do JSON seguem exatamente os valores do enum `type`, inclusive `cross_sell` (snake_case). Toda chave pedida em `types` está sempre presente na resposta (lista vazia `[]` quando não há recomendações elegíveis); nunca retorna erro por ausência de relações.
+
+#### `GET /products/:slug/recommendations`
+- `types` *(opcional, default `related,upsell,cross_sell`)* — lista separada por vírgula dos tipos desejados.
+- `limit` *(opcional, inteiro `1..12`)* — sobrescreve o limite por tipo; quando omitido, usa defaults `related: 8`, `upsell: 4`, `cross_sell: 6`.
+- `includeOutOfStock` *(opcional, `true | false`, default `false`)* — parâmetro de depuração para incluir itens sem estoque.
+- Slug inexistente ou não publicado retorna `404 NOT_FOUND` padronizado.
+
+#### `GET /recommendations/cross-sell`
+- `productIds` *(obrigatório)* — lista separada por vírgula de `1..20` UUIDs. IDs já presentes na lista são excluídos da resposta; UUIDs válidos inexistentes ou despublicados são ignorados silenciosamente (resiliência de carrinho).
+- `limit` *(opcional, inteiro `1..12`, default `6`)* — quantidade máxima de itens retornados em `{ "items": ProductCardDTO[] }`.
+- `includeOutOfStock` *(opcional, `true | false`, default `false`)* — parâmetro de depuração.
+- Ordenação: relações manuais primeiro (menor `position`), seguidas pela **soma dos scores** das relações `cross_sell` entre os produtos informados.
+
+```bash
+# Todas as listas da PDP (defaults: related=8, upsell=4, cross_sell=6)
+curl -s "http://localhost:3001/products/fone-de-ouvido-bluetooth-over-ear-pro/recommendations" | jq '{related: (.related | map(.slug)), upsell: (.upsell | map(.slug)), cross_sell: (.cross_sell | map(.slug))}'
+
+# Apenas related e upsell com limite 3
+curl -s "http://localhost:3001/products/earbuds-tws-cancelamento-de-ruido/recommendations?types=related,upsell&limit=3" | jq .
+
+# Depuração incluindo itens sem estoque
+curl -s "http://localhost:3001/products/fone-de-ouvido-bluetooth-over-ear-pro/recommendations?includeOutOfStock=true" | jq .
+
+# Cross-sell agregado para o carrinho (1 ou mais UUIDs)
+curl -s "http://localhost:3001/recommendations/cross-sell?productIds=<UUID_1>,<UUID_2>&limit=6" | jq '.items | map(.slug)'
 ```
 
 ---

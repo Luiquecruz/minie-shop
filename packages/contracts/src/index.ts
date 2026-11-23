@@ -75,3 +75,12 @@ export {
   type SearchSuggestionDTO,
   type SearchSuggestResponseDTO,
 } from './search/public.js';
+
+export {
+  recommendationTypeSchema,
+  productRecommendationsResponseSchema,
+  cartCrossSellResponseSchema,
+  type RecommendationType,
+  type ProductRecommendationsResponseDTO,
+  type CartCrossSellResponseDTO,
+} from './recommendations/public.js';
