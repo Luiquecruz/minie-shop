@@ -36,6 +36,16 @@ async function bootstrapWorker(): Promise<void> {
     },
     recommendations: (event) => recommendationsHandler.handle(event),
     'catalog-category-fanout': (event) => categoryChangedHandler.handle(event),
+    mailer: async (event) => {
+      logger.info(
+        {
+          eventId: event.id,
+          aggregateId: event.aggregateId,
+          kind: event.payload.kind,
+        },
+        'Queued identity email event logged (real mailer transport added in I03)',
+      );
+    },
     noop: async () => {
       // Built-in smoke/heartbeat consumer
     },

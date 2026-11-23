@@ -1,5 +1,12 @@
 export { IdentityModule } from './identity.module.js';
 export { PasswordService, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from './password.service.js';
+export { EmailTokenService, type EmailTokenPurpose } from './email-token.service.js';
+export {
+  CustomerAuthService,
+  GENERIC_REGISTER_MESSAGE,
+  normalizeEmail,
+  toCustomerProfileDto,
+} from './customer-auth.service.js';
 export {
   SessionService,
   CUSTOMER_COOKIE_BASE,

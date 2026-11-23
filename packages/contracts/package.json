@@ -13,6 +13,10 @@
     "./catalog/public": {
       "types": "./dist/catalog/public.d.ts",
       "import": "./dist/catalog/public.js"
+    },
+    "./identity/public": {
+      "types": "./dist/identity/public.d.ts",
+      "import": "./dist/identity/public.js"
     }
   },
   "scripts": {

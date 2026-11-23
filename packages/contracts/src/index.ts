@@ -84,3 +84,18 @@ export {
   type ProductRecommendationsResponseDTO,
   type CartCrossSellResponseDTO,
 } from './recommendations/public.js';
+
+export {
+  customerProfileDtoSchema,
+  registerRequestSchema,
+  genericAcceptedResponseSchema,
+  loginRequestSchema,
+  authCustomerResponseSchema,
+  csrfTokenResponseSchema,
+  type CustomerProfileDTO,
+  type RegisterRequest,
+  type GenericAcceptedResponseDTO,
+  type LoginRequest,
+  type AuthCustomerResponseDTO,
+  type CsrfTokenResponseDTO,
+} from './identity/public.js';

@@ -5,7 +5,14 @@ export type OutboxConsumer =
   | 'embeddings'
   | 'recommendations'
   | 'catalog-category-fanout'
+  | 'mailer'
   | 'noop';
+
+export type IdentityEmailKind =
+  | 'verify_email'
+  | 'reset_password'
+  | 'already_registered'
+  | 'password_changed';
 
 export interface OutboxEventMap {
   'product.changed': {
@@ -22,6 +29,15 @@ export interface OutboxEventMap {
     aggregateType: 'category';
     aggregateId: string;
     payload: { categoryId: string };
+  };
+  'identity.email_requested': {
+    aggregateType: 'customer';
+    aggregateId: string;
+    payload: {
+      kind: IdentityEmailKind;
+      customerId: string;
+      emailTokenId?: string;
+    };
   };
   'outbox.ping': {
     aggregateType: 'system';
@@ -44,6 +60,7 @@ export const OUTBOX_SUBSCRIPTIONS: Record<OutboxEventType, readonly OutboxConsum
   'product.changed': ['search-index', 'embeddings', 'recommendations'],
   'product.embedding_updated': ['search-index', 'recommendations'],
   'category.changed': ['catalog-category-fanout'],
+  'identity.email_requested': ['mailer'],
   'outbox.ping': ['noop'],
 };
 
