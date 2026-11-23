@@ -286,4 +286,54 @@ describe('R03 — Relations Job, Outbox Handlers, Manual Override & Rule/Vector 
     expect(p1Upsells.some((r) => r.relatedProductId === p3.id)).toBe(true);
     expect(await outboxService.countPending(['recommendations'])).toBe(0);
   });
+
+  it('enforces cross-sell diversity cap per complementary category and prevents duplicate triples', async () => {
+    const srcCat = await createCategory(databaseService.db, { slug: 'src-div' });
+    const compA = await createCategory(databaseService.db, { slug: 'comp-a' });
+    const compB = await createCategory(databaseService.db, { slug: 'comp-b' });
+
+    await databaseService.db.insert(categoryComplements).values([
+      { categoryId: srcCat.id, complementCategoryId: compA.id, position: 0 },
+      { categoryId: srcCat.id, complementCategoryId: compB.id, position: 1 },
+    ]);
+
+    const pSrc = await createProduct(databaseService.db, {
+      categoryId: srcCat.id,
+      slug: 'src-item',
+      regularPriceCents: 10000,
+    });
+    // 4 items in compA, 2 items in compB -> default maxPerCategory=2 should take at most 2 from compA + 2 from compB
+    const compAIds: string[] = [];
+    for (let i = 1; i <= 4; i++) {
+      const p = await createProduct(databaseService.db, {
+        categoryId: compA.id,
+        slug: `comp-a-${i}`,
+        regularPriceCents: 10000 + i * 100,
+      });
+      compAIds.push(p.id);
+    }
+    const compBIds: string[] = [];
+    for (let i = 1; i <= 2; i++) {
+      const p = await createProduct(databaseService.db, {
+        categoryId: compB.id,
+        slug: `comp-b-${i}`,
+        regularPriceCents: 10000 + i * 100,
+      });
+      compBIds.push(p.id);
+    }
+
+    await relationsService.recompute(pSrc.id, { cascade: false });
+
+    const crossRows = await databaseService.db
+      .select()
+      .from(productRelations)
+      .where(and(eq(productRelations.productId, pSrc.id), eq(productRelations.type, 'cross_sell')));
+
+    const fromA = crossRows.filter((r) => compAIds.includes(r.relatedProductId));
+    const fromB = crossRows.filter((r) => compBIds.includes(r.relatedProductId));
+
+    expect(fromA.length).toBeLessThanOrEqual(2);
+    expect(fromB.length).toBe(2);
+    expect(new Set(crossRows.map((r) => r.relatedProductId)).size).toBe(crossRows.length);
+  });
 });

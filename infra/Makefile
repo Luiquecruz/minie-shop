@@ -27,7 +27,7 @@ test:
 	cd ../apps/api && pnpm test && pnpm test:integration
 
 reset:
-	$(COMPOSE) down -v --remove-orphans
+	$(COMPOSE) --profile ai down -v --remove-orphans
 	$(COMPOSE) up -d --build
 	$(COMPOSE) --profile seed run --rm --build seed
 	$(COMPOSE) exec -T worker pnpm outbox:wait-drain --consumers=search-index,catalog-category-fanout,recommendations --timeout=60000

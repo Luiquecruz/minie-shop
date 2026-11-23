@@ -24,7 +24,7 @@
     "relations:status": "tsx src/cli/relations-status.ts",
     "relations:add": "tsx src/cli/relations-curate.ts add",
     "relations:remove": "tsx src/cli/relations-curate.ts remove",
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "test:integration": "vitest run",
     "build": "eslint src/ && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

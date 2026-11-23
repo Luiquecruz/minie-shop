@@ -416,7 +416,7 @@ export async function runSeed(options?: {
             eventType: 'product.changed' as const,
             aggregateType: 'product' as const,
             aggregateId: row.id,
-            payload: { productId: row.id },
+            payload: { productId: row.id, cascade: false },
           })),
         );
       });
