@@ -1,11 +1,12 @@
 import 'reflect-metadata';
 import { createServer } from 'node:http';
 import { NestFactory } from '@nestjs/core';
-import { pino } from 'pino';
 import { AppModule } from '../app.module.js';
-import { loadEnv } from '../config/env.js';
+import { createAppLogger } from '../common/logger.js';
+import { assertSecurityConfig, loadEnv } from '../config/env.js';
 import { DatabaseService } from '../database/database.service.js';
 import { CategoryChangedOutboxHandler } from '../modules/catalog/index.js';
+import { SessionService } from '../modules/identity/index.js';
 import { OutboxService } from '../modules/platform/index.js';
 import { RecommendationsOutboxHandler } from '../modules/recommendations/index.js';
 import { EmbeddingsOutboxHandler, SearchIndexOutboxHandler } from '../modules/search/index.js';
@@ -13,10 +14,8 @@ import { OutboxWorkerRunner, type OutboxEventHandler } from './worker.runner.js'
 
 async function bootstrapWorker(): Promise<void> {
   const env = loadEnv();
-  const logger = pino({
-    level: env.LOG_LEVEL,
-    base: { service: 'minieshop-worker', env: env.NODE_ENV },
-  });
+  assertSecurityConfig(env);
+  const logger = createAppLogger(env, 'minieshop-worker');
 
   const appContext = await NestFactory.createApplicationContext(AppModule, {
     logger: ['error', 'warn'],
@@ -24,6 +23,7 @@ async function bootstrapWorker(): Promise<void> {
 
   const outboxService = appContext.get(OutboxService);
   const databaseService = appContext.get(DatabaseService);
+  const sessionService = appContext.get(SessionService);
   const searchIndexHandler = appContext.get(SearchIndexOutboxHandler);
   const embeddingsHandler = appContext.get(EmbeddingsOutboxHandler);
   const categoryChangedHandler = appContext.get(CategoryChangedOutboxHandler);
@@ -73,6 +73,21 @@ async function bootstrapWorker(): Promise<void> {
   });
 
   runner.start();
+  const sessionCleanupTimer = setInterval(() => {
+    void sessionService
+      .cleanupExpiredSessions()
+      .then((result) => {
+        if (!result.skipped && result.deleted > 0) {
+          logger.info({ deleted: result.deleted }, 'Cleaned up expired/revoked sessions');
+        }
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error({ err: message }, 'Session cleanup iteration failed');
+      });
+  }, env.SESSION_CLEANUP_INTERVAL_MS);
+  sessionCleanupTimer.unref();
+
   logger.info(
     { healthPort: env.WORKER_HEALTH_PORT, consumers: Object.keys(handlers) },
     'Outbox worker started',
@@ -85,6 +100,7 @@ async function bootstrapWorker(): Promise<void> {
     }
     shuttingDown = true;
     logger.info({ signal }, 'Graceful shutdown initiated for worker');
+    clearInterval(sessionCleanupTimer);
     await runner.stop();
     await new Promise<void>((resolve) => healthServer.close(() => resolve()));
     await appContext.close();

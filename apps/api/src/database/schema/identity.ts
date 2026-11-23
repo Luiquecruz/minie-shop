@@ -18,6 +18,7 @@ export const customers = identitySchema.table('customers', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   fullName: text('full_name').notNull(),
+  phone: text('phone'),
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -31,8 +32,9 @@ export const customerAddresses = identitySchema.table(
     customerId: uuid('customer_id')
       .notNull()
       .references(() => customers.id, { onDelete: 'cascade' }),
-    label: text('label').notNull(),
+    label: text('label'),
     recipientName: text('recipient_name').notNull(),
+    phone: text('phone'),
     street: text('street').notNull(),
     number: text('number').notNull(),
     complement: text('complement'),
@@ -110,7 +112,9 @@ export const sessions = identitySchema.table(
     staffUserId: uuid('staff_user_id').references(() => staffUsers.id, { onDelete: 'cascade' }),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    absoluteExpiresAt: timestamp('absolute_expires_at', { withTimezone: true }).notNull(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -120,6 +124,7 @@ export const sessions = identitySchema.table(
       sql`(${table.subjectType} = 'customer' AND ${table.customerId} IS NOT NULL AND ${table.staffUserId} IS NULL) OR (${table.subjectType} = 'staff' AND ${table.staffUserId} IS NOT NULL AND ${table.customerId} IS NULL)`,
     ),
     index('sessions_expires_idx').on(table.expiresAt),
+    index('sessions_absolute_expires_idx').on(table.absoluteExpiresAt),
   ],
 );
 

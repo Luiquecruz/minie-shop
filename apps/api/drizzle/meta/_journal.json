@@ -71,6 +71,13 @@
       "when": 1764000000000,
       "tag": "0009_recommendations_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1764050000000,
+      "tag": "0010_identity_phase5_and_audit",
+      "breakpoints": true
     }
   ]
 }

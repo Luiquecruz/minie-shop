@@ -52,6 +52,10 @@ function mapHttpStatusToErrorCode(statusCode: number): ErrorCode {
   switch (statusCode) {
     case 400:
       return 'VALIDATION_ERROR';
+    case 401:
+      return 'UNAUTHENTICATED';
+    case 403:
+      return 'FORBIDDEN';
     case 404:
       return 'NOT_FOUND';
     case 409:
@@ -72,6 +76,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const requestId = typeof request.id === 'string' ? request.id : String(request.id ?? 'unknown');
 
     if (exception instanceof AppHttpError) {
+      if (exception.headers) {
+        for (const [headerName, headerValue] of Object.entries(exception.headers)) {
+          void reply.header(headerName, headerValue);
+        }
+      }
       const payload = buildErrorResponse({
         code: exception.code,
         message: exception.message,

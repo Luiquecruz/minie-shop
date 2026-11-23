@@ -19,6 +19,11 @@ export const auditLog = platformSchema.table(
     action: text('action').notNull(),
     entityType: text('entity_type').notNull(),
     entityId: text('entity_id').notNull(),
+    beforeState: jsonb('before_state').$type<Record<string, unknown> | null>(),
+    afterState: jsonb('after_state').$type<Record<string, unknown> | null>(),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    requestId: text('request_id'),
     metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -26,6 +31,8 @@ export const auditLog = platformSchema.table(
     check('audit_log_actor_type_valid', sql`${table.actorType} IN ('system', 'customer', 'staff')`),
     index('audit_log_entity_idx').on(table.entityType, table.entityId),
     index('audit_log_created_idx').on(table.createdAt),
+    index('audit_log_actor_idx').on(table.actorType, table.actorId),
+    index('audit_log_action_idx').on(table.action),
   ],
 );
 

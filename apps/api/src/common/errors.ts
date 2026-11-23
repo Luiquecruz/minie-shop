@@ -5,18 +5,21 @@ export class AppHttpError extends Error {
   public readonly statusCode: number;
   public readonly code: ErrorCode;
   public readonly details?: ErrorDetail[];
+  public readonly headers?: Record<string, string>;
 
   constructor(params: {
     statusCode: number;
     code: ErrorCode;
     message: string;
     details?: ErrorDetail[];
+    headers?: Record<string, string>;
   }) {
     super(params.message);
     this.name = 'AppHttpError';
     this.statusCode = params.statusCode;
     this.code = params.code;
     this.details = params.details;
+    this.headers = params.headers;
   }
 }
 
@@ -44,6 +47,64 @@ export function notFoundError(message = 'Resource not found'): AppHttpError {
     statusCode: 404,
     code: 'NOT_FOUND',
     message,
+  });
+}
+
+export function conflictError(message = 'Resource conflict'): AppHttpError {
+  return new AppHttpError({
+    statusCode: 409,
+    code: 'CONFLICT',
+    message,
+  });
+}
+
+export function unauthenticatedError(message = 'Authentication required'): AppHttpError {
+  return new AppHttpError({
+    statusCode: 401,
+    code: 'UNAUTHENTICATED',
+    message,
+  });
+}
+
+export function invalidCredentialsError(): AppHttpError {
+  return new AppHttpError({
+    statusCode: 401,
+    code: 'INVALID_CREDENTIALS',
+    message: 'Invalid email or password',
+  });
+}
+
+export function emailNotVerifiedError(): AppHttpError {
+  return new AppHttpError({
+    statusCode: 403,
+    code: 'EMAIL_NOT_VERIFIED',
+    message: 'Email address must be verified before signing in',
+  });
+}
+
+export function forbiddenError(message = 'Insufficient permissions'): AppHttpError {
+  return new AppHttpError({
+    statusCode: 403,
+    code: 'FORBIDDEN',
+    message,
+  });
+}
+
+export function csrfInvalidError(): AppHttpError {
+  return new AppHttpError({
+    statusCode: 403,
+    code: 'CSRF_INVALID',
+    message: 'CSRF validation failed',
+  });
+}
+
+export function rateLimitedError(retryAfterSeconds: number): AppHttpError {
+  const retry = Math.max(1, Math.ceil(retryAfterSeconds));
+  return new AppHttpError({
+    statusCode: 429,
+    code: 'RATE_LIMITED',
+    message: 'Too many requests. Please try again later.',
+    headers: { 'retry-after': String(retry) },
   });
 }
 

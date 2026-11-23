@@ -8,6 +8,11 @@ export const errorCodeSchema = z.enum([
   'CHAOS_FAILURE',
   'BAD_REQUEST',
   'CONFLICT',
+  'INVALID_CREDENTIALS',
+  'EMAIL_NOT_VERIFIED',
+  'UNAUTHENTICATED',
+  'FORBIDDEN',
+  'CSRF_INVALID',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

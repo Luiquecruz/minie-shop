@@ -491,8 +491,14 @@ describe('Phase 2 API Integration Suite (real Postgres app_test + Fastify inject
       status: 'draft',
     });
 
+    const validOrigin = 'http://localhost:5199';
+
     // First POST creates signed HttpOnly SameSite=Lax cookie
-    const p1 = await app.inject({ method: 'POST', url: `/favorites/${pub.id}` });
+    const p1 = await app.inject({
+      method: 'POST',
+      url: `/favorites/${pub.id}`,
+      headers: { origin: validOrigin },
+    });
     expect(p1.statusCode).toBe(200);
     expect(p1.headers['cache-control']).toBe('no-store');
     expect(favoriteCreatedResponseSchema.parse(p1.json())).toEqual({ favorited: true });
@@ -509,7 +515,7 @@ describe('Phase 2 API Integration Suite (real Postgres app_test + Fastify inject
     const p2 = await app.inject({
       method: 'POST',
       url: `/favorites/${pub.id}`,
-      headers: { cookie: cookiePair },
+      headers: { cookie: cookiePair, origin: validOrigin },
     });
     expect(p2.statusCode).toBe(200);
     expect(p2.headers['set-cookie']).toBeUndefined();
@@ -528,7 +534,7 @@ describe('Phase 2 API Integration Suite (real Postgres app_test + Fastify inject
     const d1 = await app.inject({
       method: 'DELETE',
       url: `/favorites/${pub.id}`,
-      headers: { cookie: cookiePair },
+      headers: { cookie: cookiePair, origin: validOrigin },
     });
     expect(d1.statusCode).toBe(204);
     expect(d1.headers['cache-control']).toBe('no-store');
@@ -536,7 +542,7 @@ describe('Phase 2 API Integration Suite (real Postgres app_test + Fastify inject
     const d2 = await app.inject({
       method: 'DELETE',
       url: `/favorites/${pub.id}`,
-      headers: { cookie: cookiePair },
+      headers: { cookie: cookiePair, origin: validOrigin },
     });
     expect(d2.statusCode).toBe(204);
 
@@ -553,7 +559,7 @@ describe('Phase 2 API Integration Suite (real Postgres app_test + Fastify inject
       const r404 = await app.inject({
         method: 'POST',
         url: `/favorites/${badId}`,
-        headers: { cookie: cookiePair },
+        headers: { cookie: cookiePair, origin: validOrigin },
       });
       expect(r404.statusCode).toBe(404);
       expect(apiErrorResponseSchema.parse(r404.json()).error.code).toBe('NOT_FOUND');
@@ -563,7 +569,7 @@ describe('Phase 2 API Integration Suite (real Postgres app_test + Fastify inject
     const r400 = await app.inject({
       method: 'POST',
       url: '/favorites/not-a-uuid',
-      headers: { cookie: cookiePair },
+      headers: { cookie: cookiePair, origin: validOrigin },
     });
     expect(r400.statusCode).toBe(400);
     expect(apiErrorResponseSchema.parse(r400.json()).error.code).toBe('VALIDATION_ERROR');

@@ -5,11 +5,13 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import fastifyCookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
-import { pino, type Logger } from 'pino';
+import fastifyHelmet from '@fastify/helmet';
+import type { DestinationStream, Logger } from 'pino';
 import { AppModule } from './app.module.js';
 import { assertChaosSafety, registerChaosHook } from './common/chaos.middleware.js';
 import { GlobalExceptionFilter } from './common/global-exception.filter.js';
-import { loadEnv, parseCorsOrigins, type Env } from './config/env.js';
+import { createAppLogger } from './common/logger.js';
+import { assertSecurityConfig, loadEnv, parseCorsOrigins, type Env } from './config/env.js';
 
 export interface CreateAppResult {
   app: NestFastifyApplication;
@@ -17,17 +19,26 @@ export interface CreateAppResult {
   logger: Logger;
 }
 
-export async function createApp(options?: { env?: Env }): Promise<CreateAppResult> {
+const NO_STORE_PREFIXES = ['/me', '/auth', '/admin'];
+
+function shouldApplyNoStore(urlPath: string): boolean {
+  const path = urlPath.split('?')[0] ?? urlPath;
+  return NO_STORE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
+export async function createApp(options?: {
+  env?: Env;
+  loggerDestination?: DestinationStream;
+}): Promise<CreateAppResult> {
   const env = options?.env ?? loadEnv();
   assertChaosSafety(env);
+  assertSecurityConfig(env);
 
-  const logger = pino({
-    level: env.LOG_LEVEL,
-    base: { service: 'minieshop-api', env: env.NODE_ENV },
-  });
+  const logger = createAppLogger(env, 'minieshop-api', options?.loggerDestination);
 
   const adapter = new FastifyAdapter({
     loggerInstance: logger,
+    trustProxy: env.TRUST_PROXY,
     requestIdHeader: 'x-request-id',
     genReqId: (req: IncomingMessage) => {
       const incoming = req.headers['x-request-id'];
@@ -40,6 +51,22 @@ export async function createApp(options?: { env?: Env }): Promise<CreateAppResul
 
   const fastifyInstance = adapter.getInstance();
 
+  await fastifyInstance.register(fastifyHelmet, {
+    global: true,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    frameguard: { action: 'deny' },
+    hidePoweredBy: true,
+    hsts: env.COOKIE_SECURE
+      ? { maxAge: 31_536_000, includeSubDomains: true, preload: false }
+      : false,
+    referrerPolicy: { policy: 'no-referrer' },
+  });
+
   const allowedOrigins = parseCorsOrigins(env.CORS_ORIGINS);
   await fastifyInstance.register(fastifyCors, {
     origin: allowedOrigins.length > 0 ? allowedOrigins : false,
@@ -49,11 +76,12 @@ export async function createApp(options?: { env?: Env }): Promise<CreateAppResul
       'content-type',
       'authorization',
       'x-request-id',
+      'x-csrf-token',
       'x-chaos-delay',
       'x-chaos-fail',
       'x-chaos-status',
     ],
-    exposedHeaders: ['x-request-id', 'etag'],
+    exposedHeaders: ['x-request-id', 'etag', 'retry-after'],
   });
 
   await fastifyInstance.register(fastifyCookie, {
@@ -64,6 +92,11 @@ export async function createApp(options?: { env?: Env }): Promise<CreateAppResul
 
   fastifyInstance.addHook('onSend', async (request, reply) => {
     void reply.header('x-request-id', request.id);
+    reply.removeHeader('x-powered-by');
+    reply.removeHeader('server');
+    if (shouldApplyNoStore(request.url)) {
+      void reply.header('cache-control', 'no-store');
+    }
   });
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, adapter, {

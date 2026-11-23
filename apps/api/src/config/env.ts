@@ -6,6 +6,10 @@ const booleanEnvSchema = z
   .default('false')
   .transform((value) => value === 'true' || value === '1');
 
+export const DEV_DEFAULT_COOKIE_SECRET = 'minieshop-dev-cookie-secret-change-me';
+export const DEV_DEFAULT_CSRF_SECRET = 'minieshop-dev-csrf-secret-change-me-32chars';
+export const DEV_DEFAULT_EMAIL_TOKEN_SECRET = 'minieshop-dev-email-token-secret-change-me';
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
@@ -20,10 +24,30 @@ export const envSchema = z.object({
   S3_PUBLIC_BUCKET: z.string().min(1, 'S3_PUBLIC_BUCKET is required'),
   S3_PRIVATE_BUCKET: z.string().min(1, 'S3_PRIVATE_BUCKET is required'),
   CORS_ORIGINS: z.string().default('http://localhost:5199'),
+  STOREFRONT_URL: z.string().url('STOREFRONT_URL must be a valid URL').default('http://localhost:5199'),
   COOKIE_SECRET: z
     .string()
     .min(16, 'COOKIE_SECRET must be at least 16 characters')
-    .default('minieshop-dev-cookie-secret-change-me'),
+    .default(DEV_DEFAULT_COOKIE_SECRET),
+  COOKIE_SECURE: booleanEnvSchema,
+  CSRF_SECRET: z
+    .string()
+    .min(32, 'CSRF_SECRET must be at least 32 characters')
+    .default(DEV_DEFAULT_CSRF_SECRET),
+  EMAIL_TOKEN_SECRET: z
+    .string()
+    .min(32, 'EMAIL_TOKEN_SECRET must be at least 32 characters')
+    .default(DEV_DEFAULT_EMAIL_TOKEN_SECRET),
+  TRUST_PROXY: booleanEnvSchema,
+  CUSTOMER_SESSION_IDLE_TTL_SECONDS: z.coerce.number().int().min(60).default(7 * 24 * 60 * 60),
+  CUSTOMER_SESSION_ABSOLUTE_TTL_SECONDS: z.coerce.number().int().min(60).default(30 * 24 * 60 * 60),
+  STAFF_SESSION_IDLE_TTL_SECONDS: z.coerce.number().int().min(60).default(30 * 60),
+  STAFF_SESSION_ABSOLUTE_TTL_SECONDS: z.coerce.number().int().min(60).default(8 * 60 * 60),
+  SESSION_TOUCH_THRESHOLD_SECONDS: z.coerce.number().int().min(0).default(300),
+  SESSION_CLEANUP_INTERVAL_MS: z.coerce.number().int().min(1_000).default(15 * 60 * 1_000),
+  ARGON2_MEMORY_COST: z.coerce.number().int().min(1024).max(1_048_576).default(19_456),
+  ARGON2_TIME_COST: z.coerce.number().int().min(1).max(20).default(2),
+  ARGON2_PARALLELISM: z.coerce.number().int().min(1).max(16).default(1),
   CHAOS_ENABLED: booleanEnvSchema,
   MEILI_HOST: z.string().url('MEILI_HOST must be a valid URL').default('http://localhost:7700'),
   MEILI_API_KEY: z.string().optional(),
@@ -80,6 +104,36 @@ export function parseCorsOrigins(raw: string): string[] {
     .split(',')
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
+}
+
+export function assertSecurityConfig(env: Env): void {
+  if (env.NODE_ENV !== 'production') {
+    return;
+  }
+
+  const errors: string[] = [];
+
+  if (!env.COOKIE_SECURE) {
+    errors.push('COOKIE_SECURE must be true in production');
+  }
+  if (env.COOKIE_SECRET.length < 32 || env.COOKIE_SECRET === DEV_DEFAULT_COOKIE_SECRET) {
+    errors.push('COOKIE_SECRET must be a strong non-default secret (>= 32 chars) in production');
+  }
+  if (env.CSRF_SECRET.length < 32 || env.CSRF_SECRET === DEV_DEFAULT_CSRF_SECRET) {
+    errors.push('CSRF_SECRET must be a strong non-default secret (>= 32 chars) in production');
+  }
+  if (
+    env.EMAIL_TOKEN_SECRET.length < 32 ||
+    env.EMAIL_TOKEN_SECRET === DEV_DEFAULT_EMAIL_TOKEN_SECRET
+  ) {
+    errors.push(
+      'EMAIL_TOKEN_SECRET must be a strong non-default secret (>= 32 chars) in production',
+    );
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Invalid production security configuration:\n  - ${errors.join('\n  - ')}`);
+  }
 }
 
 export function loadEnv(raw: NodeJS.ProcessEnv = process.env): Env {
