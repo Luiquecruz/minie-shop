@@ -27,6 +27,7 @@
     "staff:create": "tsx src/cli/staff-create.ts",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "test:integration": "vitest run",
+    "test:security": "vitest run src/test/identity-base.integration.spec.ts src/test/customer-auth.integration.spec.ts src/test/email-flows.integration.spec.ts src/test/staff-rbac.integration.spec.ts src/test/customer-profile.integration.spec.ts src/test/favorites-merge.integration.spec.ts src/test/audit-log.integration.spec.ts src/test/security-matrix.integration.spec.ts",
     "test:e2e:mailpit": "RUN_MAILPIT_E2E=true vitest run src/test/mailpit.e2e.spec.ts",
     "build": "eslint src/ && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

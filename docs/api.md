@@ -59,13 +59,33 @@ Códigos estáveis (`ErrorCode`):
 | `GET` | `/products` | `public, max-age=30` + `ETag` | Listagem paginada por cursor com filtros, atributos e FTS |
 | `GET` | `/products/facets` | `public, max-age=30` + `ETag` | Facetas disjuntivas (preço, categorias, atributos filtráveis) |
 | `GET` | `/products/:slug` | `public, max-age=30` + `ETag` | Detalhe completo do produto com breadcrumbs e galeria |
-| `GET` | `/favorites` | `no-store` | Lista de `productIds` favoritados pela sessão anônima |
-| `POST` | `/favorites/:productId` | `no-store` | Adiciona produto aos favoritos (idempotente, `200`) |
-| `DELETE` | `/favorites/:productId` | `no-store` | Remove produto dos favoritos (idempotente, `204`) |
+| `GET` | `/favorites` | `no-store` | Lista de `productIds` favoritados (conta autenticada ou sessão anônima `anon_id`) |
+| `POST` | `/favorites/:productId` | `no-store` | Adiciona produto aos favoritos (idempotente, `200`; exige `Origin` válido + `x-csrf-token` quando autenticado) |
+| `DELETE` | `/favorites/:productId` | `no-store` | Remove produto dos favoritos (idempotente, `204`; exige `Origin` válido + `x-csrf-token` quando autenticado) |
 | `GET` | `/search` | `public, max-age=30` + `ETag` | Busca híbrida/textual via Meilisearch com hidratação no Postgres e fallback em 3 camadas |
 | `GET` | `/search/suggest` | `public, max-age=30` + `ETag` | Autocomplete lexical rápido (até 8 sugestões, sem embeddings) |
 | `GET` | `/products/:slug/recommendations` | `public, max-age=30` + `ETag` | Recomendações pré-calculadas da PDP (`related`, `upsell`, `cross_sell`) hidratadas com estoque atual |
 | `GET` | `/recommendations/cross-sell` | `public, max-age=30` + `ETag` | Cross-sell agregado para o carrinho a partir de `productIds` |
+| `POST` | `/auth/register` | `no-store` | Cadastro anti-enumeração (`202` genérico, não cria sessão, enfileira e-mail de verificação) |
+| `POST` | `/auth/login` | `no-store` | Login do cliente (define `sid_customer` / `__Host-sid_customer`, mescla favoritos de `anon_id` e limpa `anon_id`) |
+| `POST` | `/auth/logout` | `no-store` | Encerra a sessão atual do cliente (`204`, exige `Origin` + `x-csrf-token`) |
+| `POST` | `/auth/logout-all` | `no-store` | Encerra todas as sessões do cliente (`204`, exige `Origin` + `x-csrf-token`) |
+| `GET` | `/auth/csrf` | `no-store` | Retorna token CSRF atrelado à sessão atual do cliente |
+| `POST` | `/auth/verify-email` | `no-store` | Consome token assinado de verificação (24h, uso único) |
+| `POST` | `/auth/resend-verification` | `no-store` | Reenvia verificação (`202` genérico, com rate limit) |
+| `POST` | `/auth/forgot-password` | `no-store` | Inicia redefinição de senha (`202` genérico, com rate limit) |
+| `POST` | `/auth/reset-password` | `no-store` | Consome token de redefinição (1h), troca senha e revoga todas as sessões |
+| `POST` | `/auth/change-password` | `no-store` | Altera senha autenticada e revoga as demais sessões |
+| `GET` / `PATCH` | `/me` | `no-store` | Lê ou atualiza perfil do cliente (`fullName`, `phone`) |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/me/addresses` (`/:id`) | `no-store` | CRUD de endereços do cliente (máx. 10, padrão único, posse com `404`) |
+| `POST` | `/admin/auth/login` | `no-store` | Login do staff (define `sid_staff` / `__Host-sid_staff`, prazos curtos) |
+| `POST` | `/admin/auth/logout` (`-all`) | `no-store` | Encerra sessão atual ou todas as sessões do staff (`204`) |
+| `GET` | `/admin/auth/csrf` | `no-store` | Retorna token CSRF atrelado à sessão atual do staff |
+| `GET` | `/admin/me` | `no-store` | Perfil, papéis e permissões do staff autenticado |
+| `GET` | `/admin/customers` | `no-store` | Listagem paginada mínima de clientes (`customers:read`, auditada como `customers.listed`) |
+| `GET` | `/admin/staff` | `no-store` | Listagem da equipe e papéis (`staff:manage`) |
+| `PUT` | `/admin/staff/:id/roles` | `no-store` | Atualiza papéis do staff (`staff:manage`, proteção do último admin, auditada) |
+| `GET` | `/admin/audit-log` | `no-store` | Consulta paginada por cursor da trilha de auditoria (`audit:read`) |
 
 > **Ordem de rotas:** `/products/facets` é registrada antes de `/products/:slug`, e o slug `facets` é reservado tanto por constraint no banco (`products_slug_not_reserved`) quanto na validação do parâmetro `:slug`.
 

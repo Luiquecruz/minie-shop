@@ -77,6 +77,16 @@ jobs:
           pnpm typecheck
           pnpm build
 
+      - name: Dependency audit report (non-blocking)
+        continue-on-error: true
+        run: |
+          echo "=== @minieshop/contracts ==="
+          (cd packages/contracts && pnpm audit)
+          echo "=== @minieshop/email ==="
+          (cd packages/email && pnpm audit)
+          echo "=== @minieshop/api ==="
+          (cd apps/api && pnpm audit)
+
   api-integration-tests:
     name: API Unit & Integration Tests (Postgres + Meilisearch)
     runs-on: ubuntu-latest
@@ -170,7 +180,23 @@ jobs:
           MEILI_MASTER_KEY: minieshop_dev_meili_master_key_32chars
           EMBEDDINGS_PROVIDER: fake
           EMBEDDINGS_DIMENSIONS: '768'
+          MAIL_TRANSPORT: memory
         run: pnpm test:integration
+
+      - name: Run Phase 5 security & identity test suite
+        working-directory: apps/api
+        env:
+          NODE_ENV: test
+          TEST_DATABASE_URL: postgresql://minieshop:minieshop_dev_password@127.0.0.1:5432/app_test
+          S3_ENDPOINT: http://127.0.0.1:8333
+          S3_PUBLIC_ENDPOINT: http://127.0.0.1:8333
+          S3_REGION: us-east-1
+          S3_ACCESS_KEY_ID: minieshop_dev_access_key
+          S3_SECRET_ACCESS_KEY: minieshop_dev_secret_key
+          S3_PUBLIC_BUCKET: minieshop-catalog-public
+          S3_PRIVATE_BUCKET: minieshop-private
+          MAIL_TRANSPORT: memory
+        run: pnpm test:security
 
   seed-and-media-tests:
     name: Seed & Media Integration Tests (Postgres + SeaweedFS)
