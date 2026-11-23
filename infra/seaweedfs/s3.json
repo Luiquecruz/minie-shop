@@ -1,0 +1,26 @@
+{
+  "identities": [
+    {
+      "name": "anonymous",
+      "actions": [
+        "Read:minieshop-catalog-public"
+      ]
+    },
+    {
+      "name": "admin",
+      "credentials": [
+        {
+          "accessKey": "minieshop_dev_access_key",
+          "secretKey": "minieshop_dev_secret_key"
+        }
+      ],
+      "actions": [
+        "Admin",
+        "Read",
+        "List",
+        "Tagging",
+        "Write"
+      ]
+    }
+  ]
+}

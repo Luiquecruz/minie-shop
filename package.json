@@ -1,38 +1,20 @@
 {
-  "name": "react-minieshop",
+  "name": "progressive-minieshop",
+  "version": "0.1.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "lint": "oxlint",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "preview": "vite preview"
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=26.0.0"
   },
-  "dependencies": {
-    "@reduxjs/toolkit": "^2.13.0",
-    "@tanstack/react-query": "^5.108.2",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "react-helmet-async": "^3.0.0",
-    "react-redux": "^9.3.0",
-    "react-router-dom": "^7.18.4"
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "dev:storefront": "turbo run dev --filter=@minieshop/storefront",
+    "dev:api": "turbo run dev --filter=@minieshop/api"
   },
   "devDependencies": {
-    "@tanstack/react-query-devtools": "^5.108.2",
-    "@testing-library/jest-dom": "^8.0.0",
-    "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.13",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
-    "jsdom": "^31.0.1",
-    "oxlint": "^1.88.0",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.4",
-    "vitest": "^5.1.1"
+    "turbo": "2.11.13"
   }
 }

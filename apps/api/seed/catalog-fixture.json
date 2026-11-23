@@ -1,0 +1,1297 @@
+{
+  "categories": [
+    {
+      "slug": "eletronicos",
+      "name": "Eletrônicos",
+      "parentSlug": null,
+      "sortOrder": 1
+    },
+    {
+      "slug": "acessorios",
+      "name": "Acessórios",
+      "parentSlug": null,
+      "sortOrder": 2
+    },
+    {
+      "slug": "casa-e-decoracao",
+      "name": "Casa & Decoração",
+      "parentSlug": null,
+      "sortOrder": 3
+    },
+    {
+      "slug": "vestuario",
+      "name": "Vestuário",
+      "parentSlug": null,
+      "sortOrder": 4
+    },
+    {
+      "slug": "calcados",
+      "name": "Calçados",
+      "parentSlug": null,
+      "sortOrder": 5
+    },
+    {
+      "slug": "audio",
+      "name": "Áudio",
+      "parentSlug": "eletronicos",
+      "sortOrder": 1
+    },
+    {
+      "slug": "perifericos",
+      "name": "Periféricos",
+      "parentSlug": "eletronicos",
+      "sortOrder": 2
+    },
+    {
+      "slug": "wearables-e-vr",
+      "name": "Wearables & VR",
+      "parentSlug": "eletronicos",
+      "sortOrder": 3
+    },
+    {
+      "slug": "foto-video-e-drones",
+      "name": "Foto, Vídeo & Drones",
+      "parentSlug": "eletronicos",
+      "sortOrder": 4
+    },
+    {
+      "slug": "tablets-e-energia",
+      "name": "Tablets & Energia",
+      "parentSlug": "eletronicos",
+      "sortOrder": 5
+    },
+    {
+      "slug": "bolsas-e-mochilas",
+      "name": "Bolsas & Mochilas",
+      "parentSlug": "acessorios",
+      "sortOrder": 1
+    },
+    {
+      "slug": "oculos-e-relogios",
+      "name": "Óculos & Relógios",
+      "parentSlug": "acessorios",
+      "sortOrder": 2
+    },
+    {
+      "slug": "dia-a-dia",
+      "name": "Dia a Dia",
+      "parentSlug": "acessorios",
+      "sortOrder": 3
+    },
+    {
+      "slug": "suporte-e-setup",
+      "name": "Suporte & Setup",
+      "parentSlug": "acessorios",
+      "sortOrder": 4
+    },
+    {
+      "slug": "home-office",
+      "name": "Home Office",
+      "parentSlug": "casa-e-decoracao",
+      "sortOrder": 1
+    },
+    {
+      "slug": "cozinha-e-cafe",
+      "name": "Cozinha & Café",
+      "parentSlug": "casa-e-decoracao",
+      "sortOrder": 2
+    },
+    {
+      "slug": "bem-estar",
+      "name": "Bem-estar & Aromas",
+      "parentSlug": "casa-e-decoracao",
+      "sortOrder": 3
+    },
+    {
+      "slug": "camisetas",
+      "name": "Camisetas",
+      "parentSlug": "vestuario",
+      "sortOrder": 1
+    },
+    {
+      "slug": "casacos-e-moletons",
+      "name": "Casacos & Moletons",
+      "parentSlug": "vestuario",
+      "sortOrder": 2
+    },
+    {
+      "slug": "esportivos",
+      "name": "Esportivos",
+      "parentSlug": "calcados",
+      "sortOrder": 1
+    },
+    {
+      "slug": "casuais",
+      "name": "Casuais",
+      "parentSlug": "calcados",
+      "sortOrder": 2
+    }
+  ],
+  "attributeDefinitions": [
+    {
+      "code": "material",
+      "label": "Material",
+      "dataType": "enum",
+      "unit": null,
+      "isFilterable": true,
+      "showOnCard": true,
+      "iconKey": "layers",
+      "sortOrder": 1
+    },
+    {
+      "code": "connectivity",
+      "label": "Conectividade",
+      "dataType": "enum",
+      "unit": null,
+      "isFilterable": true,
+      "showOnCard": true,
+      "iconKey": "wifi",
+      "sortOrder": 2
+    },
+    {
+      "code": "water_resistant",
+      "label": "Resistente à água",
+      "dataType": "boolean",
+      "unit": null,
+      "isFilterable": true,
+      "showOnCard": true,
+      "iconKey": "droplet",
+      "sortOrder": 3
+    },
+    {
+      "code": "battery_hours",
+      "label": "Autonomia de bateria",
+      "dataType": "number",
+      "unit": "h",
+      "isFilterable": true,
+      "showOnCard": true,
+      "iconKey": "battery",
+      "sortOrder": 4
+    },
+    {
+      "code": "capacity_ml",
+      "label": "Capacidade",
+      "dataType": "number",
+      "unit": "ml",
+      "isFilterable": true,
+      "showOnCard": true,
+      "iconKey": "cup",
+      "sortOrder": 5
+    },
+    {
+      "code": "warranty_months",
+      "label": "Garantia",
+      "dataType": "number",
+      "unit": "meses",
+      "isFilterable": true,
+      "showOnCard": false,
+      "iconKey": "shield",
+      "sortOrder": 6
+    },
+    {
+      "code": "noise_cancellation",
+      "label": "Cancelamento de ruído",
+      "dataType": "boolean",
+      "unit": null,
+      "isFilterable": true,
+      "showOnCard": true,
+      "iconKey": "volume-x",
+      "sortOrder": 7
+    },
+    {
+      "code": "resolution",
+      "label": "Resolução",
+      "dataType": "string",
+      "unit": null,
+      "isFilterable": true,
+      "showOnCard": false,
+      "iconKey": "video",
+      "sortOrder": 8
+    },
+    {
+      "code": "power_watts",
+      "label": "Potência",
+      "dataType": "number",
+      "unit": "W",
+      "isFilterable": false,
+      "showOnCard": true,
+      "iconKey": "zap",
+      "sortOrder": 9
+    },
+    {
+      "code": "screen_size_in",
+      "label": "Tamanho da tela",
+      "dataType": "number",
+      "unit": "pol",
+      "isFilterable": false,
+      "showOnCard": true,
+      "iconKey": "monitor",
+      "sortOrder": 10
+    },
+    {
+      "code": "dpi",
+      "label": "Sensibilidade (DPI)",
+      "dataType": "number",
+      "unit": "DPI",
+      "isFilterable": false,
+      "showOnCard": false,
+      "iconKey": "crosshair",
+      "sortOrder": 11
+    },
+    {
+      "code": "uv_protection",
+      "label": "Proteção UV / Luz Azul",
+      "dataType": "string",
+      "unit": null,
+      "isFilterable": true,
+      "showOnCard": true,
+      "iconKey": "sun",
+      "sortOrder": 12
+    }
+  ],
+  "products": [
+    {
+      "legacyId": 1,
+      "slug": "fone-de-ouvido-bluetooth-over-ear-pro",
+      "sku": "MS-00001",
+      "name": "Fone de Ouvido Bluetooth Over-Ear Pro",
+      "description": "Cancelamento ativo de ruído, bateria de até 40 horas e almofadas com isolamento acústico premium.",
+      "categorySlug": "audio",
+      "regularPriceCents": 39990,
+      "specialPriceCents": 34990,
+      "currency": "BRL",
+      "ratingAverage": "4.80",
+      "ratingCount": 142,
+      "attributes": {
+        "connectivity": "Bluetooth",
+        "battery_hours": 40,
+        "noise_cancellation": true,
+        "warranty_months": 12
+      },
+      "imageFile": "fone-de-ouvido-bluetooth-over-ear-pro.jpg",
+      "variants": [
+        {
+          "sku": "MS-00001-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 18
+        }
+      ]
+    },
+    {
+      "legacyId": 2,
+      "slug": "smartwatch-fitness-active-series",
+      "sku": "MS-00002",
+      "name": "Smartwatch Fitness Active Series",
+      "description": "Monitor cardíaco contínuo, GPS integrado, oxímetro e resistência à água até 50 metros.",
+      "categorySlug": "wearables-e-vr",
+      "regularPriceCents": 59900,
+      "specialPriceCents": 49900,
+      "currency": "BRL",
+      "ratingAverage": "4.60",
+      "ratingCount": 98,
+      "attributes": {
+        "connectivity": "Bluetooth",
+        "water_resistant": true,
+        "warranty_months": 12
+      },
+      "imageFile": "smartwatch-fitness-active-series.jpg",
+      "variants": [
+        {
+          "sku": "MS-00002-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 12
+        }
+      ]
+    },
+    {
+      "legacyId": 3,
+      "slug": "teclado-mecanico-rgb-switch-brown",
+      "sku": "MS-00003",
+      "name": "Teclado Mecânico RGB Switch Brown",
+      "description": "Switches táteis silenciosos, iluminação RGB personalizável por tecla e chassi em alumínio anodizado.",
+      "categorySlug": "perifericos",
+      "regularPriceCents": 28950,
+      "specialPriceCents": null,
+      "currency": "BRL",
+      "ratingAverage": "4.90",
+      "ratingCount": 215,
+      "attributes": {
+        "material": "Alumínio",
+        "connectivity": "Com Fio",
+        "warranty_months": 12
+      },
+      "imageFile": "teclado-mecanico-rgb-switch-brown.jpg",
+      "variants": [
+        {
+          "sku": "MS-00003-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 25
+        }
+      ]
+    },
+    {
+      "legacyId": 4,
+      "slug": "mouse-optico-ergonomico-sem-fio",
+      "sku": "MS-00004",
+      "name": "Mouse Óptico Ergonômico Sem Fio",
+      "description": "Design vertical ergonômico que reduz a tensão muscular, sensor de 4000 DPI e conexão multi-dispositivo.",
+      "categorySlug": "perifericos",
+      "regularPriceCents": 19990,
+      "specialPriceCents": 15990,
+      "currency": "BRL",
+      "ratingAverage": "4.50",
+      "ratingCount": 76,
+      "attributes": {
+        "connectivity": "Sem Fio (2.4GHz/BT)",
+        "dpi": 4000,
+        "warranty_months": 12
+      },
+      "imageFile": "mouse-optico-ergonomico-sem-fio.jpg",
+      "variants": [
+        {
+          "sku": "MS-00004-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 30
+        }
+      ]
+    },
+    {
+      "legacyId": 5,
+      "slug": "caixa-de-som-portatil-bluetooth-waterproof",
+      "sku": "MS-00005",
+      "name": "Caixa de Som Portátil Bluetooth Waterproof",
+      "description": "Som estéreo de 360 graus, graves aprimorados, certificação IPX7 à prova d’água e 15h de reprodução.",
+      "categorySlug": "audio",
+      "regularPriceCents": 22900,
+      "specialPriceCents": null,
+      "currency": "BRL",
+      "ratingAverage": "4.70",
+      "ratingCount": 180,
+      "attributes": {
+        "connectivity": "Bluetooth",
+        "water_resistant": true,
+        "battery_hours": 15,
+        "warranty_months": 12
+      },
+      "imageFile": "caixa-de-som-portatil-bluetooth-waterproof.jpg",
+      "variants": [
+        {
+          "sku": "MS-00005-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 15
+        }
+      ]
+    },
+    {
+      "legacyId": 6,
+      "slug": "camera-mirrorless-4k-creator-kit",
+      "sku": "MS-00006",
+      "name": "Câmera Mirrorless 4K Creator Kit",
+      "description": "Sensor APS-C de 24.2 MP, gravação de vídeo 4K sem cortes e autofoco veloz com detecção ocular.",
+      "categorySlug": "foto-video-e-drones",
+      "regularPriceCents": 369900,
+      "specialPriceCents": 329900,
+      "currency": "BRL",
+      "ratingAverage": "4.90",
+      "ratingCount": 47,
+      "attributes": {
+        "resolution": "4K",
+        "warranty_months": 12
+      },
+      "imageFile": "camera-mirrorless-4k-creator-kit.jpg",
+      "variants": [
+        {
+          "sku": "MS-00006-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 6
+        }
+      ]
+    },
+    {
+      "legacyId": 7,
+      "slug": "mochila-urbana-impermeavel-antifurto",
+      "sku": "MS-00007",
+      "name": "Mochila Urbana Impermeável Antifurto",
+      "description": "Compartimento acolchoado para notebook de até 15.6 pol, porta USB externa e tecido resistente a rasgos.",
+      "categorySlug": "bolsas-e-mochilas",
+      "regularPriceCents": 22990,
+      "specialPriceCents": 18990,
+      "currency": "BRL",
+      "ratingAverage": "4.70",
+      "ratingCount": 310,
+      "attributes": {
+        "water_resistant": true,
+        "warranty_months": 12
+      },
+      "imageFile": "mochila-urbana-impermeavel-antifurto.jpg",
+      "variants": [
+        {
+          "sku": "MS-00007-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 40
+        }
+      ]
+    },
+    {
+      "legacyId": 8,
+      "slug": "oculos-de-sol-polarizado-classic-aviator",
+      "sku": "MS-00008",
+      "name": "Óculos de Sol Polarizado Classic Aviator",
+      "description": "Lentes polarizadas com proteção UV400 completa e armação em liga metálica ultra leve.",
+      "categorySlug": "oculos-e-relogios",
+      "regularPriceCents": 13990,
+      "specialPriceCents": null,
+      "currency": "BRL",
+      "ratingAverage": "4.40",
+      "ratingCount": 85,
+      "attributes": {
+        "material": "Liga Metálica",
+        "uv_protection": "UV400",
+        "warranty_months": 12
+      },
+      "imageFile": "oculos-de-sol-polarizado-classic-aviator.jpg",
+      "variants": [
+        {
+          "sku": "MS-00008-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 22
+        }
+      ]
+    },
+    {
+      "legacyId": 9,
+      "slug": "carteira-slim-em-couro-legitimo",
+      "sku": "MS-00009",
+      "name": "Carteira Slim em Couro Legítimo",
+      "description": "Perfil ultrafino com proteção RFID contra clonagem, comporta 8 cartões e notas desdobradas.",
+      "categorySlug": "dia-a-dia",
+      "regularPriceCents": 10990,
+      "specialPriceCents": 8990,
+      "currency": "BRL",
+      "ratingAverage": "4.80",
+      "ratingCount": 160,
+      "attributes": {
+        "material": "Couro Legítimo",
+        "warranty_months": 12
+      },
+      "imageFile": "carteira-slim-em-couro-legitimo.jpg",
+      "variants": [
+        {
+          "sku": "MS-00009-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 35
+        }
+      ]
+    },
+    {
+      "legacyId": 10,
+      "slug": "garrafa-termica-inox-vacuum-750ml",
+      "sku": "MS-00010",
+      "name": "Garrafa Térmica Inox Vacuum 750ml",
+      "description": "Isolamento a vácuo de parede dupla que mantém bebidas geladas por 24 horas e quentes por 12 horas.",
+      "categorySlug": "dia-a-dia",
+      "regularPriceCents": 9900,
+      "specialPriceCents": null,
+      "currency": "BRL",
+      "ratingAverage": "4.90",
+      "ratingCount": 245,
+      "attributes": {
+        "material": "Inox",
+        "capacity_ml": 750,
+        "warranty_months": 12
+      },
+      "imageFile": "garrafa-termica-inox-vacuum-750ml.jpg",
+      "variants": [
+        {
+          "sku": "MS-00010-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 50
+        }
+      ]
+    },
+    {
+      "legacyId": 11,
+      "slug": "tenis-running-ultralight-performance",
+      "sku": "MS-00011",
+      "name": "Tênis Running Ultralight Performance",
+      "description": "Entressola com amortecimento responsivo, cabedal em malha respirável e solado com aderência superior.",
+      "categorySlug": "esportivos",
+      "regularPriceCents": 44990,
+      "specialPriceCents": 37990,
+      "currency": "BRL",
+      "ratingAverage": "4.70",
+      "ratingCount": 190,
+      "attributes": {
+        "material": "Malha Respirável",
+        "warranty_months": 12
+      },
+      "imageFile": "tenis-running-ultralight-performance.jpg",
+      "variants": [
+        {
+          "sku": "MS-00011-39",
+          "name": "Tamanho 39",
+          "attributes": {
+            "size": "39",
+            "color": "Vermelho/Preto"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 0,
+          "stock": 5
+        },
+        {
+          "sku": "MS-00011-40",
+          "name": "Tamanho 40",
+          "attributes": {
+            "size": "40",
+            "color": "Vermelho/Preto"
+          },
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 1,
+          "stock": 3
+        },
+        {
+          "sku": "MS-00011-41",
+          "name": "Tamanho 41",
+          "attributes": {
+            "size": "41",
+            "color": "Vermelho/Preto"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 2,
+          "stock": 3
+        },
+        {
+          "sku": "MS-00011-42",
+          "name": "Tamanho 42",
+          "attributes": {
+            "size": "42",
+            "color": "Vermelho/Preto"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 3,
+          "stock": 3
+        }
+      ]
+    },
+    {
+      "legacyId": 12,
+      "slug": "tenis-casual-canvas-vintage",
+      "sku": "MS-00012",
+      "name": "Tênis Casual Canvas Vintage",
+      "description": "Estilo clássico em lona durável com solado vulcanizado de borracha antiderrapante.",
+      "categorySlug": "casuais",
+      "regularPriceCents": 19990,
+      "specialPriceCents": null,
+      "currency": "BRL",
+      "ratingAverage": "4.30",
+      "ratingCount": 112,
+      "attributes": {
+        "material": "Lona",
+        "warranty_months": 12
+      },
+      "imageFile": "tenis-casual-canvas-vintage.jpg",
+      "variants": [
+        {
+          "sku": "MS-00012-39",
+          "name": "Tamanho 39",
+          "attributes": {
+            "size": "39",
+            "color": "Preto"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 0,
+          "stock": 5
+        },
+        {
+          "sku": "MS-00012-40",
+          "name": "Tamanho 40",
+          "attributes": {
+            "size": "40",
+            "color": "Preto"
+          },
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 1,
+          "stock": 5
+        },
+        {
+          "sku": "MS-00012-41",
+          "name": "Tamanho 41",
+          "attributes": {
+            "size": "41",
+            "color": "Preto"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 2,
+          "stock": 5
+        },
+        {
+          "sku": "MS-00012-42",
+          "name": "Tamanho 42",
+          "attributes": {
+            "size": "42",
+            "color": "Preto"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 3,
+          "stock": 5
+        }
+      ]
+    },
+    {
+      "legacyId": 13,
+      "slug": "jaqueta-jeans-trucker-vintage",
+      "sku": "MS-00013",
+      "name": "Jaqueta Jeans Trucker Vintage",
+      "description": "100% algodão com lavagem média tradicional, bolsos frontais e fechamento em botões metálicos reforçados.",
+      "categorySlug": "casacos-e-moletons",
+      "regularPriceCents": 29900,
+      "specialPriceCents": 25900,
+      "currency": "BRL",
+      "ratingAverage": "4.60",
+      "ratingCount": 64,
+      "attributes": {
+        "material": "Algodão",
+        "warranty_months": 12
+      },
+      "imageFile": "jaqueta-jeans-trucker-vintage.jpg",
+      "variants": [
+        {
+          "sku": "MS-00013-P",
+          "name": "Azul Índigo / P",
+          "attributes": {
+            "size": "P",
+            "color": "Azul Índigo"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 0,
+          "stock": 6
+        },
+        {
+          "sku": "MS-00013-M",
+          "name": "Azul Índigo / M",
+          "attributes": {
+            "size": "M",
+            "color": "Azul Índigo"
+          },
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 1,
+          "stock": 5
+        },
+        {
+          "sku": "MS-00013-G",
+          "name": "Azul Índigo / G",
+          "attributes": {
+            "size": "G",
+            "color": "Azul Índigo"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 2,
+          "stock": 5
+        }
+      ]
+    },
+    {
+      "legacyId": 14,
+      "slug": "camiseta-basica-algodao-pima-premium",
+      "sku": "MS-00014",
+      "name": "Camiseta Básica Algodão Pima Premium",
+      "description": "Toque extra macio e longa durabilidade com algodão peruano de fibra longa.",
+      "categorySlug": "camisetas",
+      "regularPriceCents": 9990,
+      "specialPriceCents": 7990,
+      "currency": "BRL",
+      "ratingAverage": "4.80",
+      "ratingCount": 320,
+      "attributes": {
+        "material": "Algodão Pima",
+        "warranty_months": 12
+      },
+      "imageFile": "camiseta-basica-algodao-pima-premium.jpg",
+      "variants": [
+        {
+          "sku": "MS-00014-P",
+          "name": "Branco / P",
+          "attributes": {
+            "size": "P",
+            "color": "Branco"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 0,
+          "stock": 23
+        },
+        {
+          "sku": "MS-00014-M",
+          "name": "Branco / M",
+          "attributes": {
+            "size": "M",
+            "color": "Branco"
+          },
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 1,
+          "stock": 21
+        },
+        {
+          "sku": "MS-00014-G",
+          "name": "Branco / G",
+          "attributes": {
+            "size": "G",
+            "color": "Branco"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 2,
+          "stock": 21
+        }
+      ]
+    },
+    {
+      "legacyId": 15,
+      "slug": "moletom-hoodie-minimalista-com-capuz",
+      "sku": "MS-00015",
+      "name": "Moletom Hoodie Minimalista com Capuz",
+      "description": "Interior flanelado aconchegante, bolso canguru e cordões de ajuste com acabamento metálico.",
+      "categorySlug": "casacos-e-moletons",
+      "regularPriceCents": 21900,
+      "specialPriceCents": null,
+      "currency": "BRL",
+      "ratingAverage": "4.50",
+      "ratingCount": 140,
+      "attributes": {
+        "material": "Algodão Flanelado",
+        "warranty_months": 12
+      },
+      "imageFile": "moletom-hoodie-minimalista-com-capuz.jpg",
+      "variants": [
+        {
+          "sku": "MS-00015-P",
+          "name": "Cinza Mescla / P",
+          "attributes": {
+            "size": "P",
+            "color": "Cinza Mescla"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 0,
+          "stock": 7
+        },
+        {
+          "sku": "MS-00015-M",
+          "name": "Cinza Mescla / M",
+          "attributes": {
+            "size": "M",
+            "color": "Cinza Mescla"
+          },
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 1,
+          "stock": 6
+        },
+        {
+          "sku": "MS-00015-G",
+          "name": "Cinza Mescla / G",
+          "attributes": {
+            "size": "G",
+            "color": "Cinza Mescla"
+          },
+          "priceCents": null,
+          "isDefault": false,
+          "sortOrder": 2,
+          "stock": 6
+        }
+      ]
+    },
+    {
+      "legacyId": 16,
+      "slug": "luminaria-de-mesa-articulada-nordica",
+      "sku": "MS-00016",
+      "name": "Luminária de Mesa Articulada Nórdica",
+      "description": "Base e cúpula em metal fosco com articulações em madeira maciça, soquete universal E27.",
+      "categorySlug": "home-office",
+      "regularPriceCents": 19900,
+      "specialPriceCents": 16900,
+      "currency": "BRL",
+      "ratingAverage": "4.70",
+      "ratingCount": 95,
+      "attributes": {
+        "material": "Metal e Madeira",
+        "warranty_months": 12
+      },
+      "imageFile": "luminaria-de-mesa-articulada-nordica.jpg",
+      "variants": [
+        {
+          "sku": "MS-00016-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 11
+        }
+      ]
+    },
+    {
+      "legacyId": 17,
+      "slug": "kit-xicaras-de-ceramica-artesanal-2-un",
+      "sku": "MS-00017",
+      "name": "Kit Xícaras de Cerâmica Artesanal (2 un)",
+      "description": "Cerâmica de alta temperatura com esmaltação reativa exclusiva e capacidade para 250ml cada.",
+      "categorySlug": "cozinha-e-cafe",
+      "regularPriceCents": 6490,
+      "specialPriceCents": null,
+      "currency": "BRL",
+      "ratingAverage": "4.90",
+      "ratingCount": 130,
+      "attributes": {
+        "material": "Cerâmica",
+        "capacity_ml": 250,
+        "warranty_months": 12
+      },
+      "imageFile": "kit-xicaras-de-ceramica-artesanal-2-un.jpg",
+      "variants": [
+        {
+          "sku": "MS-00017-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 28
+        }
+      ]
+    },
+    {
+      "legacyId": 18,
+      "slug": "cafeteira-prensa-francesa-inox-600ml",
+      "sku": "MS-00018",
+      "name": "Cafeteira Prensa Francesa Inox 600ml",
+      "description": "Vidro borossilicato resistente a choques térmicos com filtro de aço inoxidável de alta precisão.",
+      "categorySlug": "cozinha-e-cafe",
+      "regularPriceCents": 14990,
+      "specialPriceCents": 11990,
+      "currency": "BRL",
+      "ratingAverage": "4.80",
+      "ratingCount": 175,
+      "attributes": {
+        "material": "Inox e Vidro Borossilicato",
+        "capacity_ml": 600,
+        "warranty_months": 12
+      },
+      "imageFile": "cafeteira-prensa-francesa-inox-600ml.jpg",
+      "variants": [
+        {
+          "sku": "MS-00018-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 22
+        }
+      ]
+    },
+    {
+      "legacyId": 19,
+      "slug": "vela-aromatica-artesanal-soja-baunilha",
+      "sku": "MS-00019",
+      "name": "Vela Aromática Artesanal Soja & Baunilha",
+      "description": "Cera de soja 100% vegetal com queima limpa e pavio de algodão. Duração de aproximadamente 35 horas.",
+      "categorySlug": "bem-estar",
+      "regularPriceCents": 4990,
+      "specialPriceCents": null,
+      "currency": "BRL",
+      "ratingAverage": "4.60",
+      "ratingCount": 88,
+      "attributes": {
+        "material": "Cera de Soja",
+        "warranty_months": 12
+      },
+      "imageFile": "vela-aromatica-artesanal-soja-baunilha.jpg",
+      "variants": [
+        {
+          "sku": "MS-00019-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 45
+        }
+      ]
+    },
+    {
+      "legacyId": 20,
+      "slug": "cadeira-de-escritorio-ergonomica-mesh",
+      "sku": "MS-00020",
+      "name": "Cadeira de Escritório Ergonômica Mesh",
+      "description": "Apoio lombar ajustável, encosto em tela mesh respirável e mecanismo relax com trava em múltiplos pontos.",
+      "categorySlug": "home-office",
+      "regularPriceCents": 119900,
+      "specialPriceCents": 89900,
+      "currency": "BRL",
+      "ratingAverage": "4.50",
+      "ratingCount": 52,
+      "attributes": {
+        "material": "Mesh",
+        "warranty_months": 12
+      },
+      "imageFile": null,
+      "variants": [
+        {
+          "sku": "MS-00020-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 8
+        }
+      ]
+    },
+    {
+      "legacyId": 21,
+      "slug": "carregador-sem-fio-fast-charge-15w",
+      "sku": "MS-00021",
+      "name": "Carregador Sem Fio Fast Charge 15W",
+      "description": "Compatível com padrão Qi, proteção contra sobreaquecimento e acabamento em tecido antiderrapante.",
+      "categorySlug": "tablets-e-energia",
+      "regularPriceCents": 13990,
+      "specialPriceCents": 10990,
+      "currency": "BRL",
+      "ratingAverage": "4.40",
+      "ratingCount": 115,
+      "attributes": {
+        "connectivity": "Qi Wireless",
+        "power_watts": 15,
+        "warranty_months": 12
+      },
+      "imageFile": null,
+      "variants": [
+        {
+          "sku": "MS-00021-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 26
+        }
+      ]
+    },
+    {
+      "legacyId": 22,
+      "slug": "drone-compacto-dobravel-4k-hdr",
+      "sku": "MS-00022",
+      "name": "Drone Compacto Dobrável 4K HDR",
+      "description": "Transmissão de vídeo até 6km, estabilização gimbal de 3 eixos e 31 minutos de autonomia de voo.",
+      "categorySlug": "foto-video-e-drones",
+      "regularPriceCents": 219900,
+      "specialPriceCents": 189900,
+      "currency": "BRL",
+      "ratingAverage": "4.70",
+      "ratingCount": 39,
+      "attributes": {
+        "resolution": "4K HDR",
+        "warranty_months": 12
+      },
+      "imageFile": "drone-compacto-dobravel-4k-hdr.jpg",
+      "variants": [
+        {
+          "sku": "MS-00022-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 5
+        }
+      ]
+    },
+    {
+      "legacyId": 23,
+      "slug": "earbuds-tws-cancelamento-de-ruido",
+      "sku": "MS-00023",
+      "name": "Earbuds TWS Cancelamento de Ruído",
+      "description": "Áudio de alta resolução, microfones com redução de ruído por IA para chamadas nítidas e case com recarga rápida.",
+      "categorySlug": "audio",
+      "regularPriceCents": 32900,
+      "specialPriceCents": 27900,
+      "currency": "BRL",
+      "ratingAverage": "4.60",
+      "ratingCount": 204,
+      "attributes": {
+        "connectivity": "Bluetooth",
+        "noise_cancellation": true,
+        "warranty_months": 12
+      },
+      "imageFile": "earbuds-tws-cancelamento-de-ruido.jpg",
+      "variants": [
+        {
+          "sku": "MS-00023-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 31
+        }
+      ]
+    },
+    {
+      "legacyId": 24,
+      "slug": "oculos-de-grau-bloqueio-luz-azul",
+      "sku": "MS-00024",
+      "name": "Óculos de Grau / Bloqueio Luz Azul",
+      "description": "Filtro contra luz azul emitida por telas digitais para prevenir fadiga ocular e dores de cabeça.",
+      "categorySlug": "oculos-e-relogios",
+      "regularPriceCents": 11900,
+      "specialPriceCents": null,
+      "currency": "BRL",
+      "ratingAverage": "4.50",
+      "ratingCount": 91,
+      "attributes": {
+        "uv_protection": "Filtro Luz Azul",
+        "warranty_months": 12
+      },
+      "imageFile": "oculos-de-grau-bloqueio-luz-azul.jpg",
+      "variants": [
+        {
+          "sku": "MS-00024-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 18
+        }
+      ]
+    },
+    {
+      "legacyId": 25,
+      "slug": "relogio-de-pulso-analogico-couro-camel",
+      "sku": "MS-00025",
+      "name": "Relógio de Pulso Analógico Couro Camel",
+      "description": "Movimento quartzo japonês preciso, pulseira em couro natural legítimo e vidro resistente a riscos.",
+      "categorySlug": "oculos-e-relogios",
+      "regularPriceCents": 38000,
+      "specialPriceCents": 32000,
+      "currency": "BRL",
+      "ratingAverage": "4.80",
+      "ratingCount": 73,
+      "attributes": {
+        "material": "Couro Legítimo",
+        "warranty_months": 12
+      },
+      "imageFile": "relogio-de-pulso-analogico-couro-camel.jpg",
+      "variants": [
+        {
+          "sku": "MS-00025-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 14
+        }
+      ]
+    },
+    {
+      "legacyId": 26,
+      "slug": "bolsa-mala-de-viagem-duffle-weekend",
+      "sku": "MS-00026",
+      "name": "Bolsa Mala de Viagem Duffle Weekend",
+      "description": "Espaço generoso com compartimento separado para sapatos e alça de ombro ajustável acolchoada.",
+      "categorySlug": "bolsas-e-mochilas",
+      "regularPriceCents": 29990,
+      "specialPriceCents": 24990,
+      "currency": "BRL",
+      "ratingAverage": "4.70",
+      "ratingCount": 62,
+      "attributes": {
+        "material": "Tecido Reforçado",
+        "warranty_months": 12
+      },
+      "imageFile": "bolsa-mala-de-viagem-duffle-weekend.jpg",
+      "variants": [
+        {
+          "sku": "MS-00026-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 13
+        }
+      ]
+    },
+    {
+      "legacyId": 27,
+      "slug": "tablet-10-5-polegadas-retina-display",
+      "sku": "MS-00027",
+      "name": "Tablet 10.5 Polegadas Retina Display",
+      "description": "Tela vibrante de 120Hz, 128GB de armazenamento expansível e suporte para caneta stylus inteligente.",
+      "categorySlug": "tablets-e-energia",
+      "regularPriceCents": 199900,
+      "specialPriceCents": 179900,
+      "currency": "BRL",
+      "ratingAverage": "4.80",
+      "ratingCount": 110,
+      "attributes": {
+        "screen_size_in": 10.5,
+        "connectivity": "Wi-Fi / Bluetooth",
+        "warranty_months": 12
+      },
+      "imageFile": "tablet-10-5-polegadas-retina-display.jpg",
+      "variants": [
+        {
+          "sku": "MS-00027-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 9
+        }
+      ]
+    },
+    {
+      "legacyId": 28,
+      "slug": "oculos-de-realidade-virtual-imersivo",
+      "sku": "MS-00028",
+      "name": "Óculos de Realidade Virtual Imersivo",
+      "description": "Experiência imersiva sem fios com áudio espacial 3D integrado e controles com feedback tátil háptico.",
+      "categorySlug": "wearables-e-vr",
+      "regularPriceCents": 169900,
+      "specialPriceCents": 149900,
+      "currency": "BRL",
+      "ratingAverage": "4.60",
+      "ratingCount": 58,
+      "attributes": {
+        "connectivity": "Sem Fio",
+        "warranty_months": 12
+      },
+      "imageFile": null,
+      "variants": [
+        {
+          "sku": "MS-00028-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 7
+        }
+      ]
+    },
+    {
+      "legacyId": 29,
+      "slug": "organizador-de-mesa-em-madeira-aluminio",
+      "sku": "MS-00029",
+      "name": "Organizador de Mesa em Madeira & Alumínio",
+      "description": "Suporte elegante para canetas, smartphone e pequenos blocos de notas com acabamento minimalista.",
+      "categorySlug": "home-office",
+      "regularPriceCents": 8500,
+      "specialPriceCents": null,
+      "currency": "BRL",
+      "ratingAverage": "4.30",
+      "ratingCount": 44,
+      "attributes": {
+        "material": "Madeira e Alumínio",
+        "warranty_months": 12
+      },
+      "imageFile": null,
+      "variants": [
+        {
+          "sku": "MS-00029-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 25
+        }
+      ]
+    },
+    {
+      "legacyId": 30,
+      "slug": "suporte-articulado-para-notebook-aluminio",
+      "sku": "MS-00030",
+      "name": "Suporte Articulado para Notebook Alumínio",
+      "description": "6 níveis de inclinação ergonômica, estrutura dobrável compacta e almofadas antiderrapantes em silicone.",
+      "categorySlug": "suporte-e-setup",
+      "regularPriceCents": 15990,
+      "specialPriceCents": 12990,
+      "currency": "BRL",
+      "ratingAverage": "4.90",
+      "ratingCount": 280,
+      "attributes": {
+        "material": "Alumínio",
+        "warranty_months": 12
+      },
+      "imageFile": "suporte-articulado-para-notebook-aluminio.jpg",
+      "variants": [
+        {
+          "sku": "MS-00030-STD",
+          "name": "Padrão",
+          "attributes": {},
+          "priceCents": null,
+          "isDefault": true,
+          "sortOrder": 0,
+          "stock": 35
+        }
+      ]
+    }
+  ]
+}

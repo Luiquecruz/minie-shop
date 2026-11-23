@@ -1,0 +1,15 @@
+.git
+.github
+.turbo
+node_modules
+**/node_modules
+**/dist
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+docs
+playwright-report
+test-results
+*.log
+.DS_Store

@@ -1,0 +1,11 @@
+{
+  "name": "@minieshop/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./eslint.base.mjs": "./eslint.base.mjs",
+    "./prettier.json": "./prettier.json"
+  }
+}

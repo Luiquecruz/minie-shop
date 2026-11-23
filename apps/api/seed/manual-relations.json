@@ -1,0 +1,22 @@
+{
+  "relations": [
+    {
+      "productSlug": "fone-de-ouvido-bluetooth-over-ear-pro",
+      "relatedProductSlug": "mochila-urbana-impermeavel-antifurto",
+      "type": "cross_sell",
+      "position": 0
+    },
+    {
+      "productSlug": "earbuds-tws-cancelamento-de-ruido",
+      "relatedProductSlug": "fone-de-ouvido-bluetooth-over-ear-pro",
+      "type": "upsell",
+      "position": 0
+    },
+    {
+      "productSlug": "cafeteira-prensa-francesa-inox-600ml",
+      "relatedProductSlug": "kit-xicaras-de-ceramica-artesanal-2-un",
+      "type": "cross_sell",
+      "position": 0
+    }
+  ]
+}

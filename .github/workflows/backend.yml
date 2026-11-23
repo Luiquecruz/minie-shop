@@ -1,0 +1,242 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'infra/**'
+      - 'docs/adr/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'infra/**'
+      - 'docs/adr/**'
+      - '.github/workflows/backend.yml'
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-typecheck:
+    name: Lint, Typecheck & Build (Backend)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-backend-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-backend-
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build, lint and typecheck backend packages via Turbo
+        run: |
+          pnpm exec turbo run build --filter=@minieshop/api...
+          pnpm exec turbo run lint --filter=@minieshop/api...
+          pnpm exec turbo run typecheck --filter=@minieshop/api...
+
+      - name: Dependency audit report (non-blocking)
+        continue-on-error: true
+        run: pnpm audit
+
+  api-integration-tests:
+    name: API Unit & Integration Tests (Postgres + Meilisearch)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: minieshop
+          POSTGRES_PASSWORD: minieshop_dev_password
+          POSTGRES_DB: minieshop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U minieshop -d minieshop"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+      meilisearch:
+        image: getmeili/meilisearch:v1.57.0
+        env:
+          MEILI_MASTER_KEY: minieshop_dev_meili_master_key_32chars
+          MEILI_ENV: development
+          MEILI_NO_ANALYTICS: 'true'
+        ports:
+          - 7700:7700
+        options: >-
+          --health-cmd="curl -fsS http://127.0.0.1:7700/health | grep -q available"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace dependencies for API
+        run: pnpm exec turbo run build --filter=@minieshop/api^...
+
+      - name: Run API unit tests
+        run: pnpm --filter @minieshop/api test
+
+      - name: Run HTTP API & Search integration suite (Vitest + app_test + Meilisearch)
+        env:
+          NODE_ENV: test
+          TEST_DATABASE_URL: postgresql://minieshop:minieshop_dev_password@127.0.0.1:5432/app_test
+          S3_ENDPOINT: http://127.0.0.1:8333
+          S3_PUBLIC_ENDPOINT: http://127.0.0.1:8333
+          S3_REGION: us-east-1
+          S3_ACCESS_KEY_ID: minieshop_dev_access_key
+          S3_SECRET_ACCESS_KEY: minieshop_dev_secret_key
+          S3_PUBLIC_BUCKET: minieshop-catalog-public
+          S3_PRIVATE_BUCKET: minieshop-private
+          MEILI_HOST: http://127.0.0.1:7700
+          MEILI_MASTER_KEY: minieshop_dev_meili_master_key_32chars
+          EMBEDDINGS_PROVIDER: fake
+          EMBEDDINGS_DIMENSIONS: '768'
+          MAIL_TRANSPORT: memory
+        run: pnpm --filter @minieshop/api test:integration
+
+      - name: Run Phase 5 security & identity test suite
+        env:
+          NODE_ENV: test
+          TEST_DATABASE_URL: postgresql://minieshop:minieshop_dev_password@127.0.0.1:5432/app_test
+          S3_ENDPOINT: http://127.0.0.1:8333
+          S3_PUBLIC_ENDPOINT: http://127.0.0.1:8333
+          S3_REGION: us-east-1
+          S3_ACCESS_KEY_ID: minieshop_dev_access_key
+          S3_SECRET_ACCESS_KEY: minieshop_dev_secret_key
+          S3_PUBLIC_BUCKET: minieshop-catalog-public
+          S3_PRIVATE_BUCKET: minieshop-private
+          MAIL_TRANSPORT: memory
+        run: pnpm --filter @minieshop/api test:security
+
+  seed-and-media-tests:
+    name: Seed & Media Integration Tests (Postgres + SeaweedFS)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: minieshop
+          POSTGRES_PASSWORD: minieshop_dev_password
+          POSTGRES_DB: minieshop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U minieshop -d minieshop"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Start SeaweedFS storage and initialize buckets
+        run: |
+          docker compose -f infra/compose.yaml --env-file .env.example up -d storage
+          docker compose -f infra/compose.yaml --env-file .env.example up --exit-code-from init-buckets init-buckets
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace dependencies for API
+        run: pnpm exec turbo run build --filter=@minieshop/api^...
+
+      - name: Run Drizzle migrations and Phase 1 seed/media integration test (T10)
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://minieshop:minieshop_dev_password@127.0.0.1:5432/minieshop
+          S3_ENDPOINT: http://127.0.0.1:8333
+          S3_PUBLIC_ENDPOINT: http://127.0.0.1:8333
+          S3_REGION: us-east-1
+          S3_ACCESS_KEY_ID: minieshop_dev_access_key
+          S3_SECRET_ACCESS_KEY: minieshop_dev_secret_key
+          S3_PUBLIC_BUCKET: minieshop-catalog-public
+          S3_PRIVATE_BUCKET: minieshop-private
+        run: |
+          pnpm --filter @minieshop/api db:migrate
+          pnpm --filter @minieshop/api test:seed-media
+
+      - name: Tear down storage containers
+        if: always()
+        run: docker compose -f infra/compose.yaml --env-file .env.example down -v --remove-orphans
+
+  docker-build:
+    name: Build API Docker Image
+    runs-on: ubuntu-latest
+    needs:
+      - lint-and-typecheck
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          tags: minieshop-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

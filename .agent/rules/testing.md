@@ -6,7 +6,7 @@ description: "Typechecking, linting, production build checks, browser validation
 # Testing & Verification Rules
 
 ## 1. Current Verification Baseline
-At the current milestone (Phase 6 Increment 2 — Vitest + React Testing Library adopted via `ADR-0009`), every code change must pass the following verification gates:
+At the current milestone (Phase 6 Increment 2 — Vitest + React Testing Library captured in `ADR-0001`), every code change must pass the following verification gates:
 
 1. **Automated Tests (`npm test`):** Executes `vitest run` across reducer, memoized selector, and React `<Profiler>` tests. Must finish with `0 failures`.
 2. **Static Typechecking (`npm run typecheck`):** Executes `tsc --noEmit` using strict `tsconfig.json`. Must finish with `0 errors`.

@@ -22,7 +22,7 @@ This directory stores feature and architectural specifications authored **before
 
 | ID | Spec | Phase | Status | Related ADR |
 | :--- | :--- | :--- | :--- | :--- |
-| [SDD-0001](./0001-dedicated-cart-and-checkout.md) | Dedicated Cart Page & Checkout Flow (Inc. 1–2: CartPage Redux + Profiler) | Phase 6 | In Progress (Inc. 1–2 Implemented; Checkout Inc. 3 Pending) | [ADR-0003](../adr/0003-redux-toolkit-with-localstorage-persistence.md), [ADR-0008](../adr/0008-cart-page-context-reducer-baseline.md), [ADR-0009](../adr/0009-vitest-and-react-testing-library.md), [ADR-0010](../adr/0010-cart-page-redux-memoized-selectors.md) |
+| [SDD-0001](./0001-dedicated-cart-and-checkout.md) | Dedicated Cart Page & Checkout Flow (Inc. 1–2: CartPage Redux + Profiler) | Phase 6 | In Progress (Inc. 1–2 Implemented; Checkout Inc. 3 Pending) | [ADR-0001](../adr/0001-frontend-architecture-baseline.md) |
 | `SDD-0002` *(planned)* | Automated Test Suite Adoption | Phase 6 / 7 | Not Started | — |
-| [SDD-0003](./0003-incremental-typescript-migration.md) | Incremental TypeScript Migration | Pre-Phase 6 | Implemented | [ADR-0001](../adr/0001-vite-react-js-baseline.md), [ADR-0006](../adr/0006-incremental-typescript-migration.md) |
-| [SDD-0004](./0004-tanstack-react-query-migration.md) | TanStack React Query Migration & Optimistic Favorites | Post-Phase 5 | In Progress | [ADR-0004](../adr/0004-custom-hooks-and-abortable-simulated-api.md), [ADR-0007](../adr/0007-tanstack-react-query-server-state.md) |
+| [SDD-0003](./0003-incremental-typescript-migration.md) | Incremental TypeScript Migration | Pre-Phase 6 | Implemented | [ADR-0001](../adr/0001-frontend-architecture-baseline.md) |
+| [SDD-0004](./0004-tanstack-react-query-migration.md) | TanStack React Query Migration & Optimistic Favorites | Post-Phase 5 | In Progress | [ADR-0001](../adr/0001-frontend-architecture-baseline.md) |

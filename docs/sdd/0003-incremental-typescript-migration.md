@@ -4,7 +4,7 @@
 - **Phase:** Pre-Phase 6 Milestone (Executed ahead of Phase 6 Cart & Checkout)
 - **Author:** Antigravity
 - **Date:** 2026-11-18
-- **Related ADRs:** [ADR-0001](../adr/0001-vite-react-js-baseline.md), [ADR-0006](../adr/0006-incremental-typescript-migration.md)
+- **Related ADRs:** [`ADR-0001`](../adr/0001-frontend-architecture-baseline.md) *(consolidates former ADRs `0001`, `0006`)*
 
 ---
 
