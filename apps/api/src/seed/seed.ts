@@ -8,6 +8,7 @@ import {
   attributeDefinitions,
   categories,
   categoryComplements,
+  productRelations,
   products,
   productVariants,
   stockItems,
@@ -76,6 +77,7 @@ export interface SeedSummary {
   imagesDeduplicated: number;
   productsWithoutImage: number;
   categoryComplementsCount: number;
+  manualRelationsCount: number;
 }
 
 export async function runSeed(options?: {
@@ -349,11 +351,63 @@ export async function runSeed(options?: {
       categoryComplementsCount += 1;
     }
 
-    // 5. Enqueue product.changed events in batch for outbox consumers (S05)
-    const outboxService = new OutboxService(databaseService);
-    const seededProductRows = await databaseService.db
-      .select({ id: products.id })
+    // 4.6 Upsert curated manual relations from versioned JSON (R03)
+    const rawManualRelations = await readFile(resolve(fixtureDir, 'manual-relations.json'), 'utf8');
+    const manualRelationsFixture = JSON.parse(rawManualRelations) as {
+      relations: Array<{
+        productSlug: string;
+        relatedProductSlug: string;
+        type: 'related' | 'upsell' | 'cross_sell';
+        position: number;
+      }>;
+    };
+
+    const seededProductsForMap = await databaseService.db
+      .select({ id: products.id, slug: products.slug })
       .from(products);
+    const productIdBySlug = new Map(seededProductsForMap.map((p) => [p.slug, p.id]));
+
+    let manualRelationsCount = 0;
+    for (const rel of manualRelationsFixture.relations) {
+      const productId = productIdBySlug.get(rel.productSlug);
+      const relatedProductId = productIdBySlug.get(rel.relatedProductSlug);
+      if (!productId || !relatedProductId) {
+        throw new Error(
+          `Missing product for manual relation "${rel.productSlug}" -> "${rel.relatedProductSlug}"`,
+        );
+      }
+
+      await databaseService.db
+        .insert(productRelations)
+        .values({
+          productId,
+          relatedProductId,
+          type: rel.type,
+          source: 'manual',
+          method: 'manual',
+          score: null,
+          position: rel.position,
+        })
+        .onConflictDoUpdate({
+          target: [
+            productRelations.productId,
+            productRelations.relatedProductId,
+            productRelations.type,
+          ],
+          set: {
+            source: 'manual',
+            method: 'manual',
+            score: null,
+            position: rel.position,
+            updatedAt: new Date(),
+          },
+        });
+      manualRelationsCount += 1;
+    }
+
+    // 5. Enqueue product.changed events in batch for outbox consumers (S05 / R03)
+    const outboxService = new OutboxService(databaseService);
+    const seededProductRows = seededProductsForMap;
     if (seededProductRows.length > 0) {
       await databaseService.db.transaction(async (tx) => {
         await outboxService.enqueueBatch(
@@ -377,6 +431,7 @@ export async function runSeed(options?: {
       imagesDeduplicated,
       productsWithoutImage,
       categoryComplementsCount,
+      manualRelationsCount,
     };
   } finally {
     if (ownsDb) {

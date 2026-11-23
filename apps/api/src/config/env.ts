@@ -43,6 +43,12 @@ export const envSchema = z.object({
   EMBEDDINGS_QUERY_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(4_000),
   MEILI_EMBEDDER_NAME: z.string().min(1).default('semantic'),
   SEARCH_SEMANTIC_RATIO: z.coerce.number().min(0).max(1).default(0.5),
+  RECOMMENDATIONS_RELATED_MIN_SIMILARITY: z.coerce.number().min(0).max(1).default(0.45),
+  RECOMMENDATIONS_UPSELL_MIN_SIMILARITY: z.coerce.number().min(0).max(1).default(0.5),
+  RECOMMENDATIONS_UPSELL_MIN_RATIO: z.coerce.number().positive().default(1.1),
+  RECOMMENDATIONS_UPSELL_MAX_RATIO: z.coerce.number().positive().default(2.5),
+  RECOMMENDATIONS_CROSS_SELL_MAX_PER_CATEGORY: z.coerce.number().int().min(1).max(12).default(2),
+  RECOMMENDATIONS_REVERSE_FANOUT_LIMIT: z.coerce.number().int().min(0).max(200).default(20),
 });
 
 export type Env = z.infer<typeof envSchema>;

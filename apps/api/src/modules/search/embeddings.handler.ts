@@ -62,14 +62,13 @@ export class EmbeddingsOutboxHandler {
       contentHash,
     });
 
-    // Notify search-index consumer so the updated vector is pushed to Meilisearch
+    // Notify subscribed consumers (search-index, recommendations) that a fresh vector was persisted
     await this.databaseService.db.transaction(async (tx) => {
       await this.outboxService.enqueue(tx, {
-        eventType: 'product.changed',
+        eventType: 'product.embedding_updated',
         aggregateType: 'product',
         aggregateId: productId,
         payload: { productId },
-        consumers: ['search-index'],
       });
     });
 

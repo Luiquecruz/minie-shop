@@ -3,6 +3,7 @@ export type OutboxStatus = 'pending' | 'processed' | 'dead';
 export type OutboxConsumer =
   | 'search-index'
   | 'embeddings'
+  | 'recommendations'
   | 'catalog-category-fanout'
   | 'noop';
 
@@ -10,7 +11,12 @@ export interface OutboxEventMap {
   'product.changed': {
     aggregateType: 'product';
     aggregateId: string;
-    payload: { productId: string };
+    payload: { productId: string; cascade?: boolean };
+  };
+  'product.embedding_updated': {
+    aggregateType: 'product';
+    aggregateId: string;
+    payload: { productId: string; cascade?: boolean };
   };
   'category.changed': {
     aggregateType: 'category';
@@ -35,7 +41,8 @@ export type OutboxEventInput<T extends OutboxEventType = OutboxEventType> = {
 };
 
 export const OUTBOX_SUBSCRIPTIONS: Record<OutboxEventType, readonly OutboxConsumer[]> = {
-  'product.changed': ['search-index', 'embeddings'],
+  'product.changed': ['search-index', 'embeddings', 'recommendations'],
+  'product.embedding_updated': ['search-index', 'recommendations'],
   'category.changed': ['catalog-category-fanout'],
   'outbox.ping': ['noop'],
 };

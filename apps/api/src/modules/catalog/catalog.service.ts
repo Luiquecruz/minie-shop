@@ -1138,6 +1138,223 @@ export class CatalogService {
       .where(eq(productEmbeddings.productId, productId));
   }
 
+  // --- Public Recommendations Query Interface (R03, no cross-schema JOINs) ---
+
+  async getPublishedProductIdBySlug(slug: string): Promise<string | null> {
+    const [row] = await this.databaseService.db
+      .select({ id: products.id })
+      .from(products)
+      .where(and(eq(products.slug, slug), eq(products.status, 'published')))
+      .limit(1);
+    return row?.id ?? null;
+  }
+
+  async getCategoryHierarchyMap(): Promise<
+    Array<{ id: string; slug: string; parentId: string | null }>
+  > {
+    const all = await this.getAllCategories();
+    return all.map((c) => ({ id: c.id, slug: c.slug, parentId: c.parentId }));
+  }
+
+  async getPublishedProductRecommendationContext(productId: string): Promise<{
+    id: string;
+    slug: string;
+    name: string;
+    categoryId: string;
+    parentCategoryId: string | null;
+    siblingCategoryIds: string[];
+    effectivePriceCents: number;
+    createdAt: Date;
+    hasEmbedding: boolean;
+  } | null> {
+    const [row] = await this.databaseService.db
+      .select({
+        id: products.id,
+        slug: products.slug,
+        name: products.name,
+        categoryId: products.categoryId,
+        effectivePrice: effectivePriceSql,
+        createdAt: products.createdAt,
+      })
+      .from(products)
+      .where(and(eq(products.id, productId), eq(products.status, 'published')))
+      .limit(1);
+
+    if (!row) {
+      return null;
+    }
+
+    const [allCategories, embMeta] = await Promise.all([
+      this.getAllCategories(),
+      this.getProductEmbeddingMeta(productId),
+    ]);
+
+    const currentCat = allCategories.find((c) => c.id === row.categoryId);
+    const parentCategoryId = currentCat?.parentId ?? null;
+    const siblingCategoryIds = parentCategoryId
+      ? allCategories
+          .filter((c) => c.parentId === parentCategoryId && c.id !== row.categoryId)
+          .map((c) => c.id)
+      : [];
+
+    return {
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      categoryId: row.categoryId,
+      parentCategoryId,
+      siblingCategoryIds,
+      effectivePriceCents: Number(row.effectivePrice),
+      createdAt: row.createdAt,
+      hasEmbedding: embMeta !== null,
+    };
+  }
+
+  async findNearestPublishedNeighbors(params: {
+    productId: string;
+    categoryIds?: string[];
+    excludeProductIds?: string[];
+    minPriceCents?: number;
+    maxPriceCents?: number;
+    minSimilarity?: number;
+    limit: number;
+  }): Promise<
+    Array<{
+      productId: string;
+      categoryId: string;
+      effectivePriceCents: number;
+      similarity: number;
+      createdAt: Date;
+    }>
+  > {
+    if (params.limit <= 0) {
+      return [];
+    }
+    if (params.categoryIds && params.categoryIds.length === 0) {
+      return [];
+    }
+
+    const targetMap = await this.getProductEmbeddingsByIds([params.productId]);
+    const target = targetMap.get(params.productId);
+    if (!target) {
+      return [];
+    }
+
+    const vectorLiteral = `[${target.embedding.join(',')}]`;
+    const excludedIds = Array.from(new Set([params.productId, ...(params.excludeProductIds ?? [])]));
+
+    const conditions: SQL[] = [
+      eq(products.status, 'published'),
+      sql`${products.id} NOT IN (${sql.join(
+        excludedIds.map((id) => sql`${id}::uuid`),
+        sql`, `,
+      )})`,
+    ];
+
+    if (params.categoryIds && params.categoryIds.length > 0) {
+      conditions.push(inArray(products.categoryId, params.categoryIds));
+    }
+    if (params.minPriceCents !== undefined) {
+      conditions.push(sql`${effectivePriceSql} >= ${params.minPriceCents}`);
+    }
+    if (params.maxPriceCents !== undefined) {
+      conditions.push(sql`${effectivePriceSql} <= ${params.maxPriceCents}`);
+    }
+
+    const distanceExpr = sql<number>`(${productEmbeddings.embedding} <=> ${vectorLiteral}::vector)`;
+    const similarityExpr = sql<number>`(1 - (${productEmbeddings.embedding} <=> ${vectorLiteral}::vector))`;
+
+    // pgvector 0.8.7 supports hnsw.iterative_scan so filtered kNN never shrinks result sets
+    const rows = await this.databaseService.db.transaction(async (tx) => {
+      await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order'`);
+      return tx
+        .select({
+          productId: products.id,
+          categoryId: products.categoryId,
+          effectivePrice: effectivePriceSql,
+          similarity: similarityExpr,
+          createdAt: products.createdAt,
+        })
+        .from(productEmbeddings)
+        .innerJoin(products, eq(products.id, productEmbeddings.productId))
+        .where(and(...conditions))
+        .orderBy(asc(distanceExpr), asc(products.id))
+        .limit(params.limit);
+    });
+
+    const mapped = rows.map((row) => ({
+      productId: row.productId,
+      categoryId: row.categoryId,
+      effectivePriceCents: Number(row.effectivePrice),
+      similarity: Math.max(0, Math.min(1, Number(row.similarity))),
+      createdAt: row.createdAt,
+    }));
+
+    if (params.minSimilarity !== undefined) {
+      return mapped.filter((row) => row.similarity >= params.minSimilarity!);
+    }
+    return mapped;
+  }
+
+  async listPublishedProductsByCategories(params: {
+    categoryIds?: string[];
+    excludeProductIds?: string[];
+    minPriceCents?: number;
+    maxPriceCents?: number;
+    limit?: number;
+  }): Promise<
+    Array<{
+      productId: string;
+      categoryId: string;
+      effectivePriceCents: number;
+      createdAt: Date;
+    }>
+  > {
+    if (params.categoryIds && params.categoryIds.length === 0) {
+      return [];
+    }
+
+    const conditions: SQL[] = [eq(products.status, 'published')];
+
+    if (params.excludeProductIds && params.excludeProductIds.length > 0) {
+      conditions.push(
+        sql`${products.id} NOT IN (${sql.join(
+          params.excludeProductIds.map((id) => sql`${id}::uuid`),
+          sql`, `,
+        )})`,
+      );
+    }
+    if (params.categoryIds && params.categoryIds.length > 0) {
+      conditions.push(inArray(products.categoryId, params.categoryIds));
+    }
+    if (params.minPriceCents !== undefined) {
+      conditions.push(sql`${effectivePriceSql} >= ${params.minPriceCents}`);
+    }
+    if (params.maxPriceCents !== undefined) {
+      conditions.push(sql`${effectivePriceSql} <= ${params.maxPriceCents}`);
+    }
+
+    const baseQuery = this.databaseService.db
+      .select({
+        productId: products.id,
+        categoryId: products.categoryId,
+        effectivePrice: effectivePriceSql,
+        createdAt: products.createdAt,
+      })
+      .from(products)
+      .where(and(...conditions))
+      .orderBy(desc(products.createdAt), asc(products.id));
+
+    const rows = params.limit !== undefined ? await baseQuery.limit(params.limit) : await baseQuery;
+
+    return rows.map((row) => ({
+      productId: row.productId,
+      categoryId: row.categoryId,
+      effectivePriceCents: Number(row.effectivePrice),
+      createdAt: row.createdAt,
+    }));
+  }
+
   private buildOrderByClauses(sort: DecodedCursor['s'], rankSql: SQL<number>): SQL[] {
     switch (sort) {
       case 'price_asc':
