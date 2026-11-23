@@ -12,6 +12,7 @@ node_modules
 dist
 dist-ssr
 .turbo
+.vite
 coverage
 playwright-report
 test-results
