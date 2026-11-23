@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "metrics": "node scripts/metrics/run-metrics.mjs"
   },
   "dependencies": {
     "@minieshop/contracts": "workspace:*",
@@ -34,6 +35,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "jsdom": "^31.0.1",
     "oxlint": "^1.88.0",
+    "playwright": "1.65.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.1.1"
