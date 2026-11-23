@@ -1,10 +1,25 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import type { ProductCardDTO, ProductSort } from '@minieshop/contracts';
+import type {
+  CategoryDTO,
+  FacetsDTO,
+  ProductCardDTO,
+  ProductSort,
+} from '@minieshop/contracts';
 import { useCart } from '../../hooks/useCart';
-import { useCategoriesQuery, useProductsQuery } from '../../hooks/useProducts';
+import {
+  useCategoriesQuery,
+  useFacetsQuery,
+  useProductsQuery,
+} from '../../hooks/useProducts';
 import { t } from '../../i18n';
+import {
+  parseCatalogUrlParams,
+  serializeCatalogUrlParams,
+  type CatalogUrlState,
+} from '../../utils/catalogUrlParams';
+import CatalogFilters from '../../components/CatalogFilters/CatalogFilters';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import Dropdown, { type DropdownOption } from '../../components/Dropdown/Dropdown';
 import './ProductListingPage.css';
@@ -18,61 +33,100 @@ const BASE_SORT_OPTIONS: DropdownOption<ProductSort>[] = [
   { value: 'name_asc', label: t('plp.sort.name_asc') },
 ];
 
-const VALID_SORT_VALUES = new Set<ProductSort>([
-  'newest',
-  'price_asc',
-  'price_desc',
-  'name_asc',
-  'relevance',
-]);
+function deriveTotalFromFacets(
+  facets: FacetsDTO | undefined,
+  categories: CategoryDTO[],
+  activeCategorySlug: string | undefined,
+): number | null {
+  if (!facets) return null;
+  if (facets.categories.length === 0) return 0;
 
-function parseSortParam(raw: string | null, hasQuery: boolean): ProductSort {
-  if (raw && VALID_SORT_VALUES.has(raw as ProductSort)) {
-    if (raw === 'relevance' && !hasQuery) {
-      return 'newest';
-    }
-    return raw as ProductSort;
+  if (activeCategorySlug) {
+    const match = facets.categories.find(
+      (cat) => cat.slug === activeCategorySlug,
+    );
+    return match ? match.count : 0;
   }
-  return 'newest';
+
+  if (categories.length === 0) return null;
+  const rootSlugs = new Set(categories.map((cat) => cat.slug));
+  let total = 0;
+  for (const facetCat of facets.categories) {
+    if (rootSlugs.has(facetCat.slug)) {
+      total += facetCat.count;
+    }
+  }
+  return total;
 }
 
 export function ProductListingPage() {
   const { addToCart } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const selectedCategory = searchParams.get('category') || '';
-  const queryTerm = searchParams.get('q')?.trim() || '';
-  const sortBy = parseSortParam(searchParams.get('sort'), queryTerm.length > 0);
+  const urlState = useMemo(
+    () => parseCatalogUrlParams(searchParams),
+    [searchParams],
+  );
 
   const [favoriteError, setFavoriteError] = useState<Error | null>(null);
 
   const categoriesQuery = useCategoriesQuery();
 
-  const queryFilters = useMemo(
+  const facetFilters = useMemo(
     () => ({
-      category: selectedCategory || undefined,
-      q: queryTerm || undefined,
-      sort: sortBy,
-      limit: PAGE_SIZE,
+      category: urlState.category,
+      q: urlState.q,
+      minPrice: urlState.minPrice,
+      maxPrice: urlState.maxPrice,
+      inStock: urlState.inStock,
+      attributes: urlState.attributes,
+      numericAttributes: urlState.numericAttributes,
     }),
-    [selectedCategory, queryTerm, sortBy],
+    [
+      urlState.category,
+      urlState.q,
+      urlState.minPrice,
+      urlState.maxPrice,
+      urlState.inStock,
+      urlState.attributes,
+      urlState.numericAttributes,
+    ],
   );
 
-  const productsQuery = useProductsQuery(queryFilters);
+  const listFilters = useMemo(
+    () => ({
+      ...facetFilters,
+      sort: urlState.sort,
+      limit: PAGE_SIZE,
+    }),
+    [facetFilters, urlState.sort],
+  );
+
+  const productsQuery = useProductsQuery(listFilters);
+  const facetsQuery = useFacetsQuery(facetFilters);
 
   const sortOptions = useMemo<DropdownOption<ProductSort>[]>(() => {
-    if (queryTerm.length > 0) {
+    if (urlState.q) {
       return [
         { value: 'relevance', label: t('plp.sort.relevance') },
         ...BASE_SORT_OPTIONS,
       ];
     }
     return BASE_SORT_OPTIONS;
-  }, [queryTerm]);
+  }, [urlState.q]);
 
   const products = useMemo<ProductCardDTO[]>(
     () => productsQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [productsQuery.data],
+  );
+
+  const rootCategories = useMemo(
+    () => categoriesQuery.data ?? [],
+    [categoriesQuery.data],
+  );
+  const derivedTotal = useMemo(
+    () => deriveTotalFromFacets(facetsQuery.data, rootCategories, urlState.category),
+    [facetsQuery.data, rootCategories, urlState.category],
   );
 
   // Auto-dismiss favorite rollback notice after 4 seconds
@@ -84,35 +138,33 @@ export function ProductListingPage() {
     return () => clearTimeout(timer);
   }, [favoriteError]);
 
-  const handleCategoryChange = (categorySlug: string): void => {
-    if (categorySlug === selectedCategory) return;
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (!categorySlug) {
-        next.delete('category');
-      } else {
-        next.set('category', categorySlug);
-      }
-      return next;
-    });
-  };
+  const handleUpdateUrlState = useCallback(
+    (
+      updater: (prev: CatalogUrlState) => CatalogUrlState,
+      options?: { replace?: boolean },
+    ): void => {
+      setSearchParams(
+        (prevParams) => {
+          const current = parseCatalogUrlParams(prevParams);
+          const next = updater(current);
+          return serializeCatalogUrlParams(next);
+        },
+        { replace: options?.replace ?? false },
+      );
+    },
+    [setSearchParams],
+  );
 
   const handleSortChange = (newValue: ProductSort): void => {
-    if (newValue === sortBy) return;
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (newValue === 'newest') {
-        next.delete('sort');
-      } else {
-        next.set('sort', newValue);
-      }
-      return next;
+    if (newValue === urlState.sort) return;
+    handleUpdateUrlState((prev) => ({ ...prev, sort: newValue }), {
+      replace: false,
     });
   };
 
-  const handleResetFilters = (): void => {
-    setSearchParams({});
-  };
+  const handleResetFilters = useCallback((): void => {
+    setSearchParams({}, { replace: false });
+  }, [setSearchParams]);
 
   const handleAddToCart = (product: ProductCardDTO): void => {
     addToCart(product);
@@ -124,7 +176,11 @@ export function ProductListingPage() {
   const isTransitioningFilters =
     productsQuery.isPlaceholderData && productsQuery.isFetching;
 
-  const rootCategories = categoriesQuery.data ?? [];
+  const liveStatusText = !showResults
+    ? ''
+    : derivedTotal !== null
+      ? t('plp.resultsUpdatedWithCount', { count: derivedTotal })
+      : t('plp.resultsUpdated');
 
   return (
     <main className="plp-container">
@@ -132,6 +188,11 @@ export function ProductListingPage() {
         <title>{t('plp.metaTitle')}</title>
         <meta name="description" content={t('plp.metaDescription')} />
       </Helmet>
+
+      {/* Screen-reader live region announcing filter/search result updates */}
+      <div className="plp-sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {liveStatusText}
+      </div>
 
       {/* Optimistic rollback error banner */}
       {favoriteError && (
@@ -201,190 +262,172 @@ export function ProductListingPage() {
         <p className="plp-header__subtitle">{t('plp.subtitle')}</p>
       </header>
 
-      {/* Filters Toolbar */}
-      <section className="plp-toolbar" aria-label={t('filters.formAria')}>
-        <div className="plp-categories" role="tablist" aria-label={t('filters.categoriesLegend')}>
-          <button
-            type="button"
-            className={`plp-category-chip ${
-              selectedCategory === '' ? 'plp-category-chip--active' : ''
-            }`}
-            onClick={() => handleCategoryChange('')}
-            aria-pressed={selectedCategory === ''}
-          >
-            <span>{t('filters.allCategories')}</span>
-          </button>
+      <div className="plp-layout">
+        <CatalogFilters
+          categories={rootCategories}
+          facets={facetsQuery.data}
+          state={urlState}
+          onUpdate={handleUpdateUrlState}
+          onClearAll={handleResetFilters}
+        />
 
-          {rootCategories.map((category) => {
-            const isActive = selectedCategory === category.slug;
-            return (
-              <button
-                key={category.id}
-                type="button"
-                className={`plp-category-chip ${
-                  isActive ? 'plp-category-chip--active' : ''
-                }`}
-                onClick={() => handleCategoryChange(category.slug)}
-                aria-pressed={isActive}
-              >
-                <span>{category.name}</span>
-                <span className="plp-category-chip__count">
-                  {category.productCount}
+        <div className="plp-main">
+          {/* Top toolbar: Results summary + Sort Dropdown */}
+          <section className="plp-toolbar" aria-label={t('plp.sortAria')}>
+            <div className="plp-results-row">
+              {showResults && (
+                <div className="plp-results-count">
+                  {derivedTotal !== null
+                    ? t('plp.showingLoadedOf', {
+                        loaded: products.length,
+                        total: derivedTotal,
+                      })
+                    : t('plp.showingLoaded', { count: products.length })}
+                  {urlState.category && ` (${urlState.category})`}
+                  {urlState.q && ` — "${urlState.q}"`}
+                </div>
+              )}
+              {isTransitioningFilters && (
+                <span className="plp-sync-pill" role="status">
+                  {t('plp.updating')}
                 </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Sort Dropdown */}
-        <div className="plp-sort">
-          <span className="plp-sort__label">{t('plp.sortLabel')}</span>
-          <Dropdown<ProductSort>
-            options={sortOptions}
-            value={sortBy}
-            onChange={handleSortChange}
-            ariaLabel={t('plp.sortAria')}
-            align="right"
-          />
-        </div>
-      </section>
-
-      {/* Results Count */}
-      {showResults && (
-        <div className="plp-results-row">
-          <div className="plp-results-count">
-            {t('plp.showingLoaded', { count: products.length })}
-            {selectedCategory && ` (${selectedCategory})`}
-            {queryTerm && ` — "${queryTerm}"`}
-          </div>
-          {isTransitioningFilters && (
-            <span className="plp-sync-pill" role="status" aria-live="polite">
-              {t('plp.updating')}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Error State with Retry */}
-      {showErrorState && (
-        <div className="plp-empty" role="alert">
-          <svg
-            className="plp-empty__icon plp-empty__icon--error"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-            />
-          </svg>
-          <p className="plp-empty__title">{t('plp.errorTitle')}</p>
-          <p className="plp-empty__text">
-            {productsQuery.error instanceof Error
-              ? productsQuery.error.message
-              : t('plp.errorFallback')}
-          </p>
-          <button
-            type="button"
-            className="plp-empty__reset-btn"
-            onClick={() => {
-              void productsQuery.refetch();
-            }}
-            disabled={productsQuery.isFetching}
-          >
-            {productsQuery.isFetching ? t('plp.retrying') : t('plp.retry')}
-          </button>
-        </div>
-      )}
-
-      {/* Initial Skeleton Loading */}
-      {showInitialSkeleton && (
-        <div className="plp-grid" aria-busy="true" aria-label="Loading products">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div key={index} className="skeleton-card">
-              <div className="skeleton-card__img" />
-              <div className="skeleton-card__body">
-                <div className="skeleton-line skeleton-line--short" />
-                <div className="skeleton-line skeleton-line--title" />
-                <div className="skeleton-line skeleton-line--full" />
-                <div className="skeleton-line skeleton-line--short" />
-              </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* Products Grid (kept visible during filter transitions via keepPreviousData) */}
-      {showResults && products.length > 0 && (
-        <>
-          <div
-            className={`plp-grid ${
-              isTransitioningFilters ? 'plp-grid--fetching' : ''
-            }`}
-            id="product-grid"
-          >
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAddToCart={handleAddToCart}
-                onFavoriteError={setFavoriteError}
+            <div className="plp-sort">
+              <span className="plp-sort__label">{t('plp.sortLabel')}</span>
+              <Dropdown<ProductSort>
+                options={sortOptions}
+                value={urlState.sort}
+                onChange={handleSortChange}
+                ariaLabel={t('plp.sortAria')}
+                align="right"
               />
-            ))}
-          </div>
+            </div>
+          </section>
 
-          {productsQuery.hasNextPage && (
-            <div className="plp-load-more">
+          {/* Error State with Retry */}
+          {showErrorState && (
+            <div className="plp-empty" role="alert">
+              <svg
+                className="plp-empty__icon plp-empty__icon--error"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                />
+              </svg>
+              <p className="plp-empty__title">{t('plp.errorTitle')}</p>
+              <p className="plp-empty__text">
+                {productsQuery.error instanceof Error
+                  ? productsQuery.error.message
+                  : t('plp.errorFallback')}
+              </p>
               <button
                 type="button"
-                className="plp-load-more__btn"
+                className="plp-empty__reset-btn"
                 onClick={() => {
-                  void productsQuery.fetchNextPage();
+                  void productsQuery.refetch();
                 }}
-                disabled={productsQuery.isFetchingNextPage}
-                aria-busy={productsQuery.isFetchingNextPage}
+                disabled={productsQuery.isFetching}
               >
-                {productsQuery.isFetchingNextPage
-                  ? t('plp.loadingMore')
-                  : t('plp.loadMore')}
+                {productsQuery.isFetching ? t('plp.retrying') : t('plp.retry')}
               </button>
             </div>
           )}
-        </>
-      )}
 
-      {/* Empty State */}
-      {showResults && products.length === 0 && (
-        <div className="plp-empty">
-          <svg
-            className="plp-empty__icon"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <h2 className="plp-empty__title">{t('plp.emptyTitle')}</h2>
-          <p className="plp-empty__text">{t('plp.emptyText')}</p>
-          <button
-            type="button"
-            className="plp-empty__reset-btn"
-            onClick={handleResetFilters}
-          >
-            {t('plp.clearFilters')}
-          </button>
+          {/* Initial Skeleton Loading */}
+          {showInitialSkeleton && (
+            <div className="plp-grid" aria-busy="true" aria-label="Loading products">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="skeleton-card">
+                  <div className="skeleton-card__img" />
+                  <div className="skeleton-card__body">
+                    <div className="skeleton-line skeleton-line--short" />
+                    <div className="skeleton-line skeleton-line--title" />
+                    <div className="skeleton-line skeleton-line--full" />
+                    <div className="skeleton-line skeleton-line--short" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Products Grid (kept visible during filter transitions via keepPreviousData) */}
+          {showResults && products.length > 0 && (
+            <>
+              <div
+                className={`plp-grid ${
+                  isTransitioningFilters ? 'plp-grid--fetching' : ''
+                }`}
+                id="product-grid"
+              >
+                {products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                    onFavoriteError={setFavoriteError}
+                  />
+                ))}
+              </div>
+
+              {productsQuery.hasNextPage && (
+                <div className="plp-load-more">
+                  <button
+                    type="button"
+                    className="plp-load-more__btn"
+                    onClick={() => {
+                      void productsQuery.fetchNextPage();
+                    }}
+                    disabled={productsQuery.isFetchingNextPage}
+                    aria-busy={productsQuery.isFetchingNextPage}
+                  >
+                    {productsQuery.isFetchingNextPage
+                      ? t('plp.loadingMore')
+                      : t('plp.loadMore')}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Empty State */}
+          {showResults && products.length === 0 && (
+            <div className="plp-empty">
+              <svg
+                className="plp-empty__icon"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <h2 className="plp-empty__title">{t('plp.emptyTitle')}</h2>
+              <p className="plp-empty__text">{t('plp.emptyText')}</p>
+              <button
+                type="button"
+                className="plp-empty__reset-btn"
+                onClick={handleResetFilters}
+              >
+                {t('plp.clearFilters')}
+              </button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </main>
   );
 }

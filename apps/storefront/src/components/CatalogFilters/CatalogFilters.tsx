@@ -1,0 +1,544 @@
+import { useEffect, useId, useMemo, useState } from 'react';
+import type {
+  CategoryDTO,
+  FacetAttributeDTO,
+  FacetsDTO,
+} from '@minieshop/contracts';
+import { useDebounce } from '../../hooks/useDebounce';
+import { t } from '../../i18n';
+import { formatCents } from '../../utils/money';
+import {
+  hasActiveCatalogFilters,
+  type CatalogUrlState,
+} from '../../utils/catalogUrlParams';
+import './CatalogFilters.css';
+
+export interface CatalogFiltersProps {
+  categories: CategoryDTO[];
+  facets: FacetsDTO | undefined;
+  state: CatalogUrlState;
+  onUpdate: (
+    updater: (prev: CatalogUrlState) => CatalogUrlState,
+    options?: { replace?: boolean },
+  ) => void;
+  onClearAll: () => void;
+}
+
+function centsToInputValue(cents: number | undefined): string {
+  if (cents === undefined) return '';
+  return String(cents / 100);
+}
+
+function inputValueToCents(raw: string): number | undefined {
+  const normalized = raw.trim().replace(',', '.');
+  if (normalized.length === 0) return undefined;
+  const num = Number(normalized);
+  if (!Number.isFinite(num) || num < 0) return undefined;
+  return Math.round(num * 100);
+}
+
+interface PriceDraftState {
+  urlSignature: string;
+  minText: string;
+  maxText: string;
+}
+
+interface NumericAttrDraftProps {
+  facet: FacetAttributeDTO;
+  currentMin: number | undefined;
+  currentMax: number | undefined;
+  onCommit: (min: number | undefined, max: number | undefined) => void;
+}
+
+function NumericAttributeFacet({
+  facet,
+  currentMin,
+  currentMax,
+  onCommit,
+}: NumericAttrDraftProps) {
+  const idPrefix = useId();
+  const urlSig = `${currentMin ?? ''}:${currentMax ?? ''}`;
+  const [draft, setDraft] = useState({
+    urlSig,
+    minText: currentMin !== undefined ? String(currentMin) : '',
+    maxText: currentMax !== undefined ? String(currentMax) : '',
+  });
+
+  const minText = draft.urlSig === urlSig ? draft.minText : currentMin !== undefined ? String(currentMin) : '';
+  const maxText = draft.urlSig === urlSig ? draft.maxText : currentMax !== undefined ? String(currentMax) : '';
+
+  const debouncedMin = useDebounce(minText, 350);
+  const debouncedMax = useDebounce(maxText, 350);
+
+  useEffect(() => {
+    const parsedMin =
+      debouncedMin.trim() === '' ? undefined : Number(debouncedMin.trim());
+    const parsedMax =
+      debouncedMax.trim() === '' ? undefined : Number(debouncedMax.trim());
+
+    const safeMin =
+      parsedMin !== undefined && Number.isFinite(parsedMin)
+        ? parsedMin
+        : undefined;
+    const safeMax =
+      parsedMax !== undefined && Number.isFinite(parsedMax)
+        ? parsedMax
+        : undefined;
+
+    if (
+      safeMin !== undefined &&
+      safeMax !== undefined &&
+      safeMin > safeMax
+    ) {
+      return;
+    }
+
+    if (safeMin !== currentMin || safeMax !== currentMax) {
+      onCommit(safeMin, safeMax);
+    }
+  }, [debouncedMin, debouncedMax, currentMin, currentMax, onCommit]);
+
+  return (
+    <fieldset className="catalog-filters__group">
+      <legend className="catalog-filters__legend">
+        {facet.label}
+        {facet.unit ? ` (${facet.unit})` : ''}
+      </legend>
+      <div className="catalog-filters__range-row">
+        <div className="catalog-filters__field">
+          <label
+            htmlFor={`${idPrefix}-min`}
+            className="catalog-filters__field-label"
+          >
+            {t('filters.minValue')}
+          </label>
+          <input
+            id={`${idPrefix}-min`}
+            type="number"
+            inputMode="decimal"
+            value={minText}
+            placeholder={
+              facet.range ? String(facet.range.min) : t('filters.minValue')
+            }
+            onChange={(e) =>
+              setDraft({ urlSig, minText: e.target.value, maxText })
+            }
+            className="catalog-filters__input"
+          />
+        </div>
+        <div className="catalog-filters__field">
+          <label
+            htmlFor={`${idPrefix}-max`}
+            className="catalog-filters__field-label"
+          >
+            {t('filters.maxValue')}
+          </label>
+          <input
+            id={`${idPrefix}-max`}
+            type="number"
+            inputMode="decimal"
+            value={maxText}
+            placeholder={
+              facet.range ? String(facet.range.max) : t('filters.maxValue')
+            }
+            onChange={(e) =>
+              setDraft({ urlSig, minText, maxText: e.target.value })
+            }
+            className="catalog-filters__input"
+          />
+        </div>
+      </div>
+    </fieldset>
+  );
+}
+
+/**
+ * Accessible faceted catalog filters form synced with URL search params.
+ */
+export function CatalogFilters({
+  categories,
+  facets,
+  state,
+  onUpdate,
+  onClearAll,
+}: CatalogFiltersProps) {
+  const minPriceId = useId();
+  const maxPriceId = useId();
+  const inStockId = useId();
+
+  const priceUrlSignature = `${state.minPrice ?? ''}:${state.maxPrice ?? ''}`;
+  const [priceDraft, setPriceDraft] = useState<PriceDraftState>({
+    urlSignature: priceUrlSignature,
+    minText: centsToInputValue(state.minPrice),
+    maxText: centsToInputValue(state.maxPrice),
+  });
+
+  const minPriceText =
+    priceDraft.urlSignature === priceUrlSignature
+      ? priceDraft.minText
+      : centsToInputValue(state.minPrice);
+  const maxPriceText =
+    priceDraft.urlSignature === priceUrlSignature
+      ? priceDraft.maxText
+      : centsToInputValue(state.maxPrice);
+
+  const debouncedMinPrice = useDebounce(minPriceText, 350);
+  const debouncedMaxPrice = useDebounce(maxPriceText, 350);
+
+  useEffect(() => {
+    const nextMin = inputValueToCents(debouncedMinPrice);
+    const nextMax = inputValueToCents(debouncedMaxPrice);
+
+    if (nextMin !== undefined && nextMax !== undefined && nextMin > nextMax) {
+      return;
+    }
+
+    if (nextMin !== state.minPrice || nextMax !== state.maxPrice) {
+      onUpdate(
+        (prev) => ({
+          ...prev,
+          minPrice: nextMin,
+          maxPrice: nextMax,
+        }),
+        { replace: true },
+      );
+    }
+  }, [
+    debouncedMinPrice,
+    debouncedMaxPrice,
+    state.minPrice,
+    state.maxPrice,
+    onUpdate,
+  ]);
+
+  const facetCategoryCountBySlug = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of facets?.categories ?? []) {
+      map.set(item.slug, item.count);
+    }
+    return map;
+  }, [facets]);
+
+  const handleCategorySelect = (slug: string | undefined): void => {
+    if (slug === state.category) return;
+    onUpdate((prev) => ({ ...prev, category: slug }), { replace: false });
+  };
+
+  const handleInStockToggle = (checked: boolean): void => {
+    onUpdate(
+      (prev) => ({ ...prev, inStock: checked ? true : undefined }),
+      { replace: false },
+    );
+  };
+
+  const handleDiscreteAttributeToggle = (
+    code: string,
+    optionValue: string,
+    checked: boolean,
+  ): void => {
+    onUpdate(
+      (prev) => {
+        const currentAttrs = { ...(prev.attributes ?? {}) };
+        const existing = new Set(currentAttrs[code] ?? []);
+        if (checked) {
+          existing.add(optionValue);
+        } else {
+          existing.delete(optionValue);
+        }
+        if (existing.size === 0) {
+          delete currentAttrs[code];
+        } else {
+          currentAttrs[code] = Array.from(existing);
+        }
+        return {
+          ...prev,
+          attributes:
+            Object.keys(currentAttrs).length > 0 ? currentAttrs : undefined,
+        };
+      },
+      { replace: false },
+    );
+  };
+
+  const activeFilters = hasActiveCatalogFilters(state);
+
+  return (
+    <aside className="catalog-filters" aria-label={t('filters.heading')}>
+      <form
+        className="catalog-filters__form"
+        aria-label={t('filters.formAria')}
+        onSubmit={(e) => e.preventDefault()}
+      >
+        <div className="catalog-filters__header">
+          <h2 className="catalog-filters__title">{t('filters.heading')}</h2>
+          {activeFilters && (
+            <button
+              type="button"
+              className="catalog-filters__clear-btn"
+              onClick={onClearAll}
+            >
+              {t('filters.clearAll')}
+            </button>
+          )}
+        </div>
+
+        {/* Category Tree */}
+        <fieldset className="catalog-filters__group">
+          <legend className="catalog-filters__legend">
+            {t('filters.categoriesLegend')}
+          </legend>
+          <ul className="catalog-filters__cat-list">
+            <li>
+              <button
+                type="button"
+                className={`catalog-filters__cat-btn ${
+                  !state.category ? 'catalog-filters__cat-btn--active' : ''
+                }`}
+                aria-pressed={!state.category}
+                onClick={() => handleCategorySelect(undefined)}
+              >
+                <span>{t('filters.allCategories')}</span>
+              </button>
+            </li>
+            {categories.map((cat) => {
+              const rootCount =
+                facetCategoryCountBySlug.get(cat.slug) ?? cat.productCount;
+              const isRootActive = state.category === cat.slug;
+              return (
+                <li key={cat.id} className="catalog-filters__cat-node">
+                  <button
+                    type="button"
+                    className={`catalog-filters__cat-btn ${
+                      isRootActive ? 'catalog-filters__cat-btn--active' : ''
+                    }`}
+                    aria-pressed={isRootActive}
+                    onClick={() => handleCategorySelect(cat.slug)}
+                  >
+                    <span>{cat.name}</span>
+                    <span className="catalog-filters__count">{rootCount}</span>
+                  </button>
+
+                  {cat.children.length > 0 && (
+                    <ul className="catalog-filters__subcat-list">
+                      {cat.children.map((child) => {
+                        const childCount =
+                          facetCategoryCountBySlug.get(child.slug) ??
+                          child.productCount;
+                        const isChildActive = state.category === child.slug;
+                        return (
+                          <li key={child.id}>
+                            <button
+                              type="button"
+                              className={`catalog-filters__cat-btn catalog-filters__cat-btn--child ${
+                                isChildActive
+                                  ? 'catalog-filters__cat-btn--active'
+                                  : ''
+                              }`}
+                              aria-pressed={isChildActive}
+                              onClick={() => handleCategorySelect(child.slug)}
+                            >
+                              <span>{child.name}</span>
+                              <span className="catalog-filters__count">
+                                {childCount}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </fieldset>
+
+        {/* Availability */}
+        <fieldset className="catalog-filters__group">
+          <legend className="catalog-filters__legend">
+            {t('filters.availabilityLegend')}
+          </legend>
+          <label htmlFor={inStockId} className="catalog-filters__checkbox-row">
+            <input
+              id={inStockId}
+              type="checkbox"
+              checked={state.inStock === true}
+              onChange={(e) => handleInStockToggle(e.target.checked)}
+              className="catalog-filters__checkbox"
+            />
+            <span>{t('filters.inStockOnly')}</span>
+          </label>
+        </fieldset>
+
+        {/* Price Range */}
+        <fieldset className="catalog-filters__group">
+          <legend className="catalog-filters__legend">
+            {t('filters.priceLegend')}
+          </legend>
+          {facets?.price.min !== null &&
+            facets?.price.max !== null &&
+            facets?.price.min !== undefined &&
+            facets?.price.max !== undefined && (
+              <p className="catalog-filters__hint">
+                {formatCents(facets.price.min)} – {formatCents(facets.price.max)}
+              </p>
+            )}
+          <div className="catalog-filters__range-row">
+            <div className="catalog-filters__field">
+              <label
+                htmlFor={minPriceId}
+                className="catalog-filters__field-label"
+              >
+                {t('filters.minPriceLabel')}
+              </label>
+              <input
+                id={minPriceId}
+                type="number"
+                min="0"
+                step="1"
+                inputMode="decimal"
+                value={minPriceText}
+                placeholder={
+                  facets?.price.min !== null && facets?.price.min !== undefined
+                    ? String(Math.floor(facets.price.min / 100))
+                    : '0'
+                }
+                onChange={(e) =>
+                  setPriceDraft({
+                    urlSignature: priceUrlSignature,
+                    minText: e.target.value,
+                    maxText: maxPriceText,
+                  })
+                }
+                className="catalog-filters__input"
+              />
+            </div>
+
+            <div className="catalog-filters__field">
+              <label
+                htmlFor={maxPriceId}
+                className="catalog-filters__field-label"
+              >
+                {t('filters.maxPriceLabel')}
+              </label>
+              <input
+                id={maxPriceId}
+                type="number"
+                min="0"
+                step="1"
+                inputMode="decimal"
+                value={maxPriceText}
+                placeholder={
+                  facets?.price.max !== null && facets?.price.max !== undefined
+                    ? String(Math.ceil(facets.price.max / 100))
+                    : '9999'
+                }
+                onChange={(e) =>
+                  setPriceDraft({
+                    urlSignature: priceUrlSignature,
+                    minText: minPriceText,
+                    maxText: e.target.value,
+                  })
+                }
+                className="catalog-filters__input"
+              />
+            </div>
+          </div>
+        </fieldset>
+
+        {/* Disjunctive Attribute Facets */}
+        {(facets?.attributes ?? []).map((attrFacet) => {
+          if (attrFacet.type === 'number') {
+            const currentRange = state.numericAttributes?.[attrFacet.code];
+            return (
+              <NumericAttributeFacet
+                key={attrFacet.code}
+                facet={attrFacet}
+                currentMin={currentRange?.min}
+                currentMax={currentRange?.max}
+                onCommit={(nextMin, nextMax) => {
+                  onUpdate(
+                    (prev) => {
+                      const nextNumeric = { ...(prev.numericAttributes ?? {}) };
+                      if (nextMin === undefined && nextMax === undefined) {
+                        delete nextNumeric[attrFacet.code];
+                      } else {
+                        nextNumeric[attrFacet.code] = {
+                          min: nextMin,
+                          max: nextMax,
+                        };
+                      }
+                      return {
+                        ...prev,
+                        numericAttributes:
+                          Object.keys(nextNumeric).length > 0
+                            ? nextNumeric
+                            : undefined,
+                      };
+                    },
+                    { replace: true },
+                  );
+                }}
+              />
+            );
+          }
+
+          const options = attrFacet.options ?? [];
+          if (options.length === 0) return null;
+          const activeValues = state.attributes?.[attrFacet.code] ?? [];
+
+          return (
+            <fieldset key={attrFacet.code} className="catalog-filters__group">
+              <legend className="catalog-filters__legend">
+                {attrFacet.label}
+              </legend>
+              <div className="catalog-filters__options">
+                {options.map((opt) => {
+                  const checkboxId = `facet-${attrFacet.code}-${opt.value}`;
+                  const checked = activeValues.includes(opt.value);
+                  const displayLabel =
+                    opt.label ??
+                    (attrFacet.type === 'boolean'
+                      ? opt.value === 'true'
+                        ? t('filters.yes')
+                        : t('filters.no')
+                      : opt.value);
+
+                  return (
+                    <label
+                      key={opt.value}
+                      htmlFor={checkboxId}
+                      className="catalog-filters__checkbox-row"
+                    >
+                      <input
+                        id={checkboxId}
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) =>
+                          handleDiscreteAttributeToggle(
+                            attrFacet.code,
+                            opt.value,
+                            e.target.checked,
+                          )
+                        }
+                        className="catalog-filters__checkbox"
+                      />
+                      <span className="catalog-filters__option-text">
+                        {displayLabel}
+                      </span>
+                      <span className="catalog-filters__count">
+                        {opt.count}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          );
+        })}
+      </form>
+    </aside>
+  );
+}
+
+export default CatalogFilters;
