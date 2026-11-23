@@ -23,6 +23,10 @@ import { CurrentCustomer, RequireCustomer } from './decorators.js';
 import { getSessionCookieName, SessionService } from './session.service.js';
 import type { CustomerPrincipal, RequestWithIdentity } from './types.js';
 
+const ANON_COOKIE_NAME = 'anon_id';
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 @Controller()
 export class CustomerAuthController {
   constructor(
@@ -63,15 +67,33 @@ export class CustomerAuthController {
     const existingRawToken =
       typeof request.cookies?.[cookieName] === 'string' ? request.cookies[cookieName] : undefined;
 
+    let anonSessionId: string | undefined;
+    const rawAnonCookie = request.cookies?.[ANON_COOKIE_NAME];
+    if (typeof rawAnonCookie === 'string' && rawAnonCookie.length > 0) {
+      const unsigned = request.unsignCookie(rawAnonCookie);
+      if (unsigned.valid && typeof unsigned.value === 'string' && UUID_REGEX.test(unsigned.value)) {
+        anonSessionId = unsigned.value;
+      }
+    }
+
     const result = await this.customerAuthService.login({
       email: body.email,
       password: body.password,
       ipAddress: request.ip,
       userAgent: typeof request.headers['user-agent'] === 'string' ? request.headers['user-agent'] : null,
       existingRawToken,
+      anonSessionId,
     });
 
     this.sessionService.setSessionCookie(reply, 'customer', result.rawToken);
+    if (rawAnonCookie) {
+      void reply.clearCookie(ANON_COOKIE_NAME, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: env.COOKIE_SECURE,
+        path: '/',
+      });
+    }
     const payload = parseOutput(authCustomerResponseSchema, { customer: result.customer });
     await reply.code(200).send(payload);
   }

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import type { CustomerProfileDTO } from '@minieshop/contracts';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../../common/errors.js';
 import { DatabaseService } from '../../database/database.service.js';
 import { customers } from '../../database/schema/index.js';
+import { CatalogService } from '../catalog/index.js';
 import { OutboxService } from '../platform/index.js';
 import { EmailTokenService } from './email-token.service.js';
 import { PasswordService } from './password.service.js';
@@ -64,6 +65,9 @@ export class CustomerAuthService {
     private readonly outboxService: OutboxService,
     @Inject(RATE_LIMITER_TOKEN)
     private readonly rateLimiter: RateLimiter,
+    @Optional()
+    @Inject(CatalogService)
+    private readonly catalogService?: CatalogService,
   ) {}
 
   async register(input: {
@@ -166,6 +170,7 @@ export class CustomerAuthService {
     ipAddress: string;
     userAgent: string | null;
     existingRawToken?: string;
+    anonSessionId?: string;
   }): Promise<{
     customer: CustomerProfileDTO;
     rawToken: string;
@@ -207,10 +212,13 @@ export class CustomerAuthService {
         .where(eq(customers.id, customer.id));
     }
 
-    // Regenerate session on login (anti session-fixation)
+    // Regenerate session on login (anti session-fixation) and merge anonymous favorites atomically
     const createdSession = await this.databaseService.db.transaction(async (tx) => {
       if (input.existingRawToken) {
         await this.sessionService.revokeSessionByRawToken(input.existingRawToken, 'customer', tx);
+      }
+      if (input.anonSessionId && this.catalogService) {
+        await this.catalogService.mergeAnonymousFavorites(tx, input.anonSessionId, customer.id);
       }
       return this.sessionService.createSession({
         subjectType: 'customer',

@@ -245,7 +245,7 @@ export class OutboxService {
       .set({
         status: 'pending',
         attempts: 0,
-        availableAt: new Date(),
+        availableAt: sql`now()`,
         lockedUntil: null,
         lastError: null,
         processedAt: null,

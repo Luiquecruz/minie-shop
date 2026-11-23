@@ -25,7 +25,7 @@ import {
   products,
 } from '../../database/schema/index.js';
 import { MediaService } from '../media/index.js';
-import { OutboxService } from '../platform/index.js';
+import { OutboxService, type DbOrTx } from '../platform/index.js';
 import {
   buildProductFilterConditions,
   buildSearchRankSql,
@@ -58,7 +58,7 @@ export class CatalogService {
     @Optional()
     @Inject(OutboxService)
     private readonly outboxService?: OutboxService,
-  ) {}
+  ) { }
 
   getModuleSummary(): { module: string; mediaModule: string } {
     return {
@@ -616,6 +616,70 @@ export class CatalogService {
     await this.databaseService.db
       .delete(favorites)
       .where(and(eq(favorites.sessionId, sessionId), eq(favorites.productId, productId)));
+  }
+
+  async listFavoritesByCustomer(customerId: string): Promise<string[]> {
+    const rows = await this.databaseService.db
+      .select({ productId: favorites.productId })
+      .from(favorites)
+      .innerJoin(products, eq(products.id, favorites.productId))
+      .where(and(eq(favorites.customerId, customerId), eq(products.status, 'published')))
+      .orderBy(desc(favorites.createdAt), asc(favorites.productId));
+
+    return rows.map((row) => row.productId);
+  }
+
+  async addFavoriteForCustomer(customerId: string, productId: string): Promise<void> {
+    await this.assertPublishedProductExists(productId);
+
+    await this.databaseService.db
+      .insert(favorites)
+      .values({
+        productId,
+        customerId,
+      })
+      .onConflictDoNothing();
+  }
+
+  async removeFavoriteForCustomer(customerId: string, productId: string): Promise<void> {
+    await this.assertPublishedProductExists(productId);
+
+    await this.databaseService.db
+      .delete(favorites)
+      .where(and(eq(favorites.customerId, customerId), eq(favorites.productId, productId)));
+  }
+
+  /**
+   * Public cross-module interface (I06): atomically merges anonymous favorites into a customer account
+   * within the caller's database transaction without creating duplicates.
+   */
+  async mergeAnonymousFavorites(
+    tx: DbOrTx,
+    sessionId: string,
+    customerId: string,
+  ): Promise<{ merged: number }> {
+    const anonRows = await tx
+      .select({ productId: favorites.productId })
+      .from(favorites)
+      .where(eq(favorites.sessionId, sessionId));
+
+    if (anonRows.length === 0) {
+      return { merged: 0 };
+    }
+
+    for (const row of anonRows) {
+      await tx
+        .insert(favorites)
+        .values({
+          productId: row.productId,
+          customerId,
+        })
+        .onConflictDoNothing();
+    }
+
+    await tx.delete(favorites).where(eq(favorites.sessionId, sessionId));
+
+    return { merged: anonRows.length };
   }
 
   // --- Public interfaces for Search & Outbox modules (ADR-0006 / S04) ---
@@ -1193,8 +1257,8 @@ export class CatalogService {
     const parentCategoryId = currentCat?.parentId ?? null;
     const siblingCategoryIds = parentCategoryId
       ? allCategories
-          .filter((c) => c.parentId === parentCategoryId && c.id !== row.categoryId)
-          .map((c) => c.id)
+        .filter((c) => c.parentId === parentCategoryId && c.id !== row.categoryId)
+        .map((c) => c.id)
       : [];
 
     return {

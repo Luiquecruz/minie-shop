@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { CLOCK_TOKEN, SystemClock } from '../../common/clock.js';
 import { loadEnv } from '../../config/env.js';
+import { CatalogModule } from '../catalog/index.js';
 import { CsrfService } from './csrf.service.js';
 import { CustomerAuthController } from './customer-auth.controller.js';
 import { CustomerAuthService } from './customer-auth.service.js';
@@ -19,6 +20,7 @@ import { StaffAdminController } from './staff-admin.controller.js';
 import { StaffAdminService } from './staff-admin.service.js';
 
 @Module({
+  imports: [CatalogModule],
   controllers: [CustomerAuthController, CustomerProfileController, StaffAdminController],
   providers: [
     {

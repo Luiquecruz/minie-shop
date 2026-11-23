@@ -9,6 +9,7 @@ import {
 import { applyNoStoreCache } from '../../common/http-cache.js';
 import { parseOutput } from '../../common/parse-response.js';
 import { loadEnv } from '../../config/env.js';
+import type { RequestWithIdentity } from '../identity/index.js';
 import { CatalogService } from './catalog.service.js';
 
 export const ANON_COOKIE_NAME = 'anon_id';
@@ -38,7 +39,7 @@ export class FavoritesController {
       signed: true,
       httpOnly: true,
       sameSite: 'lax',
-      secure: env.NODE_ENV === 'production',
+      secure: env.COOKIE_SECURE,
       path: '/',
       maxAge: ONE_YEAR_SECONDS,
     });
@@ -46,10 +47,17 @@ export class FavoritesController {
   }
 
   @Get()
-  async listFavorites(@Req() request: FastifyRequest, @Res() reply: FastifyReply): Promise<void> {
+  async listFavorites(
+    @Req() request: RequestWithIdentity,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
     applyNoStoreCache(reply);
-    const sessionId = this.resolveOrCreateSessionId(request, reply);
-    const productIds = await this.catalogService.listFavoritesBySession(sessionId);
+    const customer = request.customerPrincipal;
+    const productIds = customer
+      ? await this.catalogService.listFavoritesByCustomer(customer.customerId)
+      : await this.catalogService.listFavoritesBySession(
+          this.resolveOrCreateSessionId(request, reply),
+        );
     const payload = parseOutput(favoritesListResponseSchema, { productIds });
     await reply.code(200).send(payload);
   }
@@ -57,13 +65,18 @@ export class FavoritesController {
   @Post(':productId')
   async addFavorite(
     @Param('productId') rawProductId: string,
-    @Req() request: FastifyRequest,
+    @Req() request: RequestWithIdentity,
     @Res() reply: FastifyReply,
   ): Promise<void> {
     applyNoStoreCache(reply);
     const { productId } = productIdParamSchema.parse({ productId: rawProductId });
-    const sessionId = this.resolveOrCreateSessionId(request, reply);
-    await this.catalogService.addFavoriteForSession(sessionId, productId);
+    const customer = request.customerPrincipal;
+    if (customer) {
+      await this.catalogService.addFavoriteForCustomer(customer.customerId, productId);
+    } else {
+      const sessionId = this.resolveOrCreateSessionId(request, reply);
+      await this.catalogService.addFavoriteForSession(sessionId, productId);
+    }
     const payload = parseOutput(favoriteCreatedResponseSchema, { favorited: true });
     await reply.code(200).send(payload);
   }
@@ -71,13 +84,18 @@ export class FavoritesController {
   @Delete(':productId')
   async removeFavorite(
     @Param('productId') rawProductId: string,
-    @Req() request: FastifyRequest,
+    @Req() request: RequestWithIdentity,
     @Res() reply: FastifyReply,
   ): Promise<void> {
     applyNoStoreCache(reply);
     const { productId } = productIdParamSchema.parse({ productId: rawProductId });
-    const sessionId = this.resolveOrCreateSessionId(request, reply);
-    await this.catalogService.removeFavoriteForSession(sessionId, productId);
+    const customer = request.customerPrincipal;
+    if (customer) {
+      await this.catalogService.removeFavoriteForCustomer(customer.customerId, productId);
+    } else {
+      const sessionId = this.resolveOrCreateSessionId(request, reply);
+      await this.catalogService.removeFavoriteForSession(sessionId, productId);
+    }
     await reply.code(204).send();
   }
 }
