@@ -8,6 +8,7 @@ import type {
   ProductSort,
 } from '@minieshop/contracts';
 import { useCart } from '../../hooks/useCart';
+import { useFavoritesQuery } from '../../hooks/useFavorites';
 import {
   useCategoriesQuery,
   useFacetsQuery,
@@ -71,6 +72,8 @@ export function ProductListingPage() {
   const [favoriteError, setFavoriteError] = useState<Error | null>(null);
 
   const categoriesQuery = useCategoriesQuery();
+  // Prefetch favorites in parallel with products/categories/facets to avoid a ProductCard mount waterfall
+  useFavoritesQuery();
 
   const facetFilters = useMemo(
     () => ({

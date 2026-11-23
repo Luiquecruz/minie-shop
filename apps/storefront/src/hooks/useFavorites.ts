@@ -28,6 +28,8 @@ function projectFavorites({ confirmed, pending }: FavoriteChanges): string[] {
 
 /**
  * Fetches persisted favorite product UUIDs from GET /favorites.
+ * Omits `signal` intentionally so TanStack Query deduplicates this single global
+ * fetch across React StrictMode remounts and multiple ProductCard observers.
  */
 export function useFavoritesQuery() {
   const queryClient = useQueryClient();
@@ -36,12 +38,12 @@ export function useFavoritesQuery() {
   return useQuery({
     queryKey: queryKeys.favorites.all,
     staleTime: ONE_MINUTE_MS,
-    queryFn: async ({ signal }) => {
+    queryFn: async () => {
       const changes = favoriteChangesByClient.get(queryClient);
       if (changes) {
         return projectFavorites(changes);
       }
-      const response = await repository.getFavorites(signal);
+      const response = await repository.getFavorites();
       return response.productIds;
     },
   });

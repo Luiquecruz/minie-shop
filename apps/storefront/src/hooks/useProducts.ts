@@ -43,13 +43,15 @@ export function useProductsQuery(filters: ProductInfiniteFilters) {
 
 /**
  * Fetches the hierarchical category tree with a 5-minute staleTime.
+ * Omits `signal` intentionally so TanStack Query deduplicates this static global
+ * fetch across React StrictMode remounts instead of aborting and re-fetching it.
  */
 export function useCategoriesQuery() {
   const repository = useProductRepository();
 
   return useQuery({
     queryKey: queryKeys.categories.all,
-    queryFn: ({ signal }) => repository.getCategories(signal),
+    queryFn: () => repository.getCategories(),
     staleTime: FIVE_MINUTES_MS,
   });
 }
