@@ -44,13 +44,15 @@ Follow **Conventional Commits** matching the repository history:
 ## 3. Pull Request & Contribution Standard
 - Follow [`CONTRIBUTING.md`](../../CONTRIBUTING.md) for local setup, branching, Conventional Commits, and review readiness.
 - Use [`.github/pull_request_template.md`](../../.github/pull_request_template.md) for every Pull Request, with a Conventional Commit formatted PR title.
+- **Maximum 100 Files per PR:** Every Pull Request **must** contain **at most 100 changed files** (added, modified, renamed, or deleted). Before opening a PR, verify the changed file count against the base branch (e.g., `git diff --name-only <base>...HEAD | wc -l`). If a feature, migration, or refactor would exceed 100 files, split it into smaller, focused sequential or stacked PRs.
 
 ## 4. Pre-Commit / Definition of Done Checklist
 Before considering any task complete:
 1. Run `npm run typecheck` -> 0 errors.
 2. Run `npm run lint` -> 0 errors, 0 warnings.
 3. Run `npm run build` -> clean typecheck + production bundle.
-3. Update `docs/` inventories (`features.md`, `components.md`, `hooks.md`, `store.md`, `services.md`, `utils.md`) for any added or modified code.
-4. Add or update an incremental ADR in `docs/adr/` if an architectural decision was made.
-5. Update the corresponding SDD spec status in `docs/sdd/` when completing a specified feature.
-6. Update `AGENTS.md` if the tech stack, scripts, phase status, or repository structure changed.
+4. Verify the branch diff against its PR base contains **at most 100 changed files** (`git diff --name-only <base>...HEAD | wc -l`).
+5. Update `docs/` inventories (`features.md`, `components.md`, `hooks.md`, `store.md`, `services.md`, `utils.md`) for any added or modified code.
+6. Add or update an incremental ADR in `docs/adr/` if an architectural decision was made.
+7. Update the corresponding SDD spec status in `docs/sdd/` when completing a specified feature.
+8. Update `AGENTS.md` if the tech stack, scripts, phase status, or repository structure changed.

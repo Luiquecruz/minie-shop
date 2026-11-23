@@ -29,6 +29,7 @@
 - [ ] Browser validation performed for affected UI flows (desktop & mobile, Light & Dark modes)
 - [ ] All code, comments, JSDoc, and documentation are in English
 - [ ] Relevant documentation updated (`docs/`, ADR, and/or SDD if applicable)
+- [ ] PR contains at most 100 changed files
 
 ## Screenshots / Screen Recording (if UI changed)
 

@@ -64,6 +64,7 @@ npm run dev      # Starts Vite dev server at http://localhost:5199
    - Lint passes with **0 warnings and 0 errors** (`npm run lint`).
    - Build succeeds without errors (`npm run build`).
    - Browser validation is performed for affected UI flows (desktop & mobile, Light & Dark modes).
+   - Pull Request contains **at most 100 changed files**; split larger changes into smaller sequential or stacked PRs.
 
 7. **Open a Pull Request:**
    Fill out [`.github/pull_request_template.md`](./.github/pull_request_template.md) completely and use a Conventional Commit style title for the PR.

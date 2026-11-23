@@ -105,3 +105,6 @@ react-minieshop/
    - Every SDD specification or feature increment **must** have its own dedicated Git branch (`feat/<slug>`, `fix/<slug>`, `refactor/<slug>`).
    - **Clean Branch Names (No SDD IDs):** Branch names must be clear, concise, and domain-focused (e.g., `feat/dedicated-cart-page`). Never include SDD prefixes or numbers (such as `sdd-0001`) in branch names.
    - Never start implementing a new spec on `main` or on another spec's existing branch. Check `git branch --show-current` first: continue on the spec's dedicated branch if already checked out, otherwise create/checkout a new dedicated branch before writing code.
+8. **PR File Limit (Max 100 Files):**
+   - Every Pull Request **must** contain **at most 100 changed files**.
+   - Verify the changed file count against the base branch (`git diff --name-only <base>...HEAD | wc -l`) before opening a PR, and split larger changes into smaller sequential or stacked PRs.
