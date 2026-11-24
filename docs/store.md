@@ -49,13 +49,15 @@ export const useAppSelector = useSelector.withTypes<RootState>();
   - `appliedCoupon`: `AppliedCoupon | null` (`MINIE10`, `MINIE20`, `FREESHIP`)
   - `couponError`: `string | null`
   - `shippingMethod`: `ShippingMethodId` (`'standard' | 'express' | 'pickup'`)
+  - `shippingPricing`: `CartShippingPricing` (`currency`, `freeShippingThresholdCents`, `options`)
+  - `lastQuoteUpdatedAt`: `number` (monotonic timestamp guard for `applyCartQuote`)
   - `orderNote`: `string` (`maxLength = 200`)
 - **Reducers & Actions:**
 <!-- coderabbit-ai-generated:v1 -->
 
 <!-- coderabbit-ai-generated-section:v1:cb29c95f3b418e84c72d82827deefb0b3d1c0527b89cb24e63fcca9d7b6b2572 -->
 
-  - `addToCart`, `updateQuantity`, `setStockWarning`, `removeFromCart`, `clearCart`, `setCouponInput`, `applyCoupon`, `removeCoupon`, `setShippingMethod`, `setOrderNote`, `openCart`, `closeCart`, `toggleCart`.
+  - `addToCart`, `updateQuantity`, `setStockWarning`, `removeFromCart`, `clearCart`, `setCouponInput`, `applyCoupon`, `removeCoupon`, `setShippingMethod`, `setOrderNote`, `openCart`, `closeCart`, `toggleCart`, `applyCartQuote`.
 - **Stock & Note Persistence:** Adding an existing item refreshes its normalized stock and reuses the line item only when quantity and stock are unchanged. Order note edits use a 250 ms debounce; page hide flushes the latest pending note through checkout preference persistence.
 
 <!-- /coderabbit-ai-generated:v1 -->

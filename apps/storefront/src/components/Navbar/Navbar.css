@@ -83,7 +83,13 @@
 .navbar__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.navbar__select-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .visually-hidden {

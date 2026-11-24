@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { t } from '../../i18n';
+import { useI18n } from '../../i18n';
 import './SearchBar.css';
 
 export interface SearchBarProps {
@@ -11,9 +11,9 @@ export interface SearchBarProps {
  * Debounced catalog search bar synced directly with URL `?q=` parameter
  * (GET /products?q=...). Hybrid search (/search) and autocomplete enter in Phase 7.
  */
-export function SearchBar({
-  placeholder = t('search.placeholder'),
-}: SearchBarProps) {
+export function SearchBar({ placeholder }: SearchBarProps) {
+  const { t } = useI18n();
+  const resolvedPlaceholder = placeholder ?? t('search.placeholder');
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -140,7 +140,7 @@ export function SearchBar({
           type="search"
           name="q"
           className="search-bar__input"
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           value={inputValue}
           onChange={handleInputChange}
           aria-label={t('search.ariaLabel')}

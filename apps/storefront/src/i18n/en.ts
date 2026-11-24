@@ -3,12 +3,17 @@ export const enMessages = {
   'nav.brandAria': 'Minie Shop Home',
   'nav.currencyLabel': 'Currency',
   'nav.currencyAria': 'Select display currency',
+  'nav.languageLabel': 'Language',
+  'nav.languageAria': 'Select interface language',
   'nav.cartAria': 'Shopping cart with {count} items',
   'nav.cartLabel': 'Cart',
   'search.placeholder': 'Search products...',
   'search.ariaLabel': 'Search products',
   'search.clearAria': 'Clear search input',
   'search.submitAria': 'Submit search',
+
+  // Pricing
+  'price.currentPriceAria': 'Current price {price}',
 
   // Catalog / PLP
   'plp.metaTitle': 'Product Catalog | Minie Shop',
@@ -30,6 +35,7 @@ export const enMessages = {
   'plp.showingLoaded': 'Showing {count} loaded products',
   'plp.showingLoadedOf': 'Showing {loaded} of {total} products',
   'plp.updating': 'Updating results...',
+  'plp.loadingProducts': 'Loading products',
   'plp.loadMore': 'Load more',
   'plp.loadingMore': 'Loading more...',
   'plp.errorTitle': 'Could not load products',
@@ -59,6 +65,7 @@ export const enMessages = {
 
   // Product Card
   'card.viewDetails': 'View {name} details',
+  'card.highlightsAria': 'Product highlights',
   'card.inStock': 'In stock',
   'card.outOfStock': 'Out of stock',
   'card.addToCart': 'Add to Cart',
@@ -72,6 +79,8 @@ export const enMessages = {
   'image.unavailable': 'Image unavailable',
 
   // PDP
+  'pdp.metaDescriptionFallback':
+    'Buy {name} at Minie Shop with best price and fast delivery.',
   'pdp.breadcrumbAria': 'Breadcrumb',
   'pdp.breadcrumbCatalog': 'Catalog',
   'pdp.galleryAria': 'Product Image Gallery',
@@ -82,6 +91,8 @@ export const enMessages = {
   'pdp.outOfStock': 'Out of Stock',
   'pdp.addToCart': 'Add to Cart',
   'pdp.buyNow': 'Buy Now',
+  'pdp.buyNowAria': 'Buy {name} now',
+  'pdp.floatingBarAria': 'Floating Quick Actions',
   'pdp.addedToCart': '"{name}" added to cart!',
   'pdp.proceedingToCheckout': 'Proceeding to checkout with "{name}"!',
   'pdp.tabDescription': 'Description',
@@ -95,9 +106,125 @@ export const enMessages = {
   'pdp.assuranceWarranty': '12-Month Official Warranty',
   'pdp.assuranceReturn': '30-Day Free Return Policy',
 
+  // MiniCart
+  'miniCart.drawerAria': 'Shopping Cart Drawer',
+  'miniCart.title': 'Your Cart',
+  'miniCart.closeAria': 'Close cart drawer',
+  'miniCart.emptyTitle': 'Your cart is empty',
+  'miniCart.emptyDesc':
+    "Looks like you haven't added any products to your cart yet.",
+  'miniCart.exploreCatalog': 'Explore Catalog',
+  'miniCart.removeItemAria': 'Remove {name} from cart',
+  'miniCart.unitPriceEach': '({price} each)',
+  'miniCart.availableCount': '{count} available',
+  'miniCart.subtotal': 'Subtotal',
+  'miniCart.total': 'Total',
+  'miniCart.taxNote': 'Shipping and taxes calculated during checkout.',
+  'miniCart.proceedToCheckout': 'Proceed to Checkout',
+  'miniCart.viewFullCart': 'View Full Cart',
+  'miniCart.checkoutNotice':
+    'Checkout flow will be available in the next release.',
+  'miniCart.updatingItemPrice': 'Updating item price',
+  'miniCart.updatingSubtotal': 'Updating subtotal',
+  'miniCart.updatingTotal': 'Updating total',
+  'miniCart.liveUpdatingTotals': 'Updating cart totals in {currency}...',
+  'miniCart.liveSubtotalUpdated': 'Cart subtotal in {currency}: {amount}',
+
+  // Cart Page
+  'cart.metaTitle': 'Shopping Cart | Minie Shop',
+  'cart.metaTitleWithCount': 'Shopping Cart ({count}) | Minie Shop',
+  'cart.metaDescription':
+    'Review your shopping cart, adjust quantities, apply promo codes, and choose your shipping method at Minie Shop.',
+  'cart.breadcrumbAria': 'Breadcrumb',
+  'cart.breadcrumbCatalog': 'Catalog',
+  'cart.title': 'Shopping Cart',
+  'cart.unitSingular': 'unit',
+  'cart.unitPlural': 'units',
+  'cart.clearCart': 'Clear Cart',
+  'cart.emptySectionAria': 'Empty shopping cart',
+  'cart.emptyTitle': 'Your shopping cart is empty',
+  'cart.emptyDesc':
+    'Add products from the catalog to test quantity guardrails, promo codes, shipping rates, and Redux selector memoization.',
+  'cart.exploreCatalog': 'Explore Catalog',
+  'cart.itemsSectionAria': 'Cart items',
+  'cart.viewItemAria': 'View {name}',
+  'cart.remove': 'Remove',
+  'cart.removeItemAria': 'Remove {name} from cart',
+  'cart.eachPrice': '{price} each',
+  'cart.updatingUnitPrice': 'Updating unit price',
+  'cart.updatingLineTotal': 'Updating line total',
+  'cart.decreaseQty': 'Decrease quantity',
+  'cart.increaseQty': 'Increase quantity',
+  'cart.decreaseQtyFor': 'Decrease quantity for {name}',
+  'cart.increaseQtyFor': 'Increase quantity for {name}',
+  'cart.qtyLabel': 'Product quantity',
+  'cart.qtyLabelFor': 'Quantity for {name}',
+  'cart.inStockCount': '{count} in stock',
+  'cart.validatingStock': 'Validating stock',
+  'cart.validatingStockEllipsis': 'Validating stock...',
+  'cart.lineTotal': 'Line Total',
+  'cart.stockValidateError': 'Could not validate stock right now.',
+  'cart.maxStockReached': 'Maximum stock reached ({max} units).',
+  'cart.onlyAvailableInStock': 'Only {max} units available in stock.',
+  'cart.outOfStockWarning': 'This product is currently out of stock.',
+  'cart.quoteError': 'Could not refresh cart prices for the selected currency.',
+  'cart.retry': 'Retry',
+
+  // Cart Promo
+  'cart.promoHeading': 'Promo Code',
+  'cart.promoInputLabel': 'Promo code',
+  'cart.promoPlaceholder': 'Enter MINIE10, MINIE20, or FREESHIP',
+  'cart.promoApply': 'Apply',
+  'cart.promoChipsAria': 'Available promo codes',
+  'cart.promoRemoveAria': 'Remove promo code {code}',
+  'cart.promoRemove': 'Remove',
+  'cart.promo.MINIE10': '10% off items subtotal',
+  'cart.promo.MINIE20': '20% off items subtotal',
+  'cart.promo.FREESHIP': 'Free Standard or Express shipping',
+  'cart.promo.emptyError': 'Enter a promo code to apply.',
+
+  // Cart Shipping
+  'cart.shippingHeading': 'Shipping Method',
+  'cart.shippingFree': 'Free',
+  'cart.updatingShippingPrice': 'Updating shipping price',
+  'cart.shipping.standard.name': 'Standard Delivery',
+  'cart.shipping.standard.eta': '5-7 business days',
+  'cart.shipping.express.name': 'Express Courier',
+  'cart.shipping.express.eta': '1-2 business days',
+  'cart.shipping.pickup.name': 'Store Pickup',
+  'cart.shipping.pickup.eta': 'Ready in 2 hours',
+
+  // Cart Order Note
+  'cart.noteHeading': 'Order & Delivery Note',
+  'cart.noteHint': 'Add gift instructions or delivery preferences.',
+  'cart.notePlaceholder':
+    'e.g., Leave package at reception, gift wrap requested...',
+  'cart.noteCounter': '{length}/{max} characters',
+
+  // Cart Summary
+  'cart.summaryHeading': 'Order Summary',
+  'cart.freeShippingAddMoreBefore': 'Add ',
+  'cart.freeShippingAddMoreAfter': ' more for free Standard Delivery',
+  'cart.freeShippingUnlocked': 'You unlocked free Standard Delivery!',
+  'cart.freeShippingProgressAria': 'Free standard shipping threshold progress',
+  'cart.subtotalWithUnits': 'Subtotal ({count} units)',
+  'cart.promoLine': 'Promo ({code})',
+  'cart.shippingLine': 'Shipping ({name})',
+  'cart.noteAttached': 'Note attached',
+  'cart.estimatedTotal': 'Estimated Total',
+  'cart.updatingSubtotal': 'Updating subtotal',
+  'cart.updatingDiscount': 'Updating discount',
+  'cart.updatingShipping': 'Updating shipping',
+  'cart.updatingEstimatedTotal': 'Updating estimated total',
+  'cart.checkoutNotice':
+    'Checkout flow will be added in the next Phase 6 increment.',
+  'cart.proceedToCheckout': 'Proceed to Checkout',
+  'cart.continueShopping': 'Continue Shopping',
+
   // 404 Page
   'notFound.metaTitle': 'Page Not Found | Minie Shop',
-  'notFound.metaDescription': 'The requested page or product could not be found.',
+  'notFound.metaDescription':
+    'The requested page or product could not be found.',
   'notFound.badge': '404',
   'notFound.title': 'Product or Page Not Found',
   'notFound.description':
@@ -105,7 +232,8 @@ export const enMessages = {
   'notFound.backToCatalog': 'Back to Catalog',
 
   // Favorites error
-  'favorites.toggleError': 'Could not update favorite status. Your change has been reverted.',
+  'favorites.toggleError':
+    'Could not update favorite status. Your change has been reverted.',
 } as const;
 
 export type MessageKey = keyof typeof enMessages;

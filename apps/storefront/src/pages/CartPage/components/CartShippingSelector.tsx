@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { useCartActions, useCartShippingState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useI18n } from '../../../i18n';
+import type { ShippingMethodId } from '../../../types';
 
 export interface CartShippingSelectorProps {
   isPriceLoading?: boolean;
@@ -21,12 +23,39 @@ export const CartShippingSelector = memo(function CartShippingSelector({
   } = useCartShippingState();
   const { setShippingMethod } = useCartActions();
   const { formatPrice } = useCurrency();
+  const { t } = useI18n();
+
+  const getShippingCopy = (
+    id: ShippingMethodId,
+    fallbackName: string,
+    fallbackEta: string,
+  ): { name: string; eta: string } => {
+    switch (id) {
+      case 'standard':
+        return {
+          name: t('cart.shipping.standard.name'),
+          eta: t('cart.shipping.standard.eta'),
+        };
+      case 'express':
+        return {
+          name: t('cart.shipping.express.name'),
+          eta: t('cart.shipping.express.eta'),
+        };
+      case 'pickup':
+        return {
+          name: t('cart.shipping.pickup.name'),
+          eta: t('cart.shipping.pickup.eta'),
+        };
+      default:
+        return { name: fallbackName, eta: fallbackEta };
+    }
+  };
 
   return (
     <section className="cart-panel" aria-labelledby="cart-shipping-heading">
       <div className="cart-panel__header">
         <h2 id="cart-shipping-heading" className="cart-panel__title">
-          Shipping Method
+          {t('cart.shippingHeading')}
         </h2>
       </div>
 
@@ -42,6 +71,7 @@ export const CartShippingSelector = memo(function CartShippingSelector({
             option.basePriceCents === 0 ||
             hasFreeShippingCoupon ||
             (option.id === 'standard' && qualifiesForFreeStandard);
+          const copy = getShippingCopy(option.id, option.name, option.eta);
 
           return (
             <label
@@ -59,8 +89,8 @@ export const CartShippingSelector = memo(function CartShippingSelector({
                 className="cart-shipping__radio"
               />
               <div className="cart-shipping__details">
-                <span className="cart-shipping__name">{option.name}</span>
-                <span className="cart-shipping__eta">{option.eta}</span>
+                <span className="cart-shipping__name">{copy.name}</span>
+                <span className="cart-shipping__eta">{copy.eta}</span>
               </div>
               <span
                 className={`cart-shipping__price ${
@@ -70,10 +100,10 @@ export const CartShippingSelector = memo(function CartShippingSelector({
                 {isPriceLoading && option.basePriceCents > 0 ? (
                   <span
                     className="cart-shimmer cart-shimmer--shipping"
-                    aria-label="Updating shipping price"
+                    aria-label={t('cart.updatingShippingPrice')}
                   />
                 ) : isFree ? (
-                  'Free'
+                  t('cart.shippingFree')
                 ) : (
                   formatPrice(option.basePriceCents)
                 )}

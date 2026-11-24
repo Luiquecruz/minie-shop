@@ -8,8 +8,10 @@ Tracks all custom React hooks in `src/hooks/`.
 
 | Hook | Path | Primary Responsibility | Dependencies |
 | :--- | :--- | :--- | :--- |
-| `useCart` | `src/hooks/useCart.ts` | Global & granular Redux cart hooks (`useCart`, `useCartActions`, `useCartItemIds`, `useCartItemState`, `useCartPromoState`, `useCartShippingState`, `useCartOrderNoteState`, `useCartSummaryState`) | `store/hooks`, `cartSlice`, `cartSelectors` |
-| `useCurrency` | `src/hooks/useCurrency.ts` | Currency state, switching & formatting | `store/hooks`, `currencySlice`, `utils/currency` |
+| `useCart` | `src/hooks/useCart.ts` | Global & granular Redux cart hooks (`useCart`, `useCartBadge`, `useCartActions`, `useCartItemIds`, `useCartItemState`, `useCartPromoState`, `useCartShippingState`, `useCartOrderNoteState`, `useCartSummaryState`) | `store/hooks`, `cartSlice`, `cartSelectors` |
+| `useCartQuoteSync` | `src/hooks/useCartQuoteSync.ts` | Lazy + 5-min TTL server cart repricing (`POST /pricing/quote`) with snapshot & monotonicity guards | `@tanstack/react-query`, `queryKeys`, `useCartActions`, `useCurrency` |
+| `useCurrency` | `src/hooks/useCurrency.ts` | Currency state (`BRL`/`USD`/`EUR`), locale-aware `Intl.NumberFormat` formatting (zero client FX) | `store/hooks`, `currencySlice`, `useI18n`, `utils/money` |
+| `useI18n` | `src/i18n/index.ts` | Reactive storefront i18n (`en` \| `pt-BR`), `<html lang>` sync & `minieshop_locale` persistence | `I18nProvider`, `i18nContext` |
 | `useDebounce<T>` | `src/hooks/useDebounce.ts` | Generic value debouncing with timer cleanup | React `useState`, `useEffect` |
 | `useProductsQuery` | `src/hooks/useProducts.ts` | Paginated, filtered catalog query (`keepPreviousData`) | `@tanstack/react-query`, `queryKeys`, `productsApi` |
 | `useCategoriesQuery` | `src/hooks/useProducts.ts` | Cached catalog categories query (`5m` staleTime) | `@tanstack/react-query`, `queryKeys`, `productsApi` |

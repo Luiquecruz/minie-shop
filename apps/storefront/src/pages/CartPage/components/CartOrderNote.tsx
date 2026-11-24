@@ -4,6 +4,7 @@ import {
   useCartActions,
   useCartOrderNoteState,
 } from '../../../hooks/useCart';
+import { useI18n } from '../../../i18n';
 
 /**
  * Memoized order/delivery note textarea subscribed strictly to `cart.orderNote`.
@@ -12,17 +13,18 @@ import {
 export const CartOrderNote = memo(function CartOrderNote() {
   const orderNote = useCartOrderNoteState();
   const { setOrderNote } = useCartActions();
+  const { t } = useI18n();
 
   return (
     <section className="cart-panel" aria-labelledby="cart-note-heading">
       <div className="cart-panel__header">
         <h2 id="cart-note-heading" className="cart-panel__title">
-          Order &amp; Delivery Note
+          {t('cart.noteHeading')}
         </h2>
       </div>
 
       <label htmlFor="cart-order-note" className="cart-note__hint">
-        Add gift instructions or delivery preferences.
+        {t('cart.noteHint')}
       </label>
 
       <textarea
@@ -31,13 +33,16 @@ export const CartOrderNote = memo(function CartOrderNote() {
         maxLength={MAX_ORDER_NOTE_LENGTH}
         value={orderNote}
         onChange={(e) => setOrderNote(e.target.value)}
-        placeholder="e.g., Leave package at reception, gift wrap requested..."
+        placeholder={t('cart.notePlaceholder')}
         className="cart-note__textarea"
       />
 
       <div className="cart-note__footer">
         <span className="cart-note__counter">
-          {orderNote.length}/{MAX_ORDER_NOTE_LENGTH} characters
+          {t('cart.noteCounter', {
+            length: orderNote.length,
+            max: MAX_ORDER_NOTE_LENGTH,
+          })}
         </span>
       </div>
     </section>

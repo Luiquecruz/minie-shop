@@ -9,6 +9,7 @@ import {
   selectCartShippingPricing,
   selectLastQuoteUpdatedAt,
 } from '../store/selectors/cartSelectors';
+import { useI18n } from '../i18n';
 import { useCartActions } from './useCart';
 import { useCurrency } from './useCurrency';
 import { useProductRepository } from './useProductRepository';
@@ -46,6 +47,7 @@ export function useCartQuoteSync(active: boolean): UseCartQuoteSyncResult {
   const shippingPricing = useAppSelector(selectCartShippingPricing);
   const lastQuoteUpdatedAt = useAppSelector(selectLastQuoteUpdatedAt);
   const { applyCartQuote } = useCartActions();
+  const { t } = useI18n();
 
   const attemptedStaleRefreshKeyRef = useRef<string | null>(null);
 
@@ -151,9 +153,7 @@ export function useCartQuoteSync(active: boolean): UseCartQuoteSyncResult {
   );
 
   const quoteError =
-    shouldEnable && isError
-      ? 'Could not refresh cart prices for the selected currency.'
-      : null;
+    shouldEnable && isError ? t('cart.quoteError') : null;
 
   return {
     isQuoting,
