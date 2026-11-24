@@ -28,6 +28,7 @@ export const ptBRMessages: Record<MessageKey, string> = {
     'Busque produtos na Minie Shop com correspondência híbrida semântica e textual.',
   'searchPage.badge': 'Busca no Catálogo',
   'searchPage.heading': 'Buscar Produtos',
+  'searchPage.resultsHeading': 'Resultados da busca',
   'searchPage.inputLabel': 'Buscar produtos',
   'searchPage.inputPlaceholder': 'O que você está procurando?',
   'searchPage.submitButton': 'Buscar',

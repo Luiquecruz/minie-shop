@@ -1,5 +1,4 @@
 import type { ProductCardDTO, SearchMode } from '@minieshop/contracts';
-import type { InstantSearchProps } from 'react-instantsearch';
 import {
   MAX_SEARCH_LIMIT,
   MAX_SEARCH_OFFSET,
@@ -21,9 +20,7 @@ export interface SearchTelemetry {
   query: string;
 }
 
-export type StorefrontSearchClient = InstantSearchProps['searchClient'];
-
-interface InstantSearchRequestLike {
+export interface StorefrontSearchRequest {
   indexName?: string;
   params?: {
     query?: unknown;
@@ -32,14 +29,37 @@ interface InstantSearchRequestLike {
   };
 }
 
+export interface StorefrontSearchResultItem {
+  hits: StorefrontSearchHit[];
+  nbHits: number;
+  page: number;
+  nbPages: number;
+  hitsPerPage: number;
+  query: string;
+  processingTimeMS: number;
+  exhaustiveNbHits: boolean;
+  params: string;
+  userData?: SearchTelemetry[];
+}
+
+export interface StorefrontSearchClient {
+  search: (
+    requests: ReadonlyArray<StorefrontSearchRequest>,
+  ) => Promise<{ results: StorefrontSearchResultItem[] }>;
+  searchForFacetValues: () => Promise<{
+    facetHits: never[];
+    exhaustiveFacetsCount: boolean;
+  }>;
+}
+
 function buildEmptyResponse(
   query: string,
   page: number,
   hitsPerPage: number,
   nbPages: number = 0,
-) {
+): StorefrontSearchResultItem {
   return {
-    hits: [] as StorefrontSearchHit[],
+    hits: [],
     nbHits: 0,
     page,
     nbPages,
@@ -63,8 +83,8 @@ export function createStorefrontSearchClient(
   repository: ProductRepository,
   options?: CreateSearchClientOptions,
 ): StorefrontSearchClient {
-  const client = {
-    async search(requests: ReadonlyArray<InstantSearchRequestLike>) {
+  return {
+    async search(requests: ReadonlyArray<StorefrontSearchRequest>) {
       const results = await Promise.all(
         requests.map(async (request) => {
           const rawQuery =
@@ -149,9 +169,7 @@ export function createStorefrontSearchClient(
     },
 
     async searchForFacetValues() {
-      return [];
+      return { facetHits: [], exhaustiveFacetsCount: true };
     },
   };
-
-  return client as unknown as StorefrontSearchClient;
 }

@@ -197,7 +197,19 @@ function SearchResultsContent({
     showMore();
   };
 
-  const activeQuery = query.trim();
+  const handleRetry = (): void => {
+    const targetQuery =
+      urlQuery || draftQuery.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
+    if (targetQuery && targetQuery !== query.trim()) {
+      // InstantSearch's index widget rolls helper.state back to lastValidSearchParameters
+      // when a request fails; re-refine with the active URL/draft query to retry it.
+      refine(targetQuery);
+      return;
+    }
+    refresh();
+  };
+
+  const activeQuery = (urlQuery || query).trim();
   const hasActiveQuery = activeQuery.length > 0;
   const isErrorState = hasActiveQuery && status === 'error';
   const isFetching =
@@ -411,7 +423,7 @@ function SearchResultsContent({
           <button
             type="button"
             className="plp-empty__reset-btn"
-            onClick={() => refresh()}
+            onClick={handleRetry}
           >
             {t('searchPage.retry')}
           </button>
@@ -440,6 +452,7 @@ function SearchResultsContent({
 
       {showResultsGrid && (
         <>
+          <h2 className="visually-hidden">{t('searchPage.resultsHeading')}</h2>
           <div
             className={`plp-grid ${
               isFetching && !isLoadingMore ? 'plp-grid--fetching' : ''

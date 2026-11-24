@@ -26,6 +26,7 @@ export const enMessages = {
     'Search the Minie Shop catalog with hybrid semantic and keyword matching.',
   'searchPage.badge': 'Catalog Search',
   'searchPage.heading': 'Search Products',
+  'searchPage.resultsHeading': 'Search results',
   'searchPage.inputLabel': 'Search products',
   'searchPage.inputPlaceholder': 'What are you looking for?',
   'searchPage.submitButton': 'Search',
