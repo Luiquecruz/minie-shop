@@ -28,6 +28,36 @@ export {
   SHIPPING_OPTIONS,
 };
 
+export const EMPTY_COUPON_ERROR = 'Enter a promo code to apply.';
+const INVALID_COUPON_PREFIX = 'Promo code "';
+const INVALID_COUPON_SUFFIX =
+  '" is invalid. Try MINIE10, MINIE20, or FREESHIP.';
+
+/**
+ * Formats a canonical invalid promo-code error string stored in Redux state.
+ */
+export function formatInvalidCouponError(code: string): string {
+  return `${INVALID_COUPON_PREFIX}${code}${INVALID_COUPON_SUFFIX}`;
+}
+
+/**
+ * Extracts the rejected promo code from a canonical invalid promo error string.
+ */
+export function extractInvalidCouponCode(error: string | null): string | null {
+  if (!error) return null;
+  if (
+    error.startsWith(INVALID_COUPON_PREFIX) &&
+    error.endsWith(INVALID_COUPON_SUFFIX)
+  ) {
+    const code = error.slice(
+      INVALID_COUPON_PREFIX.length,
+      error.length - INVALID_COUPON_SUFFIX.length,
+    );
+    return code || null;
+  }
+  return null;
+}
+
 export interface CartShippingPricing {
   currency: SupportedCurrency;
   freeShippingThresholdCents: number;
@@ -294,7 +324,7 @@ export const cartSlice = createSlice({
       if (!rawCode) {
         return {
           ...state,
-          couponError: 'Enter a promo code to apply.',
+          couponError: EMPTY_COUPON_ERROR,
         };
       }
 
@@ -304,7 +334,7 @@ export const cartSlice = createSlice({
       if (!matched) {
         return {
           ...state,
-          couponError: `Promo code "${rawCode}" is invalid. Try MINIE10, MINIE20, or FREESHIP.`,
+          couponError: formatInvalidCouponError(rawCode),
         };
       }
 

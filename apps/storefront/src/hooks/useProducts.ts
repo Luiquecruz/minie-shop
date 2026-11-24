@@ -97,6 +97,22 @@ export function useProductQuery(slug: string | undefined) {
   });
 }
 
+export const OUT_OF_STOCK_MESSAGE = 'This product is currently out of stock.';
+
+/**
+ * Translates canonical out-of-stock warnings using the caller's active locale.
+ */
+export function translateStockWarning(
+  message: string | null | undefined,
+  translateOutOfStock: () => string,
+  fallbackToOutOfStock = false,
+): string | null {
+  if (!message) {
+    return fallbackToOutOfStock ? translateOutOfStock() : null;
+  }
+  return message === OUT_OF_STOCK_MESSAGE ? translateOutOfStock() : message;
+}
+
 export interface StockValidationResult {
   available: boolean;
   maxStock: number;
@@ -121,9 +137,7 @@ export function useStockValidationQuery(
       return {
         available: detail.inStock,
         maxStock: detail.inStock ? 99 : 0,
-        message: detail.inStock
-          ? null
-          : 'This product is currently out of stock.',
+        message: detail.inStock ? null : OUT_OF_STOCK_MESSAGE,
       };
     },
     enabled: enabled && Boolean(slug) && debouncedQuantity >= 1,

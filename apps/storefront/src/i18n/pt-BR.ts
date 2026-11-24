@@ -187,6 +187,8 @@ export const ptBRMessages: Record<MessageKey, string> = {
   'cart.promo.MINIE20': '20% de desconto no subtotal dos itens',
   'cart.promo.FREESHIP': 'Frete grátis nas modalidades Padrão ou Expresso',
   'cart.promo.emptyError': 'Informe um código promocional para aplicar.',
+  'cart.promo.invalidError':
+    'O código promocional "{code}" é inválido. Tente MINIE10, MINIE20 ou FREESHIP.',
 
   // Cart Shipping
   'cart.shippingHeading': 'Método de Envio',

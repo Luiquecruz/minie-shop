@@ -5,7 +5,10 @@ import { useCart } from '../../hooks/useCart';
 import { useCartQuoteSync } from '../../hooks/useCartQuoteSync';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useDebounce } from '../../hooks/useDebounce';
-import { useStockValidationQuery } from '../../hooks/useProducts';
+import {
+  translateStockWarning,
+  useStockValidationQuery,
+} from '../../hooks/useProducts';
 import { useI18n } from '../../i18n';
 import ProductImage from '../ProductImage/ProductImage';
 import './MiniCart.css';
@@ -46,15 +49,19 @@ function CartItem({
 
   const apiStockWarning =
     shouldValidate && stockQuery.data && !stockQuery.data.available
-      ? stockQuery.data.message
+      ? translateStockWarning(
+          stockQuery.data.message,
+          () => t('cart.outOfStockWarning'),
+          true,
+        )
       : shouldValidate && stockQuery.isError
         ? t('cart.stockValidateError')
         : null;
 
-  const translatedPropWarning =
-    warning === 'This product is currently out of stock.'
-      ? t('cart.outOfStockWarning')
-      : warning;
+  const translatedPropWarning = translateStockWarning(
+    warning,
+    () => t('cart.outOfStockWarning'),
+  );
 
   const translatedLocalWarning = localWarning
     ? t(localWarning.key, { max: localWarning.max })

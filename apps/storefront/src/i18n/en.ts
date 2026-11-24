@@ -182,6 +182,8 @@ export const enMessages = {
   'cart.promo.MINIE20': '20% off items subtotal',
   'cart.promo.FREESHIP': 'Free Standard or Express shipping',
   'cart.promo.emptyError': 'Enter a promo code to apply.',
+  'cart.promo.invalidError':
+    'Promo code "{code}" is invalid. Try MINIE10, MINIE20, or FREESHIP.',
 
   // Cart Shipping
   'cart.shippingHeading': 'Shipping Method',

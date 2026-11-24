@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { useCartActions, useCartItemState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { useStockValidationQuery } from '../../../hooks/useProducts';
+import {
+  translateStockWarning,
+  useStockValidationQuery,
+} from '../../../hooks/useProducts';
 import { useI18n } from '../../../i18n';
 import { resolveMaxStock } from '../../../store/slices/cartSlice';
 import ProductImage from '../../../components/ProductImage/ProductImage';
@@ -48,15 +51,19 @@ export const CartItemRow = memo(function CartItemRow({
 
   const apiStockWarning =
     shouldValidate && stockQuery.data && !stockQuery.data.available
-      ? stockQuery.data.message
+      ? translateStockWarning(
+          stockQuery.data.message,
+          () => t('cart.outOfStockWarning'),
+          true,
+        )
       : shouldValidate && stockQuery.isError
         ? t('cart.stockValidateError')
         : null;
 
-  const translatedPropWarning =
-    stockWarning === 'This product is currently out of stock.'
-      ? t('cart.outOfStockWarning')
-      : stockWarning;
+  const translatedPropWarning = translateStockWarning(
+    stockWarning,
+    () => t('cart.outOfStockWarning'),
+  );
 
   const translatedLocalWarning = localWarning
     ? t(localWarning.key, { max: localWarning.max })

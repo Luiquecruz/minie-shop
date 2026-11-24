@@ -1,5 +1,9 @@
 import { memo } from 'react';
-import { PROMO_COUPONS } from '../../../store/slices/cartSlice';
+import {
+  EMPTY_COUPON_ERROR,
+  extractInvalidCouponCode,
+  PROMO_COUPONS,
+} from '../../../store/slices/cartSlice';
 import { useCartActions, useCartPromoState } from '../../../hooks/useCart';
 import { useI18n } from '../../../i18n';
 
@@ -25,10 +29,13 @@ export const CartPromoBox = memo(function CartPromoBox() {
     return fallback;
   };
 
+  const invalidCouponCode = extractInvalidCouponCode(couponError);
   const displayCouponError =
-    couponError === 'Enter a promo code to apply.'
+    couponError === EMPTY_COUPON_ERROR
       ? t('cart.promo.emptyError')
-      : couponError;
+      : invalidCouponCode
+        ? t('cart.promo.invalidError', { code: invalidCouponCode })
+        : couponError;
 
   return (
     <section className="cart-panel" aria-labelledby="cart-promo-heading">
