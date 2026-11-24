@@ -1,0 +1,157 @@
+import type { ProductCardDTO, SearchMode } from '@minieshop/contracts';
+import type { InstantSearchProps } from 'react-instantsearch';
+import {
+  MAX_SEARCH_LIMIT,
+  MAX_SEARCH_OFFSET,
+  SEARCH_PAGE_SIZE,
+  type ProductRepository,
+} from '../../domain/repositories/ProductRepository';
+import { MAX_SEARCH_QUERY_LENGTH } from '../../utils/searchUrlParams';
+
+export const SEARCH_INDEX_NAME = 'products';
+export const SEARCH_HITS_PER_PAGE = SEARCH_PAGE_SIZE;
+
+export type StorefrontSearchHit = ProductCardDTO & {
+  objectID: string;
+};
+
+export interface SearchTelemetry {
+  mode: SearchMode;
+  durationMs: number;
+  query: string;
+}
+
+export type StorefrontSearchClient = InstantSearchProps['searchClient'];
+
+interface InstantSearchRequestLike {
+  indexName?: string;
+  params?: {
+    query?: unknown;
+    page?: unknown;
+    hitsPerPage?: unknown;
+  };
+}
+
+function buildEmptyResponse(
+  query: string,
+  page: number,
+  hitsPerPage: number,
+  nbPages: number = 0,
+) {
+  return {
+    hits: [] as StorefrontSearchHit[],
+    nbHits: 0,
+    page,
+    nbPages,
+    hitsPerPage,
+    query,
+    processingTimeMS: 0,
+    exhaustiveNbHits: true,
+    params: '',
+  };
+}
+
+export interface CreateSearchClientOptions {
+  onTelemetry?: (telemetry: SearchTelemetry) => void;
+}
+
+/**
+ * Adapts `ProductRepository.searchProducts` (`GET /search`) to the custom
+ * `SearchClient` contract expected by `react-instantsearch@7.55.1` / `instantsearch.js@4.123.1`.
+ */
+export function createStorefrontSearchClient(
+  repository: ProductRepository,
+  options?: CreateSearchClientOptions,
+): StorefrontSearchClient {
+  const client = {
+    async search(requests: ReadonlyArray<InstantSearchRequestLike>) {
+      const results = await Promise.all(
+        requests.map(async (request) => {
+          const rawQuery =
+            typeof request.params?.query === 'string'
+              ? request.params.query
+              : '';
+          const trimmedQuery = rawQuery
+            .trim()
+            .slice(0, MAX_SEARCH_QUERY_LENGTH);
+
+          const rawHitsPerPage =
+            typeof request.params?.hitsPerPage === 'number' &&
+            Number.isFinite(request.params.hitsPerPage) &&
+            request.params.hitsPerPage > 0
+              ? Math.trunc(request.params.hitsPerPage)
+              : SEARCH_HITS_PER_PAGE;
+          const hitsPerPage = Math.min(MAX_SEARCH_LIMIT, rawHitsPerPage);
+
+          const page =
+            typeof request.params?.page === 'number' &&
+            Number.isFinite(request.params.page) &&
+            request.params.page >= 0
+              ? Math.trunc(request.params.page)
+              : 0;
+
+          if (trimmedQuery.length === 0) {
+            return buildEmptyResponse('', 0, hitsPerPage, 0);
+          }
+
+          const offset = page * hitsPerPage;
+          if (offset > MAX_SEARCH_OFFSET) {
+            return buildEmptyResponse(trimmedQuery, page, hitsPerPage, page);
+          }
+
+          const startedAt =
+            typeof performance !== 'undefined' ? performance.now() : Date.now();
+          const response = await repository.searchProducts({
+            q: trimmedQuery,
+            limit: hitsPerPage,
+            offset,
+          });
+          const endedAt =
+            typeof performance !== 'undefined' ? performance.now() : Date.now();
+          const durationMs = Math.max(0, Math.round(endedAt - startedAt));
+
+          const hits: StorefrontSearchHit[] = response.items.map((item) => ({
+            ...item,
+            objectID: item.id,
+          }));
+
+          const nbHits = response.estimatedTotal;
+          const nbPages = nbHits > 0 ? Math.ceil(nbHits / hitsPerPage) : 0;
+
+          options?.onTelemetry?.({
+            mode: response.mode,
+            durationMs,
+            query: trimmedQuery,
+          });
+
+          return {
+            hits,
+            nbHits,
+            page,
+            nbPages,
+            hitsPerPage,
+            query: trimmedQuery,
+            processingTimeMS: durationMs,
+            exhaustiveNbHits: false,
+            params: '',
+            userData: [
+              {
+                mode: response.mode,
+                durationMs,
+                query: trimmedQuery,
+              },
+            ],
+          };
+        }),
+      );
+
+      return { results };
+    },
+
+    async searchForFacetValues() {
+      return [];
+    },
+  };
+
+  return client as unknown as StorefrontSearchClient;
+}
