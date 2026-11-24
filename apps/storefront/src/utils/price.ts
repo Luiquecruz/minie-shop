@@ -1,6 +1,6 @@
 import type { CurrencyCode } from '../types';
 import type { CalculatedPrice, RawPriceInput } from '../types/product';
-import { formatCurrencyWithCode, DEFAULT_CURRENCY } from './currency';
+import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from './currency';
 
 /**
  * Minie Shop Pricing Engine
@@ -8,14 +8,20 @@ import { formatCurrencyWithCode, DEFAULT_CURRENCY } from './currency';
  */
 
 /**
- * Formats a numeric value into a currency representation.
- * Supports multi-currency (BRL, USD, EUR).
+ * Formats an already-converted numeric value into a localized currency representation
+ * (zero client-side FX conversion).
  */
 export const formatCurrency = (
   value: number,
   currency: CurrencyCode = DEFAULT_CURRENCY,
 ): string => {
-  return formatCurrencyWithCode(value, currency);
+  const safeValue = typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  const config =
+    SUPPORTED_CURRENCIES[currency] || SUPPORTED_CURRENCIES[DEFAULT_CURRENCY];
+  return new Intl.NumberFormat(config.locale, {
+    style: 'currency',
+    currency: config.code,
+  }).format(safeValue);
 };
 
 /**

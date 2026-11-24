@@ -8,6 +8,7 @@ import {
 } from '../persistence/cartStorage';
 import cartReducer, {
   addToCart,
+  applyCartQuote,
   applyCoupon,
   clearCart,
   closeCart,
@@ -410,5 +411,150 @@ describe('cartSlice pure functional reducers & immutability', () => {
     expect(hydrated.orderNote).toBe('');
     expect(warnSpy).toHaveBeenCalledTimes(2);
     warnSpy.mockRestore();
+  });
+
+  it('applyCartQuote preserves structural sharing on no-op and reprices items/shipping without deleting out-of-stock items', () => {
+    let state = cartReducer(initialCartState, addToCart({ product: productA, quantity: 2 }));
+    state = cartReducer(state, addToCart({ product: productB, quantity: 1 }));
+
+    const noopState = cartReducer(
+      state,
+      applyCartQuote({
+        currency: 'BRL',
+        items: [
+          { productId: productA.id, price: productA.price, inStock: productA.inStock },
+          { productId: productB.id, price: productB.price, inStock: productB.inStock },
+        ],
+        freeShippingThresholdCents: 50_000,
+        shippingOptions: [
+          { id: 'standard', basePriceCents: 1_990 },
+          { id: 'express', basePriceCents: 4_990 },
+          { id: 'pickup', basePriceCents: 0 },
+        ],
+      }),
+    );
+    expect(noopState).toBe(state);
+
+    const usdState = cartReducer(
+      state,
+      applyCartQuote({
+        currency: 'USD',
+        items: [
+          {
+            productId: productA.id,
+            price: { amount: 8_990, currency: 'USD' },
+            inStock: true,
+          },
+          {
+            productId: productB.id,
+            price: { amount: 7_490, currency: 'USD' },
+            inStock: false,
+          },
+        ],
+        freeShippingThresholdCents: 10_000,
+        shippingOptions: [
+          { id: 'standard', basePriceCents: 490 },
+          { id: 'express', basePriceCents: 990 },
+          { id: 'pickup', basePriceCents: 0 },
+        ],
+      }),
+    );
+
+    expect(usdState.items).toHaveLength(2);
+    expect(usdState.items[0].price).toEqual({ amount: 8_990, currency: 'USD' });
+    expect(usdState.items[1].price).toEqual({ amount: 7_490, currency: 'USD' });
+    expect(usdState.items[1].inStock).toBe(false);
+    expect(usdState.stockWarnings[productB.id]).toMatch(/out of stock/i);
+    expect(usdState.shippingPricing.currency).toBe('USD');
+    expect(usdState.shippingPricing.freeShippingThresholdCents).toBe(10_000);
+
+    // If a quote omits the currently selected shipping option ('express'), reconcile shippingMethod
+    const expressSelected = cartReducer(usdState, setShippingMethod('express'));
+    const partialShippingState = cartReducer(
+      expressSelected,
+      applyCartQuote({
+        quote: {
+          currency: 'EUR',
+          items: [
+            {
+              productId: productA.id,
+              price: { amount: 8_490, currency: 'EUR' },
+              inStock: true,
+            },
+            {
+              productId: productB.id,
+              price: { amount: 6_990, currency: 'EUR' },
+              inStock: true,
+            },
+          ],
+          freeShippingThresholdCents: 9_500,
+          shippingOptions: [
+            { id: 'standard', basePriceCents: 450 },
+            { id: 'pickup', basePriceCents: 0 },
+          ],
+        },
+        updatedAt: 2_000,
+      }),
+    );
+    expect(partialShippingState.shippingPricing.currency).toBe('EUR');
+    expect(partialShippingState.shippingMethod).toBe('standard');
+    expect(partialShippingState.shippingPricing.options.map((o) => o.id)).toEqual([
+      'standard',
+      'pickup',
+    ]);
+
+    // Older quote observation (updatedAt < lastQuoteUpdatedAt) is rejected
+    const staleRejected = cartReducer(
+      partialShippingState,
+      applyCartQuote({
+        quote: {
+          currency: 'BRL',
+          items: [
+            {
+              productId: productA.id,
+              price: productA.price,
+              inStock: true,
+            },
+          ],
+          freeShippingThresholdCents: 50_000,
+          shippingOptions: [{ id: 'standard', basePriceCents: 1_990 }],
+        },
+        updatedAt: 1_000,
+      }),
+    );
+    expect(staleRejected).toBe(partialShippingState);
+
+    // Items omitted from quote.items (e.g. unpublished/unavailable) are marked unavailable with warning,
+    // while items returned in quote.items still receive price/stock updates.
+    const omittedResult = cartReducer(
+      partialShippingState,
+      applyCartQuote({
+        quote: {
+          currency: 'USD',
+          items: [
+            {
+              productId: productA.id,
+              price: { amount: 5_998, currency: 'USD' },
+              inStock: true,
+            },
+          ],
+          freeShippingThresholdCents: 10_000,
+          shippingOptions: [
+            { id: 'standard', basePriceCents: 490 },
+            { id: 'pickup', basePriceCents: 0 },
+          ],
+        },
+        updatedAt: 3_000,
+      }),
+    );
+    expect(omittedResult.items[0].price).toEqual({
+      amount: 5_998,
+      currency: 'USD',
+    });
+    expect(omittedResult.items[0].inStock).toBe(true);
+    expect(omittedResult.items[1].inStock).toBe(false);
+    expect(omittedResult.stockWarnings[productB.id]).toBe(
+      'This product is currently out of stock.',
+    );
   });
 });

@@ -14,7 +14,7 @@ import {
   useFacetsQuery,
   useProductsQuery,
 } from '../../hooks/useProducts';
-import { t } from '../../i18n';
+import { useI18n } from '../../i18n';
 import {
   parseCatalogUrlParams,
   serializeCatalogUrlParams,
@@ -26,13 +26,6 @@ import Dropdown, { type DropdownOption } from '../../components/Dropdown/Dropdow
 import './ProductListingPage.css';
 
 const PAGE_SIZE = 12;
-
-const BASE_SORT_OPTIONS: DropdownOption<ProductSort>[] = [
-  { value: 'newest', label: t('plp.sort.newest') },
-  { value: 'price_asc', label: t('plp.sort.price_asc') },
-  { value: 'price_desc', label: t('plp.sort.price_desc') },
-  { value: 'name_asc', label: t('plp.sort.name_asc') },
-];
 
 function deriveTotalFromFacets(
   facets: FacetsDTO | undefined,
@@ -62,6 +55,7 @@ function deriveTotalFromFacets(
 
 export function ProductListingPage() {
   const { addToCart } = useCart();
+  const { t } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const urlState = useMemo(
@@ -109,14 +103,17 @@ export function ProductListingPage() {
   const facetsQuery = useFacetsQuery(facetFilters);
 
   const sortOptions = useMemo<DropdownOption<ProductSort>[]>(() => {
+    const base: DropdownOption<ProductSort>[] = [
+      { value: 'newest', label: t('plp.sort.newest') },
+      { value: 'price_asc', label: t('plp.sort.price_asc') },
+      { value: 'price_desc', label: t('plp.sort.price_desc') },
+      { value: 'name_asc', label: t('plp.sort.name_asc') },
+    ];
     if (urlState.q) {
-      return [
-        { value: 'relevance', label: t('plp.sort.relevance') },
-        ...BASE_SORT_OPTIONS,
-      ];
+      return [{ value: 'relevance', label: t('plp.sort.relevance') }, ...base];
     }
-    return BASE_SORT_OPTIONS;
-  }, [urlState.q]);
+    return base;
+  }, [urlState.q, t]);
 
   const products = useMemo<ProductCardDTO[]>(
     () => productsQuery.data?.pages.flatMap((page) => page.items) ?? [],
@@ -354,7 +351,11 @@ export function ProductListingPage() {
 
           {/* Initial Skeleton Loading */}
           {showInitialSkeleton && (
-            <div className="plp-grid" aria-busy="true" aria-label="Loading products">
+            <div
+              className="plp-grid"
+              aria-busy="true"
+              aria-label={t('plp.loadingProducts')}
+            >
               {Array.from({ length: 6 }).map((_, index) => (
                 <div key={index} className="skeleton-card">
                   <div className="skeleton-card__img" />

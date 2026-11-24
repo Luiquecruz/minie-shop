@@ -3,12 +3,13 @@ import type {
   AppliedCoupon,
   CartItem,
   ShippingMethodId,
+  ShippingOption,
   StockWarningsMap,
 } from '../../types';
 import type { RootState } from '../index';
 import {
-  FREE_SHIPPING_THRESHOLD_CENTS,
-  SHIPPING_OPTIONS,
+  defaultCartShippingPricing,
+  type CartShippingPricing,
   type CartState,
 } from '../slices/cartSlice';
 
@@ -25,6 +26,15 @@ export const selectCartCouponError = (state: RootState): string | null =>
   state.cart.couponError;
 export const selectCartShippingMethod = (state: RootState): ShippingMethodId =>
   state.cart.shippingMethod;
+export const selectCartShippingPricing = (state: RootState): CartShippingPricing =>
+  state.cart.shippingPricing ?? defaultCartShippingPricing;
+export const selectCartShippingOptions = (
+  state: RootState,
+): readonly ShippingOption[] => selectCartShippingPricing(state).options;
+export const selectCartFreeShippingThresholdCents = (state: RootState): number =>
+  selectCartShippingPricing(state).freeShippingThresholdCents;
+export const selectLastQuoteUpdatedAt = (state: RootState): number =>
+  state.cart.lastQuoteUpdatedAt ?? 0;
 export const selectCartOrderNote = (state: RootState): string =>
   state.cart.orderNote;
 
@@ -83,8 +93,8 @@ export const selectCartDiscountAmount = createSelector(
 );
 
 export const selectCartQualifiesForFreeStandardShipping = createSelector(
-  [selectCartSubtotal],
-  (subtotal): boolean => subtotal >= FREE_SHIPPING_THRESHOLD_CENTS,
+  [selectCartSubtotal, selectCartFreeShippingThresholdCents],
+  (subtotal, threshold): boolean => subtotal >= threshold,
 );
 
 export const selectCartHasFreeShippingCoupon = createSelector(
@@ -101,25 +111,27 @@ export const selectCartShippingCost = createSelector(
     selectCartQualifiesForFreeStandardShipping,
     selectCartHasFreeShippingCoupon,
     selectCartShippingMethod,
+    selectCartShippingOptions,
   ],
   (
     hasItems,
     qualifiesForFreeStandard,
     hasFreeShippingCoupon,
     shippingMethod,
+    shippingOptions,
   ): number => {
     if (!hasItems) return 0;
     if (shippingMethod === 'pickup') return 0;
     if (hasFreeShippingCoupon) return 0;
     if (shippingMethod === 'standard' && qualifiesForFreeStandard) return 0;
-    const option = SHIPPING_OPTIONS.find((opt) => opt.id === shippingMethod);
-    return option ? option.basePriceCents : SHIPPING_OPTIONS[0].basePriceCents;
+    const option = shippingOptions.find((opt) => opt.id === shippingMethod);
+    return option ? option.basePriceCents : shippingOptions[0].basePriceCents;
   },
 );
 
 export const selectCartFreeShippingRemaining = createSelector(
-  [selectCartSubtotal],
-  (subtotal): number => Math.max(0, FREE_SHIPPING_THRESHOLD_CENTS - subtotal),
+  [selectCartSubtotal, selectCartFreeShippingThresholdCents],
+  (subtotal, threshold): number => Math.max(0, threshold - subtotal),
 );
 
 /**

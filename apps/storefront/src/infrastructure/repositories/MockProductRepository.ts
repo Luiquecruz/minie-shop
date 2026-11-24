@@ -6,9 +6,12 @@ import type {
   FacetsDTO,
   FavoriteCreatedResponseDTO,
   FavoritesListResponseDTO,
+  PricingQuoteRequestDTO,
+  PricingQuoteResponseDTO,
   ProductDetailDTO,
   ProductListResponseDTO,
   ProductSort,
+  SupportedCurrency,
 } from '@minieshop/contracts';
 import type {
   CatalogFilterParams,
@@ -28,6 +31,63 @@ export interface MockProductRepositoryOptions {
   categories?: CategoriesResponseDTO;
   initialFavorites?: string[];
   delayMs?: number;
+}
+
+const MOCK_SERVER_RATES: Record<SupportedCurrency, number> = {
+  BRL: 1,
+  USD: 0.2,
+  EUR: 0.185,
+};
+
+const MOCK_SHIPPING_PRICING: Record<
+  SupportedCurrency,
+  {
+    freeShippingThresholdCents: number;
+    shippingOptions: Array<{ id: 'standard' | 'express' | 'pickup'; basePriceCents: number }>;
+  }
+> = {
+  BRL: {
+    freeShippingThresholdCents: 50_000,
+    shippingOptions: [
+      { id: 'standard', basePriceCents: 1_990 },
+      { id: 'express', basePriceCents: 4_990 },
+      { id: 'pickup', basePriceCents: 0 },
+    ],
+  },
+  USD: {
+    freeShippingThresholdCents: 10_000,
+    shippingOptions: [
+      { id: 'standard', basePriceCents: 490 },
+      { id: 'express', basePriceCents: 990 },
+      { id: 'pickup', basePriceCents: 0 },
+    ],
+  },
+  EUR: {
+    freeShippingThresholdCents: 9_500,
+    shippingOptions: [
+      { id: 'standard', basePriceCents: 450 },
+      { id: 'express', basePriceCents: 890 },
+      { id: 'pickup', basePriceCents: 0 },
+    ],
+  },
+};
+
+function priceProductForCurrency(
+  product: ProductDetailDTO,
+  currency: SupportedCurrency = 'BRL',
+): ProductDetailDTO {
+  if (product.price.currency === currency) {
+    return product;
+  }
+  const sourceRate = MOCK_SERVER_RATES[product.price.currency] || 1;
+  const targetRate = MOCK_SERVER_RATES[currency];
+  return {
+    ...product,
+    price: {
+      amount: Math.round((product.price.amount / sourceRate) * targetRate),
+      currency,
+    },
+  };
 }
 
 function sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
@@ -201,7 +261,11 @@ export class MockProductRepository implements ProductRepository {
   ): Promise<ProductListResponseDTO> {
     await sleepWithAbort(this.delayMs, signal);
 
-    const filtered = this.products.filter((product) =>
+    const currency = params.currency ?? 'BRL';
+    const pricedProducts = this.products.map((product) =>
+      priceProductForCurrency(product, currency),
+    );
+    const filtered = pricedProducts.filter((product) =>
       matchesFilters(product, this.categories, params),
     );
     const sorted = sortProducts(filtered, params.sort);
@@ -235,6 +299,7 @@ export class MockProductRepository implements ProductRepository {
   async getProductBySlug(
     slug: string,
     signal?: AbortSignal,
+    currency: SupportedCurrency = 'BRL',
   ): Promise<ProductDetailDTO> {
     await sleepWithAbort(this.delayMs, signal);
 
@@ -247,7 +312,7 @@ export class MockProductRepository implements ProductRepository {
         requestId: 'mock-request-id',
       });
     }
-    return found;
+    return priceProductForCurrency(found, currency);
   }
 
   async getCategories(signal?: AbortSignal): Promise<CategoriesResponseDTO> {
@@ -261,7 +326,12 @@ export class MockProductRepository implements ProductRepository {
   ): Promise<FacetsDTO> {
     await sleepWithAbort(this.delayMs, signal);
 
-    const pricePool = this.products.filter((product) =>
+    const currency = params.currency ?? 'BRL';
+    const pricedProducts = this.products.map((product) =>
+      priceProductForCurrency(product, currency),
+    );
+
+    const pricePool = pricedProducts.filter((product) =>
       matchesFilters(product, this.categories, params, { price: true }),
     );
     const price =
@@ -272,7 +342,7 @@ export class MockProductRepository implements ProductRepository {
             max: Math.max(...pricePool.map((p) => p.price.amount)),
           };
 
-    const categoryPool = this.products.filter((product) =>
+    const categoryPool = pricedProducts.filter((product) =>
       matchesFilters(product, this.categories, params, { category: true }),
     );
     const allCats = flattenCategories(this.categories);
@@ -310,7 +380,7 @@ export class MockProductRepository implements ProductRepository {
 
     const attributes: FacetAttributeDTO[] = [];
     for (const [code, meta] of attrMeta.entries()) {
-      const attrPool = this.products.filter((product) =>
+      const attrPool = pricedProducts.filter((product) =>
         matchesFilters(product, this.categories, params, { attributeCode: code }),
       );
 
@@ -357,6 +427,39 @@ export class MockProductRepository implements ProductRepository {
       price,
       categories,
       attributes,
+    };
+  }
+
+  async quotePricing(
+    request: PricingQuoteRequestDTO,
+    signal?: AbortSignal,
+  ): Promise<PricingQuoteResponseDTO> {
+    await sleepWithAbort(this.delayMs, signal);
+    const currency = request.currency ?? 'BRL';
+    const shipping = MOCK_SHIPPING_PRICING[currency];
+    const uniqueIds = Array.from(
+      new Set(request.productIds.map((id) => id.toLowerCase())),
+    );
+    const items = uniqueIds
+      .map((productId) => {
+        const found = this.products.find(
+          (product) => product.id.toLowerCase() === productId,
+        );
+        if (!found) return null;
+        const priced = priceProductForCurrency(found, currency);
+        return {
+          productId: priced.id,
+          price: priced.price,
+          inStock: priced.inStock,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    return {
+      currency,
+      items,
+      freeShippingThresholdCents: shipping.freeShippingThresholdCents,
+      shippingOptions: shipping.shippingOptions.map((option) => ({ ...option })),
     };
   }
 

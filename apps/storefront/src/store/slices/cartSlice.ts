@@ -1,11 +1,16 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { ImageDTO } from '@minieshop/contracts';
+import type {
+  ImageDTO,
+  PricingQuoteResponseDTO,
+  SupportedCurrency,
+} from '@minieshop/contracts';
 import type {
   AddToCartPayload,
   AppliedCoupon,
   CartItem,
   CartProductInput,
   ShippingMethodId,
+  ShippingOption,
   StockWarningsMap,
 } from '../../types';
 import {
@@ -23,6 +28,48 @@ export {
   SHIPPING_OPTIONS,
 };
 
+export const EMPTY_COUPON_ERROR = 'Enter a promo code to apply.';
+const INVALID_COUPON_PREFIX = 'Promo code "';
+const INVALID_COUPON_SUFFIX =
+  '" is invalid. Try MINIE10, MINIE20, or FREESHIP.';
+
+/**
+ * Formats a canonical invalid promo-code error string stored in Redux state.
+ */
+export function formatInvalidCouponError(code: string): string {
+  return `${INVALID_COUPON_PREFIX}${code}${INVALID_COUPON_SUFFIX}`;
+}
+
+/**
+ * Extracts the rejected promo code from a canonical invalid promo error string.
+ */
+export function extractInvalidCouponCode(error: string | null): string | null {
+  if (!error) return null;
+  if (
+    error.startsWith(INVALID_COUPON_PREFIX) &&
+    error.endsWith(INVALID_COUPON_SUFFIX)
+  ) {
+    const code = error.slice(
+      INVALID_COUPON_PREFIX.length,
+      error.length - INVALID_COUPON_SUFFIX.length,
+    );
+    return code || null;
+  }
+  return null;
+}
+
+export interface CartShippingPricing {
+  currency: SupportedCurrency;
+  freeShippingThresholdCents: number;
+  options: readonly ShippingOption[];
+}
+
+export const defaultCartShippingPricing: CartShippingPricing = {
+  currency: 'BRL',
+  freeShippingThresholdCents: FREE_SHIPPING_THRESHOLD_CENTS,
+  options: SHIPPING_OPTIONS,
+};
+
 export interface CartState {
   items: CartItem[];
   isOpen: boolean;
@@ -31,8 +78,14 @@ export interface CartState {
   appliedCoupon: AppliedCoupon | null;
   couponError: string | null;
   shippingMethod: ShippingMethodId;
+  shippingPricing: CartShippingPricing;
+  lastQuoteUpdatedAt: number;
   orderNote: string;
 }
+
+export type ApplyCartQuotePayload =
+  | PricingQuoteResponseDTO
+  | { quote: PricingQuoteResponseDTO; updatedAt?: number };
 
 export const initialCartState: CartState = {
   items: [],
@@ -42,6 +95,8 @@ export const initialCartState: CartState = {
   appliedCoupon: null,
   couponError: null,
   shippingMethod: 'standard',
+  shippingPricing: defaultCartShippingPricing,
+  lastQuoteUpdatedAt: 0,
   orderNote: '',
 };
 
@@ -269,7 +324,7 @@ export const cartSlice = createSlice({
       if (!rawCode) {
         return {
           ...state,
-          couponError: 'Enter a promo code to apply.',
+          couponError: EMPTY_COUPON_ERROR,
         };
       }
 
@@ -279,7 +334,7 @@ export const cartSlice = createSlice({
       if (!matched) {
         return {
           ...state,
-          couponError: `Promo code "${rawCode}" is invalid. Try MINIE10, MINIE20, or FREESHIP.`,
+          couponError: formatInvalidCouponError(rawCode),
         };
       }
 
@@ -333,6 +388,160 @@ export const cartSlice = createSlice({
       ...state,
       isOpen: !state.isOpen,
     }),
+
+    /**
+     * Pure immutable cart repricing from server `POST /pricing/quote`.
+     * Preserves structural sharing for unchanged items, guards against stale
+     * observations via `updatedAt`, and reconciles `shippingMethod` if omitted.
+     */
+    applyCartQuote: (
+      state,
+      action: PayloadAction<ApplyCartQuotePayload>,
+    ): CartState => {
+      const payload = action.payload;
+      const quote = 'quote' in payload ? payload.quote : payload;
+      const updatedAt = 'quote' in payload ? payload.updatedAt : undefined;
+      const currentLastQuoteAt = state.lastQuoteUpdatedAt ?? 0;
+
+      if (updatedAt !== undefined && updatedAt < currentLastQuoteAt) {
+        return state;
+      }
+
+      const quotedById = new Map(
+        quote.items.map((item) => [item.productId.toLowerCase(), item]),
+      );
+
+      let itemsChanged = false;
+      let nextWarnings = state.stockWarnings;
+
+      const nextItems = state.items.map((item) => {
+        const quoted = quotedById.get(item.id.toLowerCase());
+        if (!quoted) {
+          nextWarnings = setWarningImmutable(
+            nextWarnings,
+            item.id,
+            'This product is currently out of stock.',
+          );
+          if (!item.inStock) {
+            return item;
+          }
+          itemsChanged = true;
+          return {
+            ...item,
+            inStock: false,
+          };
+        }
+
+        const priceChanged =
+          item.price.amount !== quoted.price.amount ||
+          item.price.currency !== quoted.price.currency;
+        const stockFlagChanged = item.inStock !== quoted.inStock;
+
+        if (!quoted.inStock) {
+          nextWarnings = setWarningImmutable(
+            nextWarnings,
+            item.id,
+            'This product is currently out of stock.',
+          );
+        } else if (
+          nextWarnings[item.id] === 'This product is currently out of stock.'
+        ) {
+          nextWarnings = setWarningImmutable(nextWarnings, item.id, null);
+        }
+
+        if (!priceChanged && !stockFlagChanged) {
+          return item;
+        }
+
+        itemsChanged = true;
+        return {
+          ...item,
+          price: quoted.price,
+          inStock: quoted.inStock,
+        };
+      });
+
+      const currentShipping = state.shippingPricing ?? defaultCartShippingPricing;
+      const baseOptionsById = new Map(
+        SHIPPING_OPTIONS.map((opt) => [opt.id, opt]),
+      );
+      const currentOptionsById = new Map(
+        currentShipping.options.map((opt) => [opt.id, opt]),
+      );
+
+      // Rebuild shipping options strictly from server-quoted options so an omitted
+      // option can never retain stale-currency cents when shippingPricing.currency flips.
+      const nextShippingOptions: ShippingOption[] = [];
+      for (const quotedOpt of quote.shippingOptions) {
+        const existing =
+          currentOptionsById.get(quotedOpt.id) ?? baseOptionsById.get(quotedOpt.id);
+        if (!existing) continue;
+        if (existing.basePriceCents === quotedOpt.basePriceCents) {
+          nextShippingOptions.push(existing);
+        } else {
+          nextShippingOptions.push({
+            ...existing,
+            basePriceCents: quotedOpt.basePriceCents,
+          });
+        }
+      }
+
+      const hasRecognizedShippingOptions = nextShippingOptions.length > 0;
+      const shippingOptionsChanged =
+        hasRecognizedShippingOptions &&
+        (nextShippingOptions.length !== currentShipping.options.length ||
+          nextShippingOptions.some(
+            (opt, idx) => opt !== currentShipping.options[idx],
+          ));
+
+      const nextShippingMethod =
+        hasRecognizedShippingOptions &&
+        !nextShippingOptions.some((opt) => opt.id === state.shippingMethod)
+          ? nextShippingOptions[0].id
+          : state.shippingMethod;
+      const shippingMethodChanged = nextShippingMethod !== state.shippingMethod;
+
+      const shippingChanged =
+        hasRecognizedShippingOptions &&
+        (shippingOptionsChanged ||
+          currentShipping.currency !== quote.currency ||
+          currentShipping.freeShippingThresholdCents !==
+            quote.freeShippingThresholdCents);
+
+      const warningsChanged = nextWarnings !== state.stockWarnings;
+      const quoteTimeChanged =
+        updatedAt !== undefined && updatedAt > currentLastQuoteAt;
+
+      if (
+        !itemsChanged &&
+        !shippingChanged &&
+        !shippingMethodChanged &&
+        !warningsChanged &&
+        !quoteTimeChanged
+      ) {
+        return state;
+      }
+
+      return {
+        ...state,
+        items: itemsChanged ? nextItems : state.items,
+        stockWarnings: nextWarnings,
+        shippingMethod: nextShippingMethod,
+        lastQuoteUpdatedAt:
+          updatedAt !== undefined && updatedAt > currentLastQuoteAt
+            ? updatedAt
+            : currentLastQuoteAt,
+        shippingPricing: shippingChanged
+          ? {
+              currency: quote.currency,
+              freeShippingThresholdCents: quote.freeShippingThresholdCents,
+              options: shippingOptionsChanged
+                ? nextShippingOptions
+                : currentShipping.options,
+            }
+          : currentShipping,
+      };
+    },
   },
 });
 
@@ -350,6 +559,7 @@ export const {
   openCart,
   closeCart,
   toggleCart,
+  applyCartQuote,
 } = cartSlice.actions;
 
 export default cartSlice.reducer;

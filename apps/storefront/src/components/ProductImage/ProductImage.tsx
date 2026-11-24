@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import type { ImageDTO } from '@minieshop/contracts';
-import { t } from '../../i18n';
+import { useI18n } from '../../i18n';
 import './ProductImage.css';
 
 export interface ProductImageProps {
@@ -29,6 +29,7 @@ export function ProductImage({
   decorative = false,
   className = '',
 }: ProductImageProps) {
+  const { t } = useI18n();
   const variants = image?.variants ?? [];
   const sortedVariants = [...variants].sort((a, b) => a.width - b.width);
   const primaryVariant =

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import type { ProductCardDTO } from '@minieshop/contracts';
 import { useCart } from '../../hooks/useCart';
 import { useFavorites } from '../../hooks/useFavorites';
-import { t } from '../../i18n';
+import { useI18n } from '../../i18n';
 import AttributeIcon from '../AttributeIcon/AttributeIcon';
 import PriceBox from '../PriceBox/PriceBox';
 import ProductImage from '../ProductImage/ProductImage';
@@ -14,16 +14,6 @@ export interface ProductCardProps {
   onAddToCart?: (product: ProductCardDTO) => void;
 }
 
-function formatAttributeHighlight(
-  value: string | number | boolean,
-  unit?: string,
-): string {
-  if (typeof value === 'boolean') {
-    return value ? t('filters.yes') : t('filters.no');
-  }
-  return unit ? `${value} ${unit}` : String(value);
-}
-
 export function ProductCard({
   product,
   onAddToCart,
@@ -31,6 +21,17 @@ export function ProductCard({
 }: ProductCardProps) {
   const { addToCart } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites(onFavoriteError);
+  const { t } = useI18n();
+
+  const formatAttributeHighlight = (
+    value: string | number | boolean,
+    unit?: string,
+  ): string => {
+    if (typeof value === 'boolean') {
+      return value ? t('filters.yes') : t('filters.no');
+    }
+    return unit ? `${value} ${unit}` : String(value);
+  };
 
   if (!product) return null;
 
@@ -111,7 +112,10 @@ export function ProductCard({
         </Link>
 
         {highlights.length > 0 && (
-          <ul className="product-card__highlights" aria-label="Product highlights">
+          <ul
+            className="product-card__highlights"
+            aria-label={t('card.highlightsAria')}
+          >
             {highlights.slice(0, 3).map((attr) => (
               <li key={attr.code} className="product-card__highlight-item">
                 <AttributeIcon iconKey={attr.icon} size={14} />

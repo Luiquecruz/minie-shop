@@ -1,9 +1,15 @@
 import { z } from 'zod';
 
+export const SUPPORTED_CURRENCY_CODES = ['BRL', 'USD', 'EUR'] as const;
+
+export const supportedCurrencySchema = z.enum(SUPPORTED_CURRENCY_CODES);
+
+export type SupportedCurrency = z.infer<typeof supportedCurrencySchema>;
+
 export const moneySchema = z
   .object({
     amount: z.number().int().nonnegative(),
-    currency: z.string().min(3).max(3),
+    currency: supportedCurrencySchema,
   })
   .strict();
 
@@ -230,3 +236,55 @@ export const productIdParamSchema = z
   .strict();
 
 export type ProductIdParam = z.infer<typeof productIdParamSchema>;
+
+export const shippingMethodCodeSchema = z.enum(['standard', 'express', 'pickup']);
+
+export type ShippingMethodCode = z.infer<typeof shippingMethodCodeSchema>;
+
+export const MAX_PRICING_QUOTE_PRODUCT_IDS = 100;
+
+export const pricingQuoteRequestSchema = z
+  .object({
+    currency: supportedCurrencySchema.default('BRL'),
+    productIds: z
+      .array(
+        z
+          .string()
+          .uuid('Each productId must be a valid UUID')
+          .transform((id) => id.toLowerCase()),
+      )
+      .max(MAX_PRICING_QUOTE_PRODUCT_IDS),
+  })
+  .strict();
+
+export type PricingQuoteRequestDTO = z.infer<typeof pricingQuoteRequestSchema>;
+
+export const quotedProductPriceSchema = z
+  .object({
+    productId: z.string().uuid(),
+    price: moneySchema,
+    inStock: z.boolean(),
+  })
+  .strict();
+
+export type QuotedProductPriceDTO = z.infer<typeof quotedProductPriceSchema>;
+
+export const quotedShippingOptionSchema = z
+  .object({
+    id: shippingMethodCodeSchema,
+    basePriceCents: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export type QuotedShippingOptionDTO = z.infer<typeof quotedShippingOptionSchema>;
+
+export const pricingQuoteResponseSchema = z
+  .object({
+    currency: supportedCurrencySchema,
+    items: z.array(quotedProductPriceSchema),
+    freeShippingThresholdCents: z.number().int().nonnegative(),
+    shippingOptions: z.array(quotedShippingOptionSchema).min(1),
+  })
+  .strict();
+
+export type PricingQuoteResponseDTO = z.infer<typeof pricingQuoteResponseSchema>;

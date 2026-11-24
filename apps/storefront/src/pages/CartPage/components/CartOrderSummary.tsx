@@ -1,28 +1,39 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  FREE_SHIPPING_THRESHOLD_CENTS,
-  SHIPPING_OPTIONS,
-} from '../../../store/slices/cartSlice';
 import { useCartSummaryState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useI18n } from '../../../i18n';
+import type { ShippingMethodId } from '../../../types';
+
+export interface CartOrderSummaryProps {
+  isTotalsLoading?: boolean;
+  hasCurrencyMismatch?: boolean;
+  quoteError?: string | null;
+}
 
 /**
  * Memoized sticky order summary sidebar driven by memoized Redux selectors.
  */
-export const CartOrderSummary = memo(function CartOrderSummary() {
+export const CartOrderSummary = memo(function CartOrderSummary({
+  isTotalsLoading = false,
+  hasCurrencyMismatch = false,
+  quoteError = null,
+}: CartOrderSummaryProps) {
   const {
     totalUnits,
     subtotal,
     discountAmount,
     shippingCost,
     freeShippingRemaining,
+    freeShippingThresholdCents,
+    shippingOptions,
     total,
     appliedCoupon,
     shippingMethod,
     orderNote,
   } = useCartSummaryState();
   const { formatPrice } = useCurrency();
+  const { t } = useI18n();
   const [checkoutNotice, setCheckoutNotice] = useState('');
   const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -35,21 +46,32 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
   }, []);
 
   const selectedShipping =
-    SHIPPING_OPTIONS.find((opt) => opt.id === shippingMethod) ??
-    SHIPPING_OPTIONS[0];
+    shippingOptions.find((opt) => opt.id === shippingMethod) ??
+    shippingOptions[0];
 
-  const progressRatio = Math.min(
-    100,
-    Math.round((subtotal / FREE_SHIPPING_THRESHOLD_CENTS) * 100),
-  );
+  const getShippingName = (id: ShippingMethodId, fallback: string): string => {
+    switch (id) {
+      case 'standard':
+        return t('cart.shipping.standard.name');
+      case 'express':
+        return t('cart.shipping.express.name');
+      case 'pickup':
+        return t('cart.shipping.pickup.name');
+      default:
+        return fallback;
+    }
+  };
+
+  const progressRatio =
+    freeShippingThresholdCents > 0
+      ? Math.min(100, Math.round((subtotal / freeShippingThresholdCents) * 100))
+      : 100;
 
   const handleCheckout = (): void => {
     if (noticeTimerRef.current !== null) {
       clearTimeout(noticeTimerRef.current);
     }
-    setCheckoutNotice(
-      'Checkout flow will be added in the next Phase 6 increment.',
-    );
+    setCheckoutNotice(t('cart.checkoutNotice'));
     noticeTimerRef.current = setTimeout(() => {
       setCheckoutNotice('');
       noticeTimerRef.current = null;
@@ -60,20 +82,23 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
     <aside className="cart-summary" aria-labelledby="cart-summary-heading">
       <div className="cart-panel__header">
         <h2 id="cart-summary-heading" className="cart-summary__title">
-          Order Summary
+          {t('cart.summaryHeading')}
         </h2>
       </div>
 
-      {shippingMethod === 'standard' && !appliedCoupon?.freeShipping && (
+      {shippingMethod === 'standard' &&
+        !appliedCoupon?.freeShipping &&
+        !hasCurrencyMismatch && (
         <div className="cart-summary__shipping-progress">
           <div className="cart-summary__progress-text">
             {freeShippingRemaining > 0 ? (
               <span>
-                Add <strong>{formatPrice(freeShippingRemaining)}</strong> more
-                for free Standard Delivery
+                {t('cart.freeShippingAddMoreBefore')}
+                <strong>{formatPrice(freeShippingRemaining)}</strong>
+                {t('cart.freeShippingAddMoreAfter')}
               </span>
             ) : (
-              <span>You unlocked free Standard Delivery!</span>
+              <span>{t('cart.freeShippingUnlocked')}</span>
             )}
           </div>
           <div
@@ -82,7 +107,7 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
             aria-valuenow={progressRatio}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Free standard shipping threshold progress"
+            aria-label={t('cart.freeShippingProgressAria')}
           >
             <div
               className="cart-summary__progress-fill"
@@ -92,24 +117,59 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
         </div>
       )}
 
-      <dl className="cart-summary__breakdown">
+      <dl className="cart-summary__breakdown" aria-busy={isTotalsLoading}>
         <div className="cart-summary__row">
-          <dt>Subtotal ({totalUnits} units)</dt>
-          <dd>{formatPrice(subtotal)}</dd>
+          <dt>{t('cart.subtotalWithUnits', { count: totalUnits })}</dt>
+          <dd>
+            {isTotalsLoading ? (
+              <span
+                className="cart-shimmer cart-shimmer--summary"
+                aria-label={t('cart.updatingSubtotal')}
+              />
+            ) : hasCurrencyMismatch ? (
+              '—'
+            ) : (
+              formatPrice(subtotal)
+            )}
+          </dd>
         </div>
 
         {appliedCoupon && discountAmount > 0 && (
           <div className="cart-summary__row cart-summary__row--discount">
-            <dt>Promo ({appliedCoupon.code})</dt>
-            <dd>-{formatPrice(discountAmount)}</dd>
+            <dt>{t('cart.promoLine', { code: appliedCoupon.code })}</dt>
+            <dd>
+              {isTotalsLoading ? (
+                <span
+                  className="cart-shimmer cart-shimmer--summary"
+                  aria-label={t('cart.updatingDiscount')}
+                />
+              ) : hasCurrencyMismatch ? (
+                '—'
+              ) : (
+                `-${formatPrice(discountAmount)}`
+              )}
+            </dd>
           </div>
         )}
 
         <div className="cart-summary__row">
-          <dt>Shipping ({selectedShipping.name})</dt>
+          <dt>
+            {t('cart.shippingLine', {
+              name: getShippingName(selectedShipping.id, selectedShipping.name),
+            })}
+          </dt>
           <dd>
-            {shippingCost === 0 ? (
-              <span className="cart-summary__free-tag">Free</span>
+            {isTotalsLoading ? (
+              <span
+                className="cart-shimmer cart-shimmer--summary"
+                aria-label={t('cart.updatingShipping')}
+              />
+            ) : hasCurrencyMismatch ? (
+              '—'
+            ) : shippingCost === 0 ? (
+              <span className="cart-summary__free-tag">
+                {t('cart.shippingFree')}
+              </span>
             ) : (
               formatPrice(shippingCost)
             )}
@@ -118,14 +178,25 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
 
         {orderNote.trim() && (
           <div className="cart-summary__note-preview">
-            <dt>Note attached</dt>
+            <dt>{t('cart.noteAttached')}</dt>
             <dd title={orderNote}>{orderNote}</dd>
           </div>
         )}
 
         <div className="cart-summary__row cart-summary__row--total">
-          <dt>Estimated Total</dt>
-          <dd>{formatPrice(total)}</dd>
+          <dt>{t('cart.estimatedTotal')}</dt>
+          <dd>
+            {isTotalsLoading ? (
+              <span
+                className="cart-shimmer cart-shimmer--summary-total"
+                aria-label={t('cart.updatingEstimatedTotal')}
+              />
+            ) : hasCurrencyMismatch ? (
+              '—'
+            ) : (
+              formatPrice(total)
+            )}
+          </dd>
         </div>
       </dl>
 
@@ -155,6 +226,7 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
           type="button"
           className="cart-btn cart-btn--primary"
           onClick={handleCheckout}
+          disabled={isTotalsLoading || hasCurrencyMismatch || quoteError !== null}
         >
           <svg
             width="18"
@@ -171,11 +243,11 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
               d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
             />
           </svg>
-          <span>Proceed to Checkout</span>
+          <span>{t('cart.proceedToCheckout')}</span>
         </button>
 
         <Link to="/" className="cart-btn cart-btn--secondary">
-          Continue Shopping
+          {t('cart.continueShopping')}
         </Link>
       </div>
     </aside>

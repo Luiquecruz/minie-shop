@@ -1,11 +1,40 @@
 import { Link } from 'react-router-dom';
-import { useCart } from '../../hooks/useCart';
-import { t } from '../../i18n';
+import { useCartBadge } from '../../hooks/useCart';
+import { useCurrency } from '../../hooks/useCurrency';
+import {
+  isSupportedLocale,
+  SUPPORTED_LOCALES,
+  useI18n,
+} from '../../i18n';
+import {
+  isCurrencyCode,
+  SUPPORTED_CURRENCY_LIST,
+} from '../../utils/currency';
 import SearchBar from '../SearchBar/SearchBar';
 import './Navbar.css';
 
 export function Navbar() {
-  const { cartCount, toggleCart } = useCart();
+  const { cartCount, toggleCart } = useCartBadge();
+  const { currentCurrency, setCurrency } = useCurrency();
+  const { locale, setLocale, t } = useI18n();
+
+  const handleCurrencyChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ): void => {
+    const nextValue = event.target.value;
+    if (isCurrencyCode(nextValue)) {
+      setCurrency(nextValue);
+    }
+  };
+
+  const handleLocaleChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ): void => {
+    const nextValue = event.target.value;
+    if (isSupportedLocale(nextValue)) {
+      setLocale(nextValue);
+    }
+  };
 
   return (
     <header className="navbar">
@@ -35,6 +64,46 @@ export function Navbar() {
         </div>
 
         <div className="navbar__actions">
+          <div className="navbar__select-group">
+            <div className="navbar__currency-wrapper">
+              <label htmlFor="navbar-language-select" className="visually-hidden">
+                {t('nav.languageLabel')}
+              </label>
+              <select
+                id="navbar-language-select"
+                className="navbar__currency-select navbar__language-select"
+                value={locale}
+                onChange={handleLocaleChange}
+                aria-label={t('nav.languageAria')}
+              >
+                {SUPPORTED_LOCALES.map((loc) => (
+                  <option key={loc.code} value={loc.code}>
+                    {loc.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="navbar__currency-wrapper">
+              <label htmlFor="navbar-currency-select" className="visually-hidden">
+                {t('nav.currencyLabel')}
+              </label>
+              <select
+                id="navbar-currency-select"
+                className="navbar__currency-select"
+                value={currentCurrency}
+                onChange={handleCurrencyChange}
+                aria-label={t('nav.currencyAria')}
+              >
+                {SUPPORTED_CURRENCY_LIST.map((currency) => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <button
             type="button"
             className="navbar__cart-btn"

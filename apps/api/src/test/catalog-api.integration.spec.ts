@@ -1,18 +1,21 @@
 import 'reflect-metadata';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { sql } from 'drizzle-orm';
 import {
   apiErrorResponseSchema,
   categoriesResponseSchema,
   facetsDtoSchema,
   favoriteCreatedResponseSchema,
   favoritesListResponseSchema,
+  pricingQuoteResponseSchema,
   productDetailDtoSchema,
   productListResponseSchema,
 } from '@minieshop/contracts';
 import { createApp } from '../app.factory.js';
 import { loadEnv, resetEnvCache } from '../config/env.js';
 import { DatabaseService } from '../database/database.service.js';
+import { exchangeRates, productPrices } from '../database/schema/index.js';
 import {
   createAttributeDefinition,
   createCategory,
@@ -614,5 +617,151 @@ describe('Phase 2 API Integration Suite (real Postgres app_test + Fastify inject
     configureTestEnv({ NODE_ENV: 'production', CHAOS_ENABLED: 'true' });
     await expect(createApp({ env: loadEnv() })).rejects.toThrow(/CHAOS_ENABLED=true is forbidden/);
     configureTestEnv({ NODE_ENV: 'test', CHAOS_ENABLED: 'false' });
+  });
+
+  it('Multi-currency pricing: ?currency=USD|EUR uses product_prices override + exchange_rates fallback, filters/sorts/facets, and POST /pricing/quote', async () => {
+    const db = databaseService.db;
+    const cat = await createCategory(db, { slug: 'mc-audio', name: 'MC Audio' });
+
+    const prodOverride = await createProduct(db, {
+      categoryId: cat.id,
+      slug: 'mc-headphone-override',
+      sku: 'MC-SKU-1',
+      name: 'Headphone Override',
+      regularPriceCents: 50_000, // R$ 500,00 -> fallback USD @ 0.20 = 10_000, but override = 8_990
+      inStock: true,
+    });
+    const prodFallback = await createProduct(db, {
+      categoryId: cat.id,
+      slug: 'mc-cable-fallback',
+      sku: 'MC-SKU-2',
+      name: 'Cable Fallback',
+      regularPriceCents: 20_000, // R$ 200,00 -> fallback USD @ 0.20 = 4_000, EUR @ 0.185 = 3_700
+      inStock: false,
+    });
+
+    await db
+      .insert(exchangeRates)
+      .values([
+        { currency: 'BRL', rateFromBrl: '1.000000' },
+        { currency: 'USD', rateFromBrl: '0.200000' },
+        { currency: 'EUR', rateFromBrl: '0.185000' },
+      ])
+      .onConflictDoUpdate({
+        target: exchangeRates.currency,
+        set: { rateFromBrl: sql`excluded.rate_from_brl` },
+      });
+
+    await db.insert(productPrices).values({
+      productId: prodOverride.id,
+      currency: 'USD',
+      regularPriceCents: 11_990,
+      specialPriceCents: 8_990,
+    });
+
+    // 1. GET /products?currency=USD&sort=price_asc
+    const listUsd = await app.inject({
+      method: 'GET',
+      url: '/products?category=mc-audio&currency=USD&sort=price_asc',
+    });
+    expect(listUsd.statusCode).toBe(200);
+    const listUsdBody = productListResponseSchema.parse(listUsd.json());
+    expect(listUsdBody.items.map((i) => ({ slug: i.slug, price: i.price }))).toEqual([
+      { slug: 'mc-cable-fallback', price: { amount: 4_000, currency: 'USD' } },
+      { slug: 'mc-headphone-override', price: { amount: 8_990, currency: 'USD' } },
+    ]);
+
+    // 2. Price filter in USD (minPrice=5000 should only match override product at 8990)
+    const filteredUsd = await app.inject({
+      method: 'GET',
+      url: '/products?category=mc-audio&currency=USD&minPrice=5000',
+    });
+    expect(filteredUsd.statusCode).toBe(200);
+    const filteredUsdBody = productListResponseSchema.parse(filteredUsd.json());
+    expect(filteredUsdBody.items.map((i) => i.slug)).toEqual(['mc-headphone-override']);
+
+    // 3. Facets in EUR
+    const facetsEur = await app.inject({
+      method: 'GET',
+      url: '/products/facets?category=mc-audio&currency=EUR',
+    });
+    expect(facetsEur.statusCode).toBe(200);
+    const facetsEurBody = facetsDtoSchema.parse(facetsEur.json());
+    expect(facetsEurBody.price).toEqual({ min: 3_700, max: 9_250 });
+
+    // 4. PDP in USD
+    const pdpUsd = await app.inject({
+      method: 'GET',
+      url: '/products/mc-headphone-override?currency=USD',
+    });
+    expect(pdpUsd.statusCode).toBe(200);
+    const pdpUsdBody = productDetailDtoSchema.parse(pdpUsd.json());
+    expect(pdpUsdBody.price).toEqual({ amount: 8_990, currency: 'USD' });
+
+    // 5. Invalid currency -> 400 VALIDATION_ERROR
+    const invalidCurrency = await app.inject({
+      method: 'GET',
+      url: '/products?currency=XYZ',
+    });
+    expect(invalidCurrency.statusCode).toBe(400);
+    expect(apiErrorResponseSchema.parse(invalidCurrency.json()).error.code).toBe(
+      'VALIDATION_ERROR',
+    );
+
+    // 5.1 Legacy BRL cursor without `cur` works for BRL, but is rejected for USD
+    const legacyBrlCursor = Buffer.from(
+      JSON.stringify({
+        s: 'price_asc',
+        k: 20_000,
+        id: prodFallback.id,
+      }),
+      'utf8',
+    ).toString('base64url');
+    const legacyBrlRes = await app.inject({
+      method: 'GET',
+      url: `/products?category=mc-audio&currency=BRL&sort=price_asc&cursor=${encodeURIComponent(legacyBrlCursor)}`,
+    });
+    expect(legacyBrlRes.statusCode).toBe(200);
+
+    const legacyUsdRes = await app.inject({
+      method: 'GET',
+      url: `/products?category=mc-audio&currency=USD&sort=price_asc&cursor=${encodeURIComponent(legacyBrlCursor)}`,
+    });
+    expect(legacyUsdRes.statusCode).toBe(400);
+    expect(apiErrorResponseSchema.parse(legacyUsdRes.json()).error.code).toBe(
+      'VALIDATION_ERROR',
+    );
+
+    // 6. POST /pricing/quote (normalizes uppercase UUIDs cleanly before lookup)
+    const quoteRes = await app.inject({
+      method: 'POST',
+      url: '/pricing/quote',
+      headers: { origin: 'http://localhost:5199' },
+      payload: {
+        currency: 'USD',
+        productIds: [prodOverride.id, prodFallback.id.toUpperCase()],
+      },
+    });
+    expect(quoteRes.statusCode).toBe(200);
+    const quoteBody = pricingQuoteResponseSchema.parse(quoteRes.json());
+    expect(quoteBody.currency).toBe('USD');
+    expect(quoteBody.freeShippingThresholdCents).toBe(10_000);
+    expect(quoteBody.shippingOptions).toEqual([
+      { id: 'standard', basePriceCents: 490 },
+      { id: 'express', basePriceCents: 990 },
+      { id: 'pickup', basePriceCents: 0 },
+    ]);
+    expect(quoteBody.items).toEqual([
+      {
+        productId: prodOverride.id,
+        price: { amount: 8_990, currency: 'USD' },
+        inStock: true,
+      },
+      {
+        productId: prodFallback.id,
+        price: { amount: 4_000, currency: 'USD' },
+        inStock: false,
+      },
+    ]);
   });
 });

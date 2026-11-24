@@ -2,6 +2,7 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 import { and, asc, count, desc, eq, gt, inArray, sql, type SQL } from 'drizzle-orm';
 import {
   searchIndexDocumentSchema,
+  supportedCurrencySchema,
   type CategoryDTO,
   type CategoryRefDTO,
   type FacetAttributeDTO,
@@ -13,8 +14,9 @@ import {
   type ProductDetailDTO,
   type ProductListResponseDTO,
   type SearchIndexDocument,
+  type SupportedCurrency,
 } from '@minieshop/contracts';
-import { notFoundError } from '../../common/errors.js';
+import { notFoundError, validationError } from '../../common/errors.js';
 import { DatabaseService } from '../../database/database.service.js';
 import {
   attributeDefinitions,
@@ -39,6 +41,7 @@ import {
   type AttributeDefinitionInfo,
   type DecodedCursor,
 } from './catalog-query.js';
+import { PricingService } from './pricing.service.js';
 
 interface CategoryRow {
   id: string;
@@ -58,7 +61,18 @@ export class CatalogService {
     @Optional()
     @Inject(OutboxService)
     private readonly outboxService?: OutboxService,
+    @Optional()
+    @Inject(PricingService)
+    private readonly pricingService?: PricingService,
   ) { }
+
+  private async resolveEffectivePriceExpr(currency: SupportedCurrency): Promise<SQL<number>> {
+    if (currency === 'BRL') {
+      return effectivePriceSql;
+    }
+    const pricing = this.pricingService ?? new PricingService(this.databaseService);
+    return pricing.resolveEffectivePriceSql(currency);
+  }
 
   getModuleSummary(): { module: string; mediaModule: string } {
     return {
@@ -267,19 +281,22 @@ export class CatalogService {
       }
     }
 
+    const effectivePriceExpr = await this.resolveEffectivePriceExpr(query.currency);
+
     const conditions = buildProductFilterConditions({
       filters: query,
       categoryIds,
+      effectivePriceExpr,
     });
 
     const rankSql = query.q !== undefined ? buildSearchRankSql(query.q) : sql<number>`0::real`;
     const createdAtIsoSql = sql<string>`to_char(${products.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 
     if (query.cursor) {
-      conditions.push(this.buildCursorCondition(query.cursor, rankSql));
+      conditions.push(this.buildCursorCondition(query.cursor, rankSql, effectivePriceExpr));
     }
 
-    const orderByClauses = this.buildOrderByClauses(query.sort, rankSql);
+    const orderByClauses = this.buildOrderByClauses(query.sort, rankSql, effectivePriceExpr);
 
     const rows = await this.databaseService.db
       .select({
@@ -287,8 +304,7 @@ export class CatalogService {
         slug: products.slug,
         name: products.name,
         categoryId: products.categoryId,
-        effectivePrice: effectivePriceSql,
-        currency: products.currency,
+        effectivePrice: effectivePriceExpr,
         inStock: products.inStock,
         attributes: products.attributes,
         createdAtIso: createdAtIsoSql,
@@ -313,7 +329,7 @@ export class CatalogService {
         name: row.name,
         price: {
           amount: Number(row.effectivePrice),
-          currency: row.currency,
+          currency: query.currency,
         },
         inStock: row.inStock,
         image: productImgs[0] ?? null,
@@ -330,13 +346,19 @@ export class CatalogService {
         s: query.sort,
         k: sortKey,
         id: last.id,
+        cur: query.currency,
       });
     }
 
     return { items, nextCursor };
   }
 
-  async getProductBySlug(slug: string): Promise<ProductDetailDTO> {
+  async getProductBySlug(
+    slug: string,
+    currency: SupportedCurrency = 'BRL',
+  ): Promise<ProductDetailDTO> {
+    const effectivePriceExpr = await this.resolveEffectivePriceExpr(currency);
+
     const [productRows, attrDefs, allCategories] = await Promise.all([
       this.databaseService.db
         .select({
@@ -345,8 +367,7 @@ export class CatalogService {
           name: products.name,
           description: products.description,
           categoryId: products.categoryId,
-          effectivePrice: effectivePriceSql,
-          currency: products.currency,
+          effectivePrice: effectivePriceExpr,
           inStock: products.inStock,
           attributes: products.attributes,
         })
@@ -389,7 +410,7 @@ export class CatalogService {
       description: product.description,
       price: {
         amount: Number(product.effectivePrice),
-        currency: product.currency,
+        currency,
       },
       inStock: product.inStock,
       category: {
@@ -409,6 +430,7 @@ export class CatalogService {
     ]);
 
     const filters = parseCatalogFilters(rawQuery, attrDefs, 'facets');
+    const effectivePriceExpr = await this.resolveEffectivePriceExpr(filters.currency);
 
     let selectedCategoryIds: string[] | null | undefined;
     if (filters.category !== undefined) {
@@ -419,13 +441,14 @@ export class CatalogService {
     const priceConditions = buildProductFilterConditions({
       filters,
       categoryIds: selectedCategoryIds,
+      effectivePriceExpr,
       exclude: { price: true },
     });
 
     const pricePromise = this.databaseService.db
       .select({
-        minPrice: sql<number | null>`MIN(${effectivePriceSql})`,
-        maxPrice: sql<number | null>`MAX(${effectivePriceSql})`,
+        minPrice: sql<number | null>`MIN(${effectivePriceExpr})`,
+        maxPrice: sql<number | null>`MAX(${effectivePriceExpr})`,
       })
       .from(products)
       .where(combineConditions(priceConditions));
@@ -434,6 +457,7 @@ export class CatalogService {
     const categoryConditions = buildProductFilterConditions({
       filters,
       categoryIds: selectedCategoryIds,
+      effectivePriceExpr,
       exclude: { category: true },
     });
 
@@ -452,6 +476,7 @@ export class CatalogService {
       const attrConditions = buildProductFilterConditions({
         filters,
         categoryIds: selectedCategoryIds,
+        effectivePriceExpr,
         exclude: { attributeCode: def.code },
       });
 
@@ -861,7 +886,7 @@ export class CatalogService {
         name: row.name,
         price: {
           amount: Number(row.effectivePrice),
-          currency: row.currency,
+          currency: supportedCurrencySchema.catch('BRL').parse(row.currency),
         },
         inStock: row.inStock,
         image: productImgs[0] ?? null,
@@ -900,6 +925,7 @@ export class CatalogService {
 
     const conditions = buildProductFilterConditions({
       filters: {
+        currency: 'BRL',
         category: params.category,
         minPrice: params.minPrice,
         maxPrice: params.maxPrice,
@@ -980,11 +1006,22 @@ export class CatalogService {
     description: string;
     regularPriceCents: number;
     specialPriceCents?: number | null;
-    currency?: string;
+    currency?: 'BRL';
     inStock?: boolean;
     status?: 'draft' | 'published' | 'archived';
     attributes?: Record<string, unknown>;
   }): Promise<{ id: string; slug: string }> {
+    const normalizedCurrency = (input.currency ?? 'BRL').trim().toUpperCase();
+    if (normalizedCurrency !== 'BRL') {
+      throw validationError([
+        {
+          path: 'currency',
+          message:
+            'Base product price currency must be BRL; use catalog.product_prices for USD/EUR overrides',
+        },
+      ]);
+    }
+
     return this.databaseService.db.transaction(async (tx) => {
       const [created] = await tx
         .insert(products)
@@ -996,7 +1033,7 @@ export class CatalogService {
           description: input.description,
           regularPriceCents: input.regularPriceCents,
           specialPriceCents: input.specialPriceCents ?? null,
-          currency: input.currency ?? 'BRL',
+          currency: 'BRL',
           inStock: input.inStock ?? false,
           status: input.status ?? 'published',
           attributes: input.attributes ?? {},
@@ -1419,12 +1456,16 @@ export class CatalogService {
     }));
   }
 
-  private buildOrderByClauses(sort: DecodedCursor['s'], rankSql: SQL<number>): SQL[] {
+  private buildOrderByClauses(
+    sort: DecodedCursor['s'],
+    rankSql: SQL<number>,
+    effectivePriceExpr: SQL<number>,
+  ): SQL[] {
     switch (sort) {
       case 'price_asc':
-        return [asc(effectivePriceSql), asc(products.id)];
+        return [asc(effectivePriceExpr), asc(products.id)];
       case 'price_desc':
-        return [desc(effectivePriceSql), desc(products.id)];
+        return [desc(effectivePriceExpr), desc(products.id)];
       case 'name_asc':
         return [asc(products.name), asc(products.id)];
       case 'relevance':
@@ -1435,15 +1476,19 @@ export class CatalogService {
     }
   }
 
-  private buildCursorCondition(cursor: DecodedCursor, rankSql: SQL<number>): SQL {
+  private buildCursorCondition(
+    cursor: DecodedCursor,
+    rankSql: SQL<number>,
+    effectivePriceExpr: SQL<number>,
+  ): SQL {
     switch (cursor.s) {
       case 'price_asc': {
         const priceKey = Number(cursor.k);
-        return sql`(${effectivePriceSql} > ${priceKey} OR (${effectivePriceSql} = ${priceKey} AND ${products.id} > ${cursor.id}::uuid))`;
+        return sql`(${effectivePriceExpr} > ${priceKey} OR (${effectivePriceExpr} = ${priceKey} AND ${products.id} > ${cursor.id}::uuid))`;
       }
       case 'price_desc': {
         const priceKey = Number(cursor.k);
-        return sql`(${effectivePriceSql} < ${priceKey} OR (${effectivePriceSql} = ${priceKey} AND ${products.id} < ${cursor.id}::uuid))`;
+        return sql`(${effectivePriceExpr} < ${priceKey} OR (${effectivePriceExpr} = ${priceKey} AND ${products.id} < ${cursor.id}::uuid))`;
       }
       case 'name_asc': {
         const nameKey = String(cursor.k);

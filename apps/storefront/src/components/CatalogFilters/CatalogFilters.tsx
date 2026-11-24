@@ -4,8 +4,8 @@ import type {
   FacetAttributeDTO,
   FacetsDTO,
 } from '@minieshop/contracts';
-import { t } from '../../i18n';
-import { formatCents } from '../../utils/money';
+import { useI18n } from '../../i18n';
+import { useCurrency } from '../../hooks/useCurrency';
 import {
   hasActiveCatalogFilters,
   type CatalogUrlState,
@@ -51,6 +51,7 @@ function NumericAttributeFacet({
   resetSignal,
   onCommit,
 }: NumericAttrDraftProps) {
+  const { t } = useI18n();
   const idPrefix = useId();
   const urlSig = `${currentMin ?? ''}:${currentMax ?? ''}`;
   const [prevSyncKey, setPrevSyncKey] = useState(`${urlSig}|${resetSignal}`);
@@ -189,10 +190,14 @@ export function CatalogFilters({
   const minPriceId = useId();
   const maxPriceId = useId();
   const inStockId = useId();
+  const { currentCurrency, formatPrice } = useCurrency();
+  const { t } = useI18n();
+  const prevCurrencyRef = useRef(currentCurrency);
 
   const [resetSignal, setResetSignal] = useState(0);
   const priceUrlSignature = `${state.minPrice ?? ''}:${state.maxPrice ?? ''}`;
-  const [prevPriceSig, setPrevPriceSig] = useState(priceUrlSignature);
+  const priceSyncKey = `${currentCurrency}|${priceUrlSignature}`;
+  const [prevPriceSig, setPrevPriceSig] = useState(priceSyncKey);
   const [minPriceText, setMinPriceText] = useState(
     centsToInputValue(state.minPrice),
   );
@@ -200,8 +205,8 @@ export function CatalogFilters({
     centsToInputValue(state.maxPrice),
   );
 
-  if (prevPriceSig !== priceUrlSignature) {
-    setPrevPriceSig(priceUrlSignature);
+  if (prevPriceSig !== priceSyncKey) {
+    setPrevPriceSig(priceSyncKey);
     setMinPriceText(centsToInputValue(state.minPrice));
     setMaxPriceText(centsToInputValue(state.maxPrice));
   }
@@ -212,7 +217,7 @@ export function CatalogFilters({
     onUpdateRef.current = onUpdate;
   }, [onUpdate]);
 
-  // Cancel any pending price debounce whenever external URL state changes, Clear all runs, or on unmount
+  // Cancel any pending price debounce whenever external URL state changes, Clear all runs, currency changes, or on unmount
   useEffect(() => {
     return () => {
       if (priceTimerRef.current !== null) {
@@ -220,7 +225,27 @@ export function CatalogFilters({
         priceTimerRef.current = null;
       }
     };
-  }, [priceUrlSignature, resetSignal]);
+  }, [priceUrlSignature, resetSignal, currentCurrency]);
+
+  useEffect(() => {
+    if (prevCurrencyRef.current !== currentCurrency) {
+      prevCurrencyRef.current = currentCurrency;
+      if (priceTimerRef.current !== null) {
+        clearTimeout(priceTimerRef.current);
+        priceTimerRef.current = null;
+      }
+      if (state.minPrice !== undefined || state.maxPrice !== undefined) {
+        onUpdateRef.current(
+          (prev) => ({
+            ...prev,
+            minPrice: undefined,
+            maxPrice: undefined,
+          }),
+          { replace: true },
+        );
+      }
+    }
+  }, [currentCurrency, state.minPrice, state.maxPrice]);
 
   const handleClearAllClick = (): void => {
     if (priceTimerRef.current !== null) {
@@ -429,7 +454,8 @@ export function CatalogFilters({
             facets?.price.min !== undefined &&
             facets?.price.max !== undefined && (
               <p className="catalog-filters__hint">
-                {formatCents(facets.price.min)} – {formatCents(facets.price.max)}
+                {formatPrice(facets.price.min, currentCurrency)} –{' '}
+                {formatPrice(facets.price.max, currentCurrency)}
               </p>
             )}
           <div className="catalog-filters__range-row">
@@ -438,7 +464,7 @@ export function CatalogFilters({
                 htmlFor={minPriceId}
                 className="catalog-filters__field-label"
               >
-                {t('filters.minPriceLabel')}
+                {t('filters.minPriceLabel', { currency: currentCurrency })}
               </label>
               <input
                 id={minPriceId}
@@ -466,7 +492,7 @@ export function CatalogFilters({
                 htmlFor={maxPriceId}
                 className="catalog-filters__field-label"
               >
-                {t('filters.maxPriceLabel')}
+                {t('filters.maxPriceLabel', { currency: currentCurrency })}
               </label>
               <input
                 id={maxPriceId}

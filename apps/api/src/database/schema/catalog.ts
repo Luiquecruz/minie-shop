@@ -91,6 +91,7 @@ export const products = catalogSchema.table(
     check('products_rating_count_non_negative', sql`${table.ratingCount} >= 0`),
     check('products_status_valid', sql`${table.status} IN ('draft', 'published', 'archived')`),
     check('products_slug_not_reserved', sql`${table.slug} <> 'facets'`),
+    check('products_base_currency_brl', sql`${table.currency} = 'BRL'`),
     index('products_category_idx').on(table.categoryId),
     index('products_status_idx').on(table.status),
     index('products_regular_price_idx').on(table.regularPriceCents),
@@ -177,4 +178,42 @@ export const productEmbeddings = catalogSchema.table(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index('product_embeddings_hnsw_idx').using('hnsw', table.embedding.op('vector_cosine_ops'))],
+);
+
+export const productPrices = catalogSchema.table(
+  'product_prices',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    currency: varchar('currency', { length: 3 }).notNull(),
+    regularPriceCents: integer('regular_price_cents').notNull(),
+    specialPriceCents: integer('special_price_cents'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('product_prices_currency_valid', sql`${table.currency} IN ('USD', 'EUR')`),
+    check('product_prices_regular_non_negative', sql`${table.regularPriceCents} >= 0`),
+    check(
+      'product_prices_special_valid',
+      sql`${table.specialPriceCents} IS NULL OR (${table.specialPriceCents} >= 0 AND ${table.specialPriceCents} <= ${table.regularPriceCents})`,
+    ),
+    uniqueIndex('product_prices_product_currency_uidx').on(table.productId, table.currency),
+    index('product_prices_currency_idx').on(table.currency),
+  ],
+);
+
+export const exchangeRates = catalogSchema.table(
+  'exchange_rates',
+  {
+    currency: varchar('currency', { length: 3 }).primaryKey(),
+    rateFromBrl: numeric('rate_from_brl', { precision: 12, scale: 6 }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('exchange_rates_currency_valid', sql`${table.currency} IN ('BRL', 'USD', 'EUR')`),
+    check('exchange_rates_positive', sql`${table.rateFromBrl} > 0`),
+  ],
 );

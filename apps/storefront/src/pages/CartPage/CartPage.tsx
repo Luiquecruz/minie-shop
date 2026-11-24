@@ -2,6 +2,8 @@ import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useCartHasItems, useCartItemIds, useCartPageMeta } from '../../hooks/useCart';
+import { useCartQuoteSync } from '../../hooks/useCartQuoteSync';
+import { useI18n } from '../../i18n';
 import CartHeader from './components/CartHeader';
 import CartItemRow from './components/CartItemRow';
 import CartPromoBox from './components/CartPromoBox';
@@ -12,18 +14,16 @@ import './CartPage.css';
 
 const CartPageTitle = memo(function CartPageTitle() {
   const { totalUnits } = useCartPageMeta();
+  const { t } = useI18n();
   const pageTitle =
     totalUnits > 0
-      ? `Shopping Cart (${totalUnits}) | Minie Shop`
-      : 'Shopping Cart | Minie Shop';
+      ? t('cart.metaTitleWithCount', { count: totalUnits })
+      : t('cart.metaTitle');
 
   return (
     <Helmet>
       <title>{pageTitle}</title>
-      <meta
-        name="description"
-        content="Review your shopping cart, adjust quantities, apply promo codes, and choose your shipping method at Minie Shop."
-      />
+      <meta name="description" content={t('cart.metaDescription')} />
     </Helmet>
   );
 });
@@ -35,6 +35,13 @@ const CartPageTitle = memo(function CartPageTitle() {
 export function CartPage() {
   const hasItems = useCartHasItems();
   const itemIds = useCartItemIds();
+  const { t } = useI18n();
+  const {
+    hasCurrencyMismatch,
+    isTotalsLoading,
+    quoteError,
+    retryQuote,
+  } = useCartQuoteSync(hasItems);
 
   return (
     <div className="cart-page">
@@ -42,7 +49,10 @@ export function CartPage() {
       <CartHeader />
 
       {!hasItems ? (
-        <section className="cart-empty" aria-label="Empty shopping cart">
+        <section
+          className="cart-empty"
+          aria-label={t('cart.emptySectionAria')}
+        >
           <div className="cart-empty__icon" aria-hidden="true">
             <svg
               width="52"
@@ -59,36 +69,60 @@ export function CartPage() {
               />
             </svg>
           </div>
-          <h2 className="cart-empty__title">Your shopping cart is empty</h2>
-          <p className="cart-empty__desc">
-            Add products from the catalog to test quantity guardrails, promo
-            codes, shipping rates, and Redux selector memoization.
-          </p>
+          <h2 className="cart-empty__title">{t('cart.emptyTitle')}</h2>
+          <p className="cart-empty__desc">{t('cart.emptyDesc')}</p>
           <Link to="/" className="cart-btn cart-btn--primary cart-empty__cta">
-            Explore Catalog
+            {t('cart.exploreCatalog')}
           </Link>
         </section>
       ) : (
         <div className="cart-layout">
           <div className="cart-main">
-            <section className="cart-items-section" aria-label="Cart items">
+            {quoteError && (
+              <div className="cart-alert cart-alert--warning cart-quote-alert" role="alert">
+                <span>{quoteError}</span>
+                <button
+                  type="button"
+                  className="cart-quote-alert__retry"
+                  onClick={retryQuote}
+                >
+                  {t('cart.retry')}
+                </button>
+              </div>
+            )}
+
+            <section
+              className="cart-items-section"
+              aria-label={t('cart.itemsSectionAria')}
+            >
               <ul className="cart-items-list">
                 {itemIds.map((id) => (
-                  <CartItemRow key={id} itemId={id} />
+                  <CartItemRow
+                    key={id}
+                    itemId={id}
+                    isCurrencyRepricing={isTotalsLoading}
+                  />
                 ))}
               </ul>
             </section>
 
             <div className="cart-config-grid">
               <CartPromoBox />
-              <CartShippingSelector />
+              <CartShippingSelector
+                isPriceLoading={isTotalsLoading}
+                hasCurrencyMismatch={hasCurrencyMismatch}
+              />
             </div>
 
             <CartOrderNote />
           </div>
 
           <div className="cart-sidebar">
-            <CartOrderSummary />
+            <CartOrderSummary
+              isTotalsLoading={isTotalsLoading}
+              hasCurrencyMismatch={hasCurrencyMismatch}
+              quoteError={quoteError}
+            />
           </div>
         </div>
       )}

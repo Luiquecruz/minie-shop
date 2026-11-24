@@ -1,3 +1,4 @@
+import type { SupportedCurrency } from '@minieshop/contracts';
 import type {
   CatalogFilterParams,
   ListProductsParams,
@@ -17,6 +18,7 @@ export function normalizeCatalogFilters(
   filters: CatalogFilterParams = {},
 ): CatalogFilterParams {
   return {
+    currency: filters.currency ?? 'BRL',
     category: filters.category || undefined,
     q: filters.q?.trim() || undefined,
     minPrice: filters.minPrice,
@@ -52,12 +54,17 @@ export const queryKeys = {
         },
       ] as const,
     details: () => [...queryKeys.products.all, 'detail'] as const,
-    detail: (slug: string) =>
-      [...queryKeys.products.details(), slug] as const,
+    detail: (slug: string, currency: SupportedCurrency = 'BRL') =>
+      [...queryKeys.products.details(), slug, currency] as const,
     facets: (filters: CatalogFilterParams = {}) =>
       [...queryKeys.products.all, 'facets', normalizeCatalogFilters(filters)] as const,
     stock: (slug: string, quantity: number) =>
       [...queryKeys.products.all, 'stock', slug, quantity] as const,
+  },
+  pricing: {
+    all: ['pricing'] as const,
+    quote: (currency: SupportedCurrency, productIds: readonly string[]) =>
+      [...queryKeys.pricing.all, 'quote', currency, [...productIds].sort()] as const,
   },
   categories: {
     all: ['categories'] as const,

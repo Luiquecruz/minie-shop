@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { t } from '../../i18n';
+import { useI18n } from '../../i18n';
 import './NotFoundPage.css';
 
 export interface NotFoundPageProps {
@@ -8,10 +8,11 @@ export interface NotFoundPageProps {
   description?: string;
 }
 
-export function NotFoundPage({
-  title = t('notFound.title'),
-  description = t('notFound.description'),
-}: NotFoundPageProps) {
+export function NotFoundPage({ title, description }: NotFoundPageProps) {
+  const { t } = useI18n();
+  const resolvedTitle = title ?? t('notFound.title');
+  const resolvedDescription = description ?? t('notFound.description');
+
   return (
     <main className="not-found-page" role="main">
       <Helmet>
@@ -21,8 +22,8 @@ export function NotFoundPage({
 
       <div className="not-found-page__card">
         <span className="not-found-page__badge">{t('notFound.badge')}</span>
-        <h1 className="not-found-page__title">{title}</h1>
-        <p className="not-found-page__desc">{description}</p>
+        <h1 className="not-found-page__title">{resolvedTitle}</h1>
+        <p className="not-found-page__desc">{resolvedDescription}</p>
         <Link to="/" className="not-found-page__cta">
           {t('notFound.backToCatalog')}
         </Link>

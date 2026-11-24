@@ -3,12 +3,17 @@ import { Link } from 'react-router-dom';
 import { useCartActions, useCartItemState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { useStockValidationQuery } from '../../../hooks/useProducts';
+import {
+  translateStockWarning,
+  useStockValidationQuery,
+} from '../../../hooks/useProducts';
+import { useI18n } from '../../../i18n';
 import { resolveMaxStock } from '../../../store/slices/cartSlice';
 import ProductImage from '../../../components/ProductImage/ProductImage';
 
 export interface CartItemRowProps {
   itemId: string;
+  isCurrencyRepricing?: boolean;
 }
 
 /**
@@ -17,12 +22,17 @@ export interface CartItemRowProps {
  */
 export const CartItemRow = memo(function CartItemRow({
   itemId,
+  isCurrencyRepricing = false,
 }: CartItemRowProps) {
   const { item, stockWarning } = useCartItemState(itemId);
   const { updateQuantity, removeFromCart } = useCartActions();
-  const { formatPrice } = useCurrency();
+  const { currentCurrency, formatPrice } = useCurrency();
+  const { t } = useI18n();
 
-  const [localWarning, setLocalWarning] = useState<string | null>(null);
+  const [localWarning, setLocalWarning] = useState<{
+    key: 'cart.maxStockReached' | 'cart.onlyAvailableInStock';
+    max: number;
+  } | null>(null);
   const [hasEditedQuantity, setHasEditedQuantity] = useState(false);
   const [draftQty, setDraftQty] = useState<string | null>(null);
 
@@ -41,23 +51,39 @@ export const CartItemRow = memo(function CartItemRow({
 
   const apiStockWarning =
     shouldValidate && stockQuery.data && !stockQuery.data.available
-      ? stockQuery.data.message
+      ? translateStockWarning(
+          stockQuery.data.message,
+          () => t('cart.outOfStockWarning'),
+          true,
+        )
       : shouldValidate && stockQuery.isError
-        ? 'Could not validate stock right now.'
+        ? t('cart.stockValidateError')
         : null;
 
-  const activeWarning = localWarning ?? apiStockWarning ?? stockWarning ?? null;
+  const translatedPropWarning = translateStockWarning(
+    stockWarning,
+    () => t('cart.outOfStockWarning'),
+  );
+
+  const translatedLocalWarning = localWarning
+    ? t(localWarning.key, { max: localWarning.max })
+    : null;
+
+  const activeWarning =
+    translatedLocalWarning ?? apiStockWarning ?? translatedPropWarning ?? null;
   const isValidating = shouldValidate && stockQuery.isFetching;
 
   const maxStock = Math.max(1, resolveMaxStock(item.stock, true));
   const unitPriceCents = item.price.amount;
   const lineTotalCents = unitPriceCents * item.quantity;
   const productPath = `/${item.categorySlug}/${item.slug}`;
+  const isPriceShimmer =
+    isCurrencyRepricing && item.price.currency !== currentCurrency;
 
   const handleIncrement = (): void => {
     setDraftQty(null);
     if (item.quantity >= maxStock) {
-      setLocalWarning(`Maximum stock reached (${maxStock} units).`);
+      setLocalWarning({ key: 'cart.maxStockReached', max: maxStock });
       return;
     }
     setLocalWarning(null);
@@ -91,7 +117,7 @@ export const CartItemRow = memo(function CartItemRow({
     if (parsed > maxStock) {
       setHasEditedQuantity(true);
       updateQuantity(item.id, maxStock);
-      setLocalWarning(`Only ${maxStock} units available in stock.`);
+      setLocalWarning({ key: 'cart.onlyAvailableInStock', max: maxStock });
       return;
     }
 
@@ -125,7 +151,7 @@ export const CartItemRow = memo(function CartItemRow({
       <Link
         to={productPath}
         className="cart-item__image-link"
-        aria-label={`View ${item.name}`}
+        aria-label={t('cart.viewItemAria', { name: item.name })}
       >
         <ProductImage
           image={item.image}
@@ -145,7 +171,7 @@ export const CartItemRow = memo(function CartItemRow({
               type="button"
               className="cart-item__remove-btn"
               onClick={() => removeFromCart(item.id)}
-              aria-label={`Remove ${item.name} from cart`}
+              aria-label={t('cart.removeItemAria', { name: item.name })}
             >
               <svg
                 width="16"
@@ -162,7 +188,7 @@ export const CartItemRow = memo(function CartItemRow({
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-              <span>Remove</span>
+              <span>{t('cart.remove')}</span>
             </button>
           </div>
         </div>
@@ -171,10 +197,19 @@ export const CartItemRow = memo(function CartItemRow({
           {item.name}
         </Link>
 
-        <div className="cart-item__unit-pricing">
-          <span className="cart-item__unit-current">
-            {formatPrice(unitPriceCents, item.price.currency)} each
-          </span>
+        <div className="cart-item__unit-pricing" aria-busy={isPriceShimmer}>
+          {isPriceShimmer ? (
+            <span
+              className="cart-shimmer cart-shimmer--unit"
+              aria-label={t('cart.updatingUnitPrice')}
+            />
+          ) : (
+            <span className="cart-item__unit-current">
+              {t('cart.eachPrice', {
+                price: formatPrice(unitPriceCents, item.price.currency),
+              })}
+            </span>
+          )}
         </div>
 
         {activeWarning && (
@@ -206,7 +241,7 @@ export const CartItemRow = memo(function CartItemRow({
                 className="cart-item__qty-btn"
                 onClick={handleDecrement}
                 disabled={item.quantity <= 1}
-                aria-label={`Decrease quantity for ${item.name}`}
+                aria-label={t('cart.decreaseQtyFor', { name: item.name })}
               >
                 <svg
                   width="12"
@@ -234,7 +269,7 @@ export const CartItemRow = memo(function CartItemRow({
                 onBlur={handleInputBlur}
                 onKeyDown={handleInputKeyDown}
                 className="cart-item__qty-input"
-                aria-label={`Quantity for ${item.name}`}
+                aria-label={t('cart.qtyLabelFor', { name: item.name })}
               />
 
               <button
@@ -242,7 +277,7 @@ export const CartItemRow = memo(function CartItemRow({
                 className="cart-item__qty-btn"
                 onClick={handleIncrement}
                 disabled={item.quantity >= maxStock}
-                aria-label={`Increase quantity for ${item.name}`}
+                aria-label={t('cart.increaseQtyFor', { name: item.name })}
               >
                 <svg
                   width="12"
@@ -262,12 +297,14 @@ export const CartItemRow = memo(function CartItemRow({
               </button>
             </div>
 
-            <span className="cart-item__stock-hint">{maxStock} in stock</span>
+            <span className="cart-item__stock-hint">
+              {t('cart.inStockCount', { count: maxStock })}
+            </span>
 
             {isValidating && (
               <span
                 className="cart-item__validating"
-                aria-label="Validating stock"
+                aria-label={t('cart.validatingStock')}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                   <circle
@@ -287,11 +324,20 @@ export const CartItemRow = memo(function CartItemRow({
             )}
           </div>
 
-          <div className="cart-item__line-total-group">
-            <span className="cart-item__line-total-label">Line Total</span>
-            <span className="cart-item__line-total">
-              {formatPrice(lineTotalCents, item.price.currency)}
+          <div className="cart-item__line-total-group" aria-busy={isPriceShimmer}>
+            <span className="cart-item__line-total-label">
+              {t('cart.lineTotal')}
             </span>
+            {isPriceShimmer ? (
+              <span
+                className="cart-shimmer cart-shimmer--line-total"
+                aria-label={t('cart.updatingLineTotal')}
+              />
+            ) : (
+              <span className="cart-item__line-total">
+                {formatPrice(lineTotalCents, item.price.currency)}
+              </span>
+            )}
           </div>
         </div>
       </div>

@@ -526,3 +526,86 @@
     padding: 16px 18px;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Progressive Repricing Shimmers & Quote Error Banner (Phase 6.1)
+   -------------------------------------------------------------------------- */
+@keyframes miniCartShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.mini-cart__shimmer {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--chip-bg, #e5e7eb) 25%,
+    var(--card-subtle, #f3f4f6) 50%,
+    var(--chip-bg, #e5e7eb) 75%
+  );
+  background-size: 200% 100%;
+  animation: miniCartShimmer 1.3s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+.mini-cart__shimmer--price {
+  width: 96px;
+  height: 18px;
+}
+
+.mini-cart__shimmer--total {
+  width: 84px;
+  height: 16px;
+}
+
+.mini-cart__shimmer--total-lg {
+  width: 104px;
+  height: 22px;
+}
+
+.mini-cart__quote-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 24px;
+  background: rgba(239, 68, 68, 0.1);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.25);
+  color: #dc2626;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.mini-cart__retry-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mini-cart__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mini-cart__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

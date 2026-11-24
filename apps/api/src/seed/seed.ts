@@ -8,6 +8,8 @@ import {
   attributeDefinitions,
   categories,
   categoryComplements,
+  exchangeRates,
+  productPrices,
   productRelations,
   products,
   productVariants,
@@ -311,6 +313,86 @@ export async function runSeed(options?: {
           set: {
             value: sql`excluded.value`,
             description: sql`excluded.description`,
+            updatedAt: new Date(),
+          },
+        });
+    }
+
+    // 4.1 Upsert server-side exchange rates fallback table (Phase 6.1)
+    const defaultRates = [
+      { currency: 'BRL', rateFromBrl: '1.000000' },
+      { currency: 'USD', rateFromBrl: '0.200000' },
+      { currency: 'EUR', rateFromBrl: '0.185000' },
+    ];
+    for (const rate of defaultRates) {
+      await databaseService.db
+        .insert(exchangeRates)
+        .values(rate)
+        .onConflictDoUpdate({
+          target: exchangeRates.currency,
+          set: {
+            rateFromBrl: sql`excluded.rate_from_brl`,
+            updatedAt: new Date(),
+          },
+        });
+    }
+
+    // 4.2 Upsert explicit multi-currency overrides for flagship products (Phase 6.1)
+    const seededProductsForPricing = await databaseService.db
+      .select({ id: products.id, slug: products.slug })
+      .from(products);
+    const pricingProductIdBySlug = new Map(seededProductsForPricing.map((p) => [p.slug, p.id]));
+
+    const explicitPriceOverrides: Array<{
+      slug: string;
+      currency: 'USD' | 'EUR';
+      regularPriceCents: number;
+      specialPriceCents: number | null;
+    }> = [
+      {
+        slug: 'fone-de-ouvido-bluetooth-over-ear-pro',
+        currency: 'USD',
+        regularPriceCents: 11_990,
+        specialPriceCents: 8_990,
+      },
+      {
+        slug: 'fone-de-ouvido-bluetooth-over-ear-pro',
+        currency: 'EUR',
+        regularPriceCents: 10_990,
+        specialPriceCents: 8_490,
+      },
+      {
+        slug: 'teclado-mecanico-rgb-compacto-65',
+        currency: 'USD',
+        regularPriceCents: 9_990,
+        specialPriceCents: 7_490,
+      },
+      {
+        slug: 'teclado-mecanico-rgb-compacto-65',
+        currency: 'EUR',
+        regularPriceCents: 9_290,
+        specialPriceCents: 6_990,
+      },
+    ];
+
+    for (const override of explicitPriceOverrides) {
+      const productId = pricingProductIdBySlug.get(override.slug);
+      if (!productId) {
+        continue;
+      }
+      await databaseService.db
+        .insert(productPrices)
+        .values({
+          productId,
+          currency: override.currency,
+          regularPriceCents: override.regularPriceCents,
+          specialPriceCents: override.specialPriceCents,
+        })
+        .onConflictDoUpdate({
+          target: [productPrices.productId, productPrices.currency],
+          set: {
+            regularPriceCents: override.regularPriceCents,
+            specialPriceCents: override.specialPriceCents,
             updatedAt: new Date(),
           },
         });

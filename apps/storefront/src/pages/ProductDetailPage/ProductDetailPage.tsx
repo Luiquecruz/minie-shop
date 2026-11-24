@@ -5,7 +5,7 @@ import { useCart } from '../../hooks/useCart';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useProductQuery } from '../../hooks/useProducts';
 import { ApiError } from '../../infrastructure/http/errors';
-import { t } from '../../i18n';
+import { useI18n } from '../../i18n';
 import AttributeIcon from '../../components/AttributeIcon/AttributeIcon';
 import PriceBox from '../../components/PriceBox/PriceBox';
 import ProductImage from '../../components/ProductImage/ProductImage';
@@ -14,16 +14,6 @@ import './ProductDetailPage.css';
 
 type DetailTab = 'description' | 'specs';
 
-function formatAttributeValue(
-  value: string | number | boolean,
-  unit?: string,
-): string {
-  if (typeof value === 'boolean') {
-    return value ? t('filters.yes') : t('filters.no');
-  }
-  return unit ? `${value} ${unit}` : String(value);
-}
-
 export function ProductDetailPage() {
   const { category: categoryParam, slug } = useParams<{
     category: string;
@@ -31,12 +21,23 @@ export function ProductDetailPage() {
   }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { t } = useI18n();
   const {
     isFavorite,
     toggleFavorite,
     error: favoriteError,
     resetError: resetFavoriteError,
   } = useFavorites();
+
+  const formatAttributeValue = (
+    value: string | number | boolean,
+    unit?: string,
+  ): string => {
+    if (typeof value === 'boolean') {
+      return value ? t('filters.yes') : t('filters.no');
+    }
+    return unit ? `${value} ${unit}` : String(value);
+  };
 
   const [tabSelection, setTabSelection] = useState<{
     productSlug: string | undefined;
@@ -194,8 +195,7 @@ export function ProductDetailPage() {
         <meta
           name="description"
           content={
-            description ||
-            `Buy ${name} at Minie Shop with best price and fast delivery.`
+            description || t('pdp.metaDescriptionFallback', { name })
           }
         />
       </Helmet>
@@ -577,7 +577,7 @@ export function ProductDetailPage() {
       </main>
 
       {/* Floating Bottom Action Bar */}
-      <aside className="pdp-floating-bar" aria-label="Floating Quick Actions">
+      <aside className="pdp-floating-bar" aria-label={t('pdp.floatingBarAria')}>
         <div className="pdp-floating-bar__inner">
           <div className="pdp-floating-bar__product">
             <ProductImage
@@ -615,7 +615,7 @@ export function ProductDetailPage() {
               className="pdp-btn pdp-btn--primary pdp-floating-bar__btn"
               onClick={handleBuyNow}
               disabled={!inStock}
-              aria-label={`Buy ${name} now`}
+              aria-label={t('pdp.buyNowAria', { name })}
             >
               <span>{t('pdp.buyNow')}</span>
             </button>

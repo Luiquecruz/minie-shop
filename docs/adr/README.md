@@ -40,3 +40,4 @@ This directory maintains an **incremental, append-only log** of architectural de
 | [ADR-0015](./0015-email-transporte-tokens-assinados-e-mailpit.md) | E-mail Transacional — `packages/email`, Tokens Assinados, Outbox e Mailpit *(spec ADR-012)* | Backend Fase 5 (`I03`) | Accepted | 2026-11-22 |
 | [ADR-0016](./0016-monorepo-pnpm-workspaces-turborepo.md) | Monorepo com pnpm Workspaces e Turborepo | Fase 6 (`T20`) | Accepted | 2026-11-23 |
 | [ADR-0017](./0017-camada-dados-storefront-repositorio-cursor-rotas.md) | Camada de Dados do Storefront, Parse Tolerante, Paginação por Cursor e Rotas Canônicas | Fase 6 (`T22`/`T23`) | Accepted | 2026-11-23 |
+| [ADR-0018](./0018-multicurrency-pricing-and-storefront-i18n.md) | Server-Side Multi-Currency Pricing, Progressive Cart Repricing, and Storefront i18n | Phase 6.1 (`SDD-0005`) | Accepted | 2026-11-23 |
