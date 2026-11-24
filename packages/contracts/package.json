@@ -18,6 +18,14 @@
       "types": "./dist/catalog/client.d.ts",
       "import": "./dist/catalog/client.js"
     },
+    "./search/client": {
+      "types": "./dist/search/client.d.ts",
+      "import": "./dist/search/client.js"
+    },
+    "./recommendations/client": {
+      "types": "./dist/recommendations/client.d.ts",
+      "import": "./dist/recommendations/client.js"
+    },
     "./identity/public": {
       "types": "./dist/identity/public.d.ts",
       "import": "./dist/identity/public.js"
