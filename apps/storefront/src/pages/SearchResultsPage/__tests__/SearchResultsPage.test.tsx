@@ -101,9 +101,12 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
     // Live typing updates URL with replace (so Back still goes to before /search?q=fone, not intermediate keystrokes)
     await user.clear(searchInput);
     await user.type(searchInput, 'tecl');
-    await waitFor(() => {
-      expect(screen.getByTestId('search-url')).toHaveTextContent('/search?q=tecl');
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('search-url')).toHaveTextContent('/search?q=tecl');
+      },
+      { timeout: 2000 },
+    );
 
     // Explicit Enter uses push so Back returns to /search?q=tecl
     await user.clear(searchInput);
@@ -282,6 +285,73 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
     await new Promise((r) => setTimeout(r, 30));
 
     expect(searchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves trailing spaces across debounced URL syncs so consecutive words never merge', async () => {
+    const repository = new MockProductRepository();
+    const searchSpy = vi.spyOn(repository, 'searchProducts');
+    const user = userEvent.setup();
+
+    renderSearchPage(repository, ['/search']);
+
+    const searchInput = screen.getByRole('searchbox', { name: /Buscar produtos/i });
+
+    // Type first word plus trailing space and wait for the debounced URL sync to land
+    await user.type(searchInput, 'tenis ');
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('search-url')).toHaveTextContent('/search?q=tenis');
+      },
+      { timeout: 2000 },
+    );
+
+    // Trailing space must remain in the input instead of being clobbered by trimmed urlQuery
+    expect(searchInput).toHaveValue('tenis ');
+
+    // Continue typing the rest of the phrase
+    await user.type(searchInput, 'para correr');
+    expect(searchInput).toHaveValue('tenis para correr');
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('search-url')).toHaveTextContent(
+          '/search?q=tenis+para+correr',
+        );
+      },
+      { timeout: 2000 },
+    );
+    expect(searchSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ q: 'tenis para correr' }),
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('ignores 1-character live input and debounces multi-word typing into a single request', async () => {
+    const repository = new MockProductRepository();
+    const searchSpy = vi.spyOn(repository, 'searchProducts');
+    const user = userEvent.setup();
+
+    renderSearchPage(repository, ['/search']);
+
+    const searchInput = screen.getByRole('searchbox', { name: /Buscar produtos/i });
+
+    // Single character should not trigger live search after debounce
+    await user.type(searchInput, 'f');
+    await new Promise((r) => setTimeout(r, 750));
+    expect(searchSpy).not.toHaveBeenCalled();
+
+    // Typing a multi-word phrase continuously fires only a single debounced request
+    await user.type(searchInput, 'ones de ouvido');
+    await waitFor(
+      () => {
+        expect(searchSpy).toHaveBeenCalledTimes(1);
+      },
+      { timeout: 2000 },
+    );
+    expect(searchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ q: 'fones de ouvido' }),
+      expect.any(AbortSignal),
+    );
   });
 
   it('passes vitest-axe with zero accessibility violations on SearchResultsPage', async () => {

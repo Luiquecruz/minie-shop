@@ -28,7 +28,8 @@ import {
 import ProductCard from '../../components/ProductCard/ProductCard';
 import './SearchResultsPage.css';
 
-const SEARCH_INPUT_DEBOUNCE_MS = 450;
+const SEARCH_INPUT_DEBOUNCE_MS = 650;
+const MIN_LIVE_SEARCH_QUERY_LENGTH = 2;
 
 interface RawSearchTelemetryUserData {
   mode?: unknown;
@@ -137,9 +138,17 @@ function SearchResultsContent({
   }, [urlQuery, refine]);
 
   const [prevUrlQuery, setPrevUrlQuery] = useState<string>(urlQuery);
+  const [pendingCommittedUrlQuery, setPendingCommittedUrlQuery] = useState<string | null>(null);
   if (prevUrlQuery !== urlQuery) {
     setPrevUrlQuery(urlQuery);
-    setDraftQuery(urlQuery);
+    if (urlQuery === pendingCommittedUrlQuery) {
+      // Our own debounced/submitted URL sync landed; keep draftQuery intact so
+      // trailing spaces or newly typed characters are never clobbered.
+      setPendingCommittedUrlQuery(null);
+    } else {
+      setPendingCommittedUrlQuery(null);
+      setDraftQuery(urlQuery);
+    }
   }
 
   // Auto-dismiss favorite rollback notice
@@ -162,10 +171,17 @@ function SearchResultsContent({
     debounceTimerRef.current = setTimeout(() => {
       debounceTimerRef.current = null;
       const normalized = nextValue.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
+      if (
+        normalized.length > 0 &&
+        normalized.length < MIN_LIVE_SEARCH_QUERY_LENGTH
+      ) {
+        return;
+      }
       if (normalized === lastSyncedUrlQueryRef.current) {
         return;
       }
       lastSyncedUrlQueryRef.current = normalized;
+      setPendingCommittedUrlQuery(normalized);
       onUpdateUrlRef.current(normalized, true);
       refine(normalized);
     }, SEARCH_INPUT_DEBOUNCE_MS);
@@ -181,6 +197,7 @@ function SearchResultsContent({
     const shouldPushUrl = normalized !== urlQuery;
     lastSyncedUrlQueryRef.current = normalized;
     if (shouldPushUrl) {
+      setPendingCommittedUrlQuery(normalized);
       onUpdateUrl(normalized, false);
     }
     if (normalized !== query.trim() || status === 'error') {
@@ -195,6 +212,7 @@ function SearchResultsContent({
     }
     setDraftQuery('');
     lastSyncedUrlQueryRef.current = '';
+    setPendingCommittedUrlQuery('');
     onUpdateUrl('', false);
     refine('');
   };
