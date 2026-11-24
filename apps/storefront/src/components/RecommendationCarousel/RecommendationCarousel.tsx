@@ -91,8 +91,12 @@ export function RecommendationCarousel({
     syncBoundaryState();
 
     const track = trackRef.current;
+    window.addEventListener('resize', syncBoundaryState);
+
     if (!track || typeof ResizeObserver === 'undefined') {
-      return;
+      return () => {
+        window.removeEventListener('resize', syncBoundaryState);
+      };
     }
 
     const observer = new ResizeObserver(() => {
@@ -101,6 +105,7 @@ export function RecommendationCarousel({
     observer.observe(track);
 
     return () => {
+      window.removeEventListener('resize', syncBoundaryState);
       observer.disconnect();
     };
   }, [items, isLoading, syncBoundaryState]);
@@ -167,7 +172,7 @@ export function RecommendationCarousel({
     const target = event.target as HTMLElement | null;
     if (!track || !target || target === track) return;
 
-    const slide = target.closest('li') as HTMLElement | null;
+    const slide = target.closest('.rec-carousel__slide') as HTMLElement | null;
     if (!slide || !track.contains(slide)) return;
 
     const trackRect = track.getBoundingClientRect();
