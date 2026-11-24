@@ -10,6 +10,7 @@ import AttributeIcon from '../../components/AttributeIcon/AttributeIcon';
 import PriceBox from '../../components/PriceBox/PriceBox';
 import ProductImage from '../../components/ProductImage/ProductImage';
 import NotFoundPage from '../NotFoundPage/NotFoundPage';
+import PdpRecommendationsSection from './components/PdpRecommendationsSection';
 import './ProductDetailPage.css';
 
 type DetailTab = 'description' | 'specs';
@@ -573,6 +574,8 @@ export function ProductDetailPage() {
               </div>
             </div>
           </section>
+
+          <PdpRecommendationsSection key={product.slug} slug={product.slug} />
         </div>
       </main>
 

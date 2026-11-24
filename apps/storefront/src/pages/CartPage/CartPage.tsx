@@ -10,6 +10,7 @@ import CartPromoBox from './components/CartPromoBox';
 import CartShippingSelector from './components/CartShippingSelector';
 import CartOrderNote from './components/CartOrderNote';
 import CartOrderSummary from './components/CartOrderSummary';
+import CartCrossSellSection from './components/CartCrossSellSection';
 import './CartPage.css';
 
 const CartPageTitle = memo(function CartPageTitle() {
@@ -126,6 +127,7 @@ export function CartPage() {
           </div>
         </div>
       )}
+      {hasItems && <CartCrossSellSection />}
     </div>
   );
 }
