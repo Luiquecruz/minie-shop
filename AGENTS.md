@@ -56,7 +56,8 @@ react-minieshop/
 ├── .agent/
 │   ├── rules/                   # Domain-scoped agent rules
 │   │   ├── architecture.md      # Always-on architectural & incremental ADR/SDD rules
-│   │   ├── code-style.md        # Glob-scoped TS/TSX/CSS & UI quality conventions
+│   │   ├── formatting-and-whitespace.md # Always-on Prettier/.editorconfig & empty-brace ({}) rule
+│   │   ├── code-style.md        # Glob-scoped TS/TSX/CSS/MJS & UI quality conventions
 │   │   ├── testing.md           # Verification, typecheck, linting, build, and testing rules
 │   │   └── git-workflow.md      # Conventional Commits & pre-commit checklist
 │   └── agents/                  # Future project specialist agent definitions
