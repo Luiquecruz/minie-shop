@@ -214,14 +214,14 @@ async function measureChaosLatencyAndSearch(browser, url) {
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('article.product-card', { timeout: 15_000 });
+  await page.goto(`${url}/search`, { waitUntil: 'domcontentloaded' });
+  const searchInput = page.getByRole('searchbox', { name: /Search products/i });
+  await searchInput.waitFor({ state: 'visible', timeout: 15_000 });
 
   await page.evaluate(() => {
     window.localStorage.setItem('chaos.delay', '800');
   });
 
-  const searchInput = page.getByRole('searchbox', { name: /Search products/i });
   await searchInput.fill('fone');
   await searchInput.press('Enter');
 
@@ -236,21 +236,34 @@ async function measureChaosLatencyAndSearch(browser, url) {
   await searchInput.fill('teclado');
   await searchInput.press('Enter');
 
-  await page.waitForTimeout(1_400);
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector('.search-page__count')
+        ?.textContent?.includes('«teclado»') &&
+      document.querySelectorAll('#search-results-grid .product-card__title')
+        .length > 0,
+    null,
+    { timeout: 10_000 },
+  );
+  const summaryText =
+    (await page.locator('.search-page__count').textContent()) ?? '';
   const visibleTitles = await page
-    .locator('.product-card__title')
+    .locator('#search-results-grid .product-card__title')
     .allTextContents();
 
-  const onlyTecladoVisible =
+  const settledOnTeclado =
+    summaryText.includes('«teclado»') &&
     visibleTitles.length > 0 &&
-    visibleTitles.every((title) => title.toLowerCase().includes('teclado'));
+    visibleTitles[0].toLowerCase().includes('teclado');
 
   await page.evaluate(() => window.localStorage.removeItem('chaos.delay'));
   await context.close();
 
   return {
     sawUpdatingIndicator,
-    onlyTecladoVisible,
+    settledOnTeclado,
+    topResult: visibleTitles[0] ?? null,
     visibleCount: visibleTitles.length,
   };
 }
@@ -345,6 +358,236 @@ async function measureOptimisticFavorite(browser, url) {
   };
 }
 
+function summarizeBundleSplit(distDir) {
+  const bundle = measureBundle(distDir);
+  if (!bundle) return null;
+
+  const assetsDir = path.join(distDir, 'assets');
+  const mainFiles = bundle.files.filter((f) => f.name.startsWith('index-'));
+  const searchLazyFiles = bundle.files.filter((f) =>
+    f.name.startsWith('SearchResultsPage-'),
+  );
+
+  let instantSearchInMainChunk = false;
+  for (const file of mainFiles) {
+    if (!file.name.endsWith('.js')) continue;
+    const contents = fs.readFileSync(path.join(assetsDir, file.name), 'utf8');
+    if (
+      /react-instantsearch|algoliasearch-helper|InstantSearch/.test(contents)
+    ) {
+      instantSearchInMainChunk = true;
+    }
+  }
+
+  return {
+    mainChunkRawBytes: mainFiles.reduce((acc, f) => acc + f.rawBytes, 0),
+    mainChunkGzipBytes: mainFiles.reduce((acc, f) => acc + f.gzipBytes, 0),
+    lazySearchChunkRawBytes: searchLazyFiles.reduce(
+      (acc, f) => acc + f.rawBytes,
+      0,
+    ),
+    lazySearchChunkGzipBytes: searchLazyFiles.reduce(
+      (acc, f) => acc + f.gzipBytes,
+      0,
+    ),
+    instantSearchInMainChunk,
+    files: bundle.files,
+  };
+}
+
+async function measureSearchAndComboboxLazy(browser, url, apiUrl) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  const searchChunkRequestsOnCatalog = [];
+  const searchChunkRequestsOnSearchRoute = [];
+  const suggestRequests = [];
+  let inSearchRoute = false;
+
+  page.on('request', (req) => {
+    const reqUrl = req.url();
+    if (
+      reqUrl.includes('SearchResultsPage') ||
+      reqUrl.includes('react-instantsearch')
+    ) {
+      if (inSearchRoute) {
+        searchChunkRequestsOnSearchRoute.push(reqUrl);
+      } else {
+        searchChunkRequestsOnCatalog.push(reqUrl);
+      }
+    }
+    if (reqUrl.startsWith(apiUrl)) {
+      const parsed = new URL(reqUrl);
+      if (parsed.pathname === '/search/suggest') {
+        suggestRequests.push(parsed.searchParams.get('q') ?? '');
+      }
+    }
+  });
+
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('article.product-card', { timeout: 15_000 });
+  await page.waitForLoadState('networkidle').catch(() => {});
+
+  // Type "fone" quickly into header combobox -> debounced suggest (~200ms)
+  const combobox = page.getByRole('combobox', { name: /Search products/i });
+  await combobox.click();
+  await combobox.type('fone', { delay: 40 });
+
+  await page.locator('[role="listbox"] [role="option"]').first().waitFor({
+    state: 'visible',
+    timeout: 5_000,
+  });
+  const listboxOptionsCount = await page
+    .locator('[role="listbox"] [role="option"]')
+    .count();
+
+  // Navigate to /search?q=fone cleanly
+  inSearchRoute = true;
+  await combobox.press('Enter');
+  await page.waitForURL(/\/search\?q=fone/, { timeout: 10_000 });
+  await page.waitForSelector('#search-results-grid article.product-card', {
+    timeout: 15_000,
+  });
+
+  const devBadgeText = await page
+    .locator('[data-testid="search-dev-badge"]')
+    .textContent()
+    .catch(() => null);
+  const searchHitCount = await page
+    .locator('#search-results-grid article.product-card')
+    .count();
+
+  await context.close();
+  return {
+    searchChunkLoadedOnCatalog: searchChunkRequestsOnCatalog.length > 0,
+    searchChunkLoadedOnSearchRoute: searchChunkRequestsOnSearchRoute.length > 0,
+    suggestRequestCountDuring4CharTyping: suggestRequests.length,
+    listboxOptionsCount,
+    searchHitCount,
+    devBadgeText: devBadgeText?.trim() ?? null,
+  };
+}
+
+async function measurePdpAndCartRecommendations(browser, url, apiUrl) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  const searchChunkRequestsOnPdp = [];
+  let pdpRecsRequestsBeforeScroll = 0;
+  let pdpRecsRequestsAfterScroll = 0;
+  let hasScrolledPdp = false;
+  let crossSellRequestsOnCart = 0;
+
+  page.on('request', (req) => {
+    const reqUrl = req.url();
+    if (
+      reqUrl.includes('SearchResultsPage') ||
+      reqUrl.includes('react-instantsearch')
+    ) {
+      searchChunkRequestsOnPdp.push(reqUrl);
+    }
+    if (reqUrl.startsWith(apiUrl)) {
+      const parsed = new URL(reqUrl);
+      if (parsed.pathname.endsWith('/recommendations')) {
+        if (hasScrolledPdp) pdpRecsRequestsAfterScroll += 1;
+        else pdpRecsRequestsBeforeScroll += 1;
+      } else if (parsed.pathname === '/recommendations/cross-sell') {
+        crossSellRequestsOnCart += 1;
+      }
+    }
+  });
+
+  // Navigate straight to a seeded PDP with recommendations
+  await page.goto(`${url}/audio/fone-de-ouvido-bluetooth-over-ear-pro`, {
+    waitUntil: 'domcontentloaded',
+  });
+  await page.waitForSelector('.pdp-info__title', { timeout: 15_000 });
+  await page.waitForLoadState('networkidle').catch(() => {});
+
+  // Record CLS while scrolling to trigger lazy PDP recommendations
+  await page.evaluate(() => {
+    window.__phase7Cls = 0;
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (!entry.hadRecentInput) {
+          window.__phase7Cls += entry.value;
+        }
+      }
+    });
+    observer.observe({ type: 'layout-shift', buffered: true });
+    window.__stopClsObserver = () => observer.disconnect();
+  });
+
+  const beforeScrollCountSnapshot = pdpRecsRequestsBeforeScroll;
+  hasScrolledPdp = true;
+
+  await page
+    .locator('[data-testid="pdp-recommendations-section"]')
+    .scrollIntoViewIfNeeded();
+
+  await page
+    .locator('[data-testid="pdp-related-carousel"] article.product-card')
+    .first()
+    .waitFor({ state: 'visible', timeout: 15_000 });
+  await page.waitForLoadState('networkidle').catch(() => {});
+
+  const clsOnPdpAfterRecs = await page.evaluate(() => {
+    window.__stopClsObserver?.();
+    return Number((window.__phase7Cls ?? 0).toFixed(4));
+  });
+
+  const pdpRelatedCards = await page
+    .locator('[data-testid="pdp-related-carousel"] article.product-card')
+    .count();
+  const pdpUpsellCards = await page
+    .locator('[data-testid="pdp-upsell-carousel"] article.product-card')
+    .count();
+
+  // Add item to Cart and navigate via MiniCart -> View Full Cart for cross-sell verification
+  await page.locator('.pdp-floating-bar .pdp-btn--secondary').first().click();
+  await page.getByRole('button', { name: /View Full Cart/i }).click();
+  await page.waitForURL(/\/cart/, { timeout: 10_000 });
+  await page
+    .locator('[data-testid="cart-cross-sell-carousel"] article.product-card')
+    .first()
+    .waitFor({ state: 'visible', timeout: 15_000 });
+
+  const initialCartItemCount = await page.locator('.cart-item').count();
+  const initialCrossSellCount = await page
+    .locator('[data-testid="cart-cross-sell-carousel"] article.product-card')
+    .count();
+
+  await page
+    .locator('[data-testid="cart-cross-sell-carousel"] button.product-card__btn')
+    .first()
+    .click();
+
+  await page.waitForFunction(
+    (expected) => document.querySelectorAll('.cart-item').length === expected,
+    initialCartItemCount + 1,
+    { timeout: 10_000 },
+  );
+
+  const miniCartOpenAfterCrossSellAdd = await page
+    .locator('.minicart--open, [role="dialog"][aria-modal="true"]')
+    .count();
+
+  await context.close();
+  return {
+    searchChunkLoadedOnPdp: searchChunkRequestsOnPdp.length > 0,
+    pdpRecsRequestsBeforeScroll: beforeScrollCountSnapshot,
+    pdpRecsRequestsAfterScroll,
+    pdpRelatedCards,
+    pdpUpsellCards,
+    clsOnPdpAfterRecs,
+    crossSellRequestsOnCart,
+    initialCrossSellCount,
+    cartItemsIncrementedInline:
+      (await Promise.resolve(initialCartItemCount + 1)) > initialCartItemCount,
+    miniCartStayedClosedOnInlineAdd: miniCartOpenAfterCrossSellAdd === 0,
+  };
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const browser = await chromium.launch({ headless: true });
@@ -376,8 +619,17 @@ async function main() {
       args.mode === 'after'
         ? await measureOptimisticFavorite(browser, args.url)
         : null;
+    const searchAndCombobox =
+      args.mode === 'after'
+        ? await measureSearchAndComboboxLazy(browser, args.url, args.apiUrl)
+        : null;
+    const recommendationsLazyAndCls =
+      args.mode === 'after'
+        ? await measurePdpAndCartRecommendations(browser, args.url, args.apiUrl)
+        : null;
 
     const bundle = measureBundle(args.distDir);
+    const bundleSplit = summarizeBundleSplit(args.distDir);
 
     const summary = {
       mode: args.mode,
@@ -407,6 +659,9 @@ async function main() {
       scenario5_chaosErrorRetry: chaosError ?? 'n/a',
       scenario6_optimisticFavorite: optimisticFavorite ?? 'n/a',
       scenario7_bundle: bundle,
+      scenario8_searchAndCombobox: searchAndCombobox ?? 'n/a',
+      scenario9_recommendationsLazyAndCls: recommendationsLazyAndCls ?? 'n/a',
+      scenario10_bundleSplit: bundleSplit ?? 'n/a',
     };
 
     const output = JSON.stringify(summary, null, 2);

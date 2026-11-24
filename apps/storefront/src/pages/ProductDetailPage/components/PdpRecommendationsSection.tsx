@@ -33,14 +33,25 @@ export function PdpRecommendationsSection({
   const relatedItems = recsQuery.data?.related ?? [];
   const upsellItems = recsQuery.data?.upsell ?? [];
   const isInitialLoading = hasIntersected && recsQuery.isPending;
+  const isSettled = hasIntersected && !recsQuery.isPending;
+  const hasVisibleRecommendations =
+    !recsQuery.isError && (relatedItems.length > 0 || upsellItems.length > 0);
+  const reserveSpace = !isSettled || hasVisibleRecommendations;
   const errorCode =
     recsQuery.error instanceof ApiError ? recsQuery.error.code : null;
 
   return (
     <div
       ref={ref}
-      className="pdp-recommendations"
+      className={`pdp-recommendations ${
+        reserveSpace ? 'pdp-recommendations--reserved' : ''
+      }`}
       data-testid="pdp-recommendations-section"
+      style={
+        !isSettled
+          ? { minHeight: '690px' }
+          : undefined
+      }
     >
       <RecommendationCarousel
         title={t('recommendations.relatedTitle')}

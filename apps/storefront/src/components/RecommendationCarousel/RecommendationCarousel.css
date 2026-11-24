@@ -96,10 +96,10 @@
   width: 100%;
 }
 
-/* Zero-CLS loading skeleton matching ProductCard height (~420px) */
+/* Zero-CLS loading skeleton matching ProductCard height (~615px at 4-up desktop) */
 .rec-skeleton-card {
   width: 100%;
-  min-height: 420px;
+  min-height: 600px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 16px;
