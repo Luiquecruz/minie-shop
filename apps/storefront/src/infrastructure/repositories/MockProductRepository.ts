@@ -1,4 +1,5 @@
 import type {
+  CartCrossSellResponseDTO,
   CategoriesResponseDTO,
   CategoryDTO,
   FacetAttributeDTO,
@@ -8,16 +9,32 @@ import type {
   FavoritesListResponseDTO,
   PricingQuoteRequestDTO,
   PricingQuoteResponseDTO,
+  ProductCardDTO,
   ProductDetailDTO,
   ProductListResponseDTO,
+  ProductRecommendationsResponseDTO,
   ProductSort,
+  RecommendationType,
+  SearchMode,
+  SearchResponseDTO,
+  SearchSuggestResponseDTO,
   SupportedCurrency,
 } from '@minieshop/contracts';
-import type {
-  CatalogFilterParams,
-  FacetsParams,
-  ListProductsParams,
-  ProductRepository,
+import {
+  DEFAULT_SEARCH_LIMIT,
+  MAX_CROSS_SELL_PRODUCT_IDS,
+  MAX_RECOMMENDATION_LIMIT,
+  MAX_SEARCH_LIMIT,
+  MAX_SEARCH_OFFSET,
+  MAX_SUGGEST_LIMIT,
+  type CatalogFilterParams,
+  type CrossSellParams,
+  type FacetsParams,
+  type ListProductsParams,
+  type ProductRecommendationsParams,
+  type ProductRepository,
+  type SearchProductsParams,
+  type SuggestProductsParams,
 } from '../../domain/repositories/ProductRepository';
 import {
   FIXTURE_CATEGORIES,
@@ -26,12 +43,101 @@ import {
 } from '../../test/fixtures/catalogFixture';
 import { ApiError } from '../http/errors';
 
+export type MockRecommendationsMap = Record<
+  string,
+  Partial<Record<RecommendationType, string[]>>
+>;
+
+export interface MockRepositoryErrorConfig {
+  search?: Error | null;
+  suggest?: Error | null;
+  recommendations?: Error | null;
+  crossSell?: Error | null;
+}
+
 export interface MockProductRepositoryOptions {
   products?: ProductDetailDTO[];
   categories?: CategoriesResponseDTO;
   initialFavorites?: string[];
   delayMs?: number;
+  searchMode?: SearchMode;
+  recommendationsBySlug?: MockRecommendationsMap;
+  errorOn?: MockRepositoryErrorConfig;
 }
+
+const DEFAULT_RECOMMENDATION_LIMITS: Record<RecommendationType, number> = {
+  related: 8,
+  upsell: 4,
+  cross_sell: 6,
+};
+
+const ALL_RECOMMENDATION_TYPES: readonly RecommendationType[] = [
+  'related',
+  'upsell',
+  'cross_sell',
+];
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Default deterministic relations across `FIXTURE_PRODUCTS_DETAIL`:
+ * - product[0] (`fone-de-ouvido-bluetooth-over-ear-pro`): includes an OOS item (`[3]`) in related to verify filtering.
+ * - product[5] (`vela-aromatica-soja-e-baunilha`): intentionally has no relations so empty-state tests work cleanly.
+ */
+const DEFAULT_FIXTURE_RECOMMENDATIONS: MockRecommendationsMap = {
+  'fone-de-ouvido-bluetooth-over-ear-pro': {
+    related: [
+      '20000000-0000-4000-8000-000000000002',
+      '20000000-0000-4000-8000-000000000004', // out of stock -> filtered
+    ],
+    upsell: ['20000000-0000-4000-8000-000000000003'],
+    cross_sell: [
+      '20000000-0000-4000-8000-000000000005',
+      '20000000-0000-4000-8000-000000000006',
+    ],
+  },
+  'caixa-de-som-portatil-bluetooth-ipx7': {
+    related: ['20000000-0000-4000-8000-000000000001'],
+    upsell: ['20000000-0000-4000-8000-000000000001'],
+    cross_sell: [
+      '20000000-0000-4000-8000-000000000005',
+      '20000000-0000-4000-8000-000000000006',
+    ],
+  },
+  'teclado-mecanico-rgb-compacto-aluminio': {
+    related: ['20000000-0000-4000-8000-000000000001'],
+    upsell: [],
+    cross_sell: [
+      '20000000-0000-4000-8000-000000000005',
+      '20000000-0000-4000-8000-000000000006',
+    ],
+  },
+  'organizador-de-mesa-em-madeira-e-aluminio': {
+    related: ['20000000-0000-4000-8000-000000000006'],
+    upsell: ['20000000-0000-4000-8000-000000000003'],
+    cross_sell: [
+      '20000000-0000-4000-8000-000000000001',
+      '20000000-0000-4000-8000-000000000002',
+    ],
+  },
+  'vela-aromatica-soja-e-baunilha': {
+    related: [],
+    upsell: [],
+    cross_sell: [],
+  },
+};
+
+const SEMANTIC_HINTS: Array<{ queryTokens: string[]; productTerms: string[] }> = [
+  {
+    queryTokens: ['aviao', 'viajar', 'viagem', 'barulho', 'silencio'],
+    productTerms: ['cancelamento', 'ruido', 'bluetooth', 'fone'],
+  },
+  {
+    queryTokens: ['escritorio', 'trabalho', 'home'],
+    productTerms: ['teclado', 'organizador', 'mesa'],
+  },
+];
 
 const MOCK_SERVER_RATES: Record<SupportedCurrency, number> = {
   BRL: 1,
@@ -43,7 +149,10 @@ const MOCK_SHIPPING_PRICING: Record<
   SupportedCurrency,
   {
     freeShippingThresholdCents: number;
-    shippingOptions: Array<{ id: 'standard' | 'express' | 'pickup'; basePriceCents: number }>;
+    shippingOptions: Array<{
+      id: 'standard' | 'express' | 'pickup';
+      basePriceCents: number;
+    }>;
   }
 > = {
   BRL: {
@@ -125,6 +234,16 @@ function normalizeText(value: string): string {
     .toLowerCase();
 }
 
+function createValidationError(path: string, message: string): ApiError {
+  return new ApiError({
+    status: 400,
+    code: 'VALIDATION_ERROR',
+    message: 'Validation failed',
+    requestId: 'mock-request-id',
+    details: [{ path, message }],
+  });
+}
+
 function collectCategorySubtreeSlugs(
   categories: CategoryDTO[],
   targetSlug: string,
@@ -191,7 +310,9 @@ function matchesFilters(
 
   if (filters.q && filters.q.trim().length > 0) {
     const term = normalizeText(filters.q.trim());
-    const haystack = normalizeText(`${product.name} ${product.description} ${product.category.name}`);
+    const haystack = normalizeText(
+      `${product.name} ${product.description} ${product.category.name}`,
+    );
     if (!haystack.includes(term)) {
       return false;
     }
@@ -242,17 +363,66 @@ function sortProducts(
   }
 }
 
+function matchesSearchQuery(
+  product: ProductDetailDTO,
+  rawQuery: string,
+  mode: SearchMode,
+): boolean {
+  const normalizedQuery = normalizeText(rawQuery.trim());
+  const haystack = normalizeText(
+    `${product.name} ${product.description} ${product.category.name} ${product.attributes
+      .map((attr) => `${attr.label} ${String(attr.value)}`)
+      .join(' ')}`,
+  );
+
+  if (haystack.includes(normalizedQuery)) {
+    return true;
+  }
+
+  const tokens = normalizedQuery.split(/\s+/).filter((token) => token.length >= 2);
+  if (tokens.length > 1 && tokens.every((token) => haystack.includes(token))) {
+    return true;
+  }
+
+  if (mode === 'hybrid') {
+    for (const hint of SEMANTIC_HINTS) {
+      const hasIntent = tokens.some((token) => hint.queryTokens.includes(token));
+      const hasProductSignal = hint.productTerms.some((term) => haystack.includes(term));
+      if (hasIntent && hasProductSignal) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export class MockProductRepository implements ProductRepository {
   private readonly products: ProductDetailDTO[];
   private readonly categories: CategoriesResponseDTO;
   private readonly favorites: Set<string>;
   private readonly delayMs: number;
+  private searchMode: SearchMode;
+  private readonly recommendationsBySlug: MockRecommendationsMap;
+  private errorOn: MockRepositoryErrorConfig;
 
   constructor(options: MockProductRepositoryOptions = {}) {
     this.products = options.products ?? FIXTURE_PRODUCTS_DETAIL;
     this.categories = options.categories ?? FIXTURE_CATEGORIES;
     this.favorites = new Set(options.initialFavorites ?? []);
     this.delayMs = options.delayMs ?? 0;
+    this.searchMode = options.searchMode ?? 'hybrid';
+    this.recommendationsBySlug =
+      options.recommendationsBySlug ?? DEFAULT_FIXTURE_RECOMMENDATIONS;
+    this.errorOn = options.errorOn ?? {};
+  }
+
+  setSearchMode(mode: SearchMode): void {
+    this.searchMode = mode;
+  }
+
+  setErrorOn(errorOn: MockRepositoryErrorConfig): void {
+    this.errorOn = errorOn;
   }
 
   async listProducts(
@@ -275,13 +445,7 @@ export class MockProductRepository implements ProductRepository {
     if (params.cursor) {
       const parsedOffset = Number(params.cursor);
       if (!Number.isInteger(parsedOffset) || parsedOffset < 0) {
-        throw new ApiError({
-          status: 400,
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid pagination cursor',
-          requestId: 'mock-request-id',
-          details: [{ path: 'cursor', message: 'Invalid pagination cursor' }],
-        });
+        throw createValidationError('cursor', 'Invalid pagination cursor');
       }
       offset = parsedOffset;
     }
@@ -498,5 +662,255 @@ export class MockProductRepository implements ProductRepository {
       });
     }
     this.favorites.delete(productId);
+  }
+
+  async searchProducts(
+    params: SearchProductsParams,
+    signal?: AbortSignal,
+  ): Promise<SearchResponseDTO> {
+    await sleepWithAbort(this.delayMs, signal);
+    if (this.errorOn.search) {
+      throw this.errorOn.search;
+    }
+
+    const q = params.q.trim();
+    if (q.length === 0) {
+      throw createValidationError('q', 'Query parameter "q" is required');
+    }
+
+    const limit = params.limit ?? DEFAULT_SEARCH_LIMIT;
+    if (!Number.isInteger(limit) || limit < 1 || limit > MAX_SEARCH_LIMIT) {
+      throw createValidationError(
+        'limit',
+        `limit must be between 1 and ${MAX_SEARCH_LIMIT}`,
+      );
+    }
+
+    const offset = params.offset ?? 0;
+    if (!Number.isInteger(offset) || offset < 0 || offset > MAX_SEARCH_OFFSET) {
+      throw createValidationError(
+        'offset',
+        `offset must be between 0 and ${MAX_SEARCH_OFFSET}`,
+      );
+    }
+
+    if (
+      params.minPrice !== undefined &&
+      params.maxPrice !== undefined &&
+      params.minPrice > params.maxPrice
+    ) {
+      throw createValidationError(
+        'minPrice',
+        'minPrice must be less than or equal to maxPrice',
+      );
+    }
+
+    const effectiveMode: SearchMode =
+      this.searchMode === 'postgres'
+        ? 'postgres'
+        : params.mode === 'keyword'
+          ? 'keyword'
+          : this.searchMode;
+
+    const filtered = this.products.filter((product) => {
+      if (!matchesSearchQuery(product, q, effectiveMode)) {
+        return false;
+      }
+      return matchesFilters(product, this.categories, {
+        category: params.category,
+        minPrice: params.minPrice,
+        maxPrice: params.maxPrice,
+        inStock: params.inStock,
+      });
+    });
+
+    const pageSlice = filtered.slice(offset, offset + limit);
+
+    return {
+      items: pageSlice.map(toProductCard),
+      estimatedTotal: filtered.length,
+      mode: effectiveMode,
+    };
+  }
+
+  async suggestProducts(
+    params: SuggestProductsParams,
+    signal?: AbortSignal,
+  ): Promise<SearchSuggestResponseDTO> {
+    await sleepWithAbort(this.delayMs, signal);
+    if (this.errorOn.suggest) {
+      throw this.errorOn.suggest;
+    }
+
+    const q = params.q.trim();
+    if (q.length === 0) {
+      throw createValidationError('q', 'Query parameter "q" is required');
+    }
+
+    const limit = params.limit ?? MAX_SUGGEST_LIMIT;
+    if (!Number.isInteger(limit) || limit < 1 || limit > MAX_SUGGEST_LIMIT) {
+      throw createValidationError(
+        'limit',
+        `limit must be between 1 and ${MAX_SUGGEST_LIMIT}`,
+      );
+    }
+
+    const normalized = normalizeText(q);
+    const matching = this.products
+      .filter((product) => {
+        const haystack = normalizeText(`${product.name} ${product.category.name}`);
+        return haystack.includes(normalized);
+      })
+      .slice(0, limit)
+      .map((product) => ({
+        slug: product.slug,
+        name: product.name,
+        categoryName: product.category.name,
+      }));
+
+    return {
+      suggestions: matching,
+      mode: this.searchMode === 'postgres' ? 'postgres' : 'keyword',
+    };
+  }
+
+  async getProductRecommendations(
+    params: ProductRecommendationsParams,
+    signal?: AbortSignal,
+  ): Promise<ProductRecommendationsResponseDTO> {
+    await sleepWithAbort(this.delayMs, signal);
+    if (this.errorOn.recommendations) {
+      throw this.errorOn.recommendations;
+    }
+
+    const sourceProduct = this.products.find((p) => p.slug === params.slug);
+    if (!sourceProduct) {
+      throw new ApiError({
+        status: 404,
+        code: 'NOT_FOUND',
+        message: `Product "${params.slug}" not found`,
+        requestId: 'mock-request-id',
+      });
+    }
+
+    if (
+      params.limit !== undefined &&
+      (!Number.isInteger(params.limit) ||
+        params.limit < 1 ||
+        params.limit > MAX_RECOMMENDATION_LIMIT)
+    ) {
+      throw createValidationError(
+        'limit',
+        `limit must be between 1 and ${MAX_RECOMMENDATION_LIMIT}`,
+      );
+    }
+
+    const requestedTypes: RecommendationType[] =
+      params.types && params.types.length > 0
+        ? Array.from(new Set(params.types))
+        : [...ALL_RECOMMENDATION_TYPES];
+
+    const byId = new Map(this.products.map((product) => [product.id, product]));
+    const configured = this.recommendationsBySlug[params.slug] ?? {};
+    const response: ProductRecommendationsResponseDTO = {};
+
+    for (const type of requestedTypes) {
+      const limit = params.limit ?? DEFAULT_RECOMMENDATION_LIMITS[type];
+      const targetIds = configured[type] ?? [];
+      const cards: ProductCardDTO[] = [];
+
+      for (const id of targetIds) {
+        if (cards.length >= limit) break;
+        const candidate = byId.get(id);
+        if (!candidate || !candidate.inStock || candidate.id === sourceProduct.id) {
+          continue;
+        }
+        cards.push(toProductCard(candidate));
+      }
+
+      response[type] = cards;
+    }
+
+    return response;
+  }
+
+  async getCrossSell(
+    params: CrossSellParams,
+    signal?: AbortSignal,
+  ): Promise<CartCrossSellResponseDTO> {
+    await sleepWithAbort(this.delayMs, signal);
+    if (this.errorOn.crossSell) {
+      throw this.errorOn.crossSell;
+    }
+
+    const uniqueInputIds = Array.from(
+      new Set(params.productIds.map((id) => id.trim()).filter(Boolean)),
+    );
+
+    if (uniqueInputIds.length === 0) {
+      throw createValidationError(
+        'productIds',
+        'productIds must contain at least one UUID',
+      );
+    }
+
+    if (uniqueInputIds.length > MAX_CROSS_SELL_PRODUCT_IDS) {
+      throw createValidationError(
+        'productIds',
+        `productIds accepts at most ${MAX_CROSS_SELL_PRODUCT_IDS} IDs`,
+      );
+    }
+
+    for (const id of uniqueInputIds) {
+      if (!UUID_REGEX.test(id)) {
+        throw createValidationError(
+          'productIds',
+          `Invalid UUID "${id}" in productIds`,
+        );
+      }
+    }
+
+    const limit = params.limit ?? DEFAULT_RECOMMENDATION_LIMITS.cross_sell;
+    if (
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > MAX_RECOMMENDATION_LIMIT
+    ) {
+      throw createValidationError(
+        'limit',
+        `limit must be between 1 and ${MAX_RECOMMENDATION_LIMIT}`,
+      );
+    }
+
+    const inputSet = new Set(uniqueInputIds.map((id) => id.toLowerCase()));
+    const byId = new Map(
+      this.products.map((product) => [product.id.toLowerCase(), product]),
+    );
+    const seenResultIds = new Set<string>();
+    const items: ProductCardDTO[] = [];
+
+    for (const inputId of uniqueInputIds) {
+      const source = byId.get(inputId.toLowerCase());
+      if (!source) continue;
+
+      const crossSellIds = this.recommendationsBySlug[source.slug]?.cross_sell ?? [];
+      for (const candidateId of crossSellIds) {
+        const lowerCandidate = candidateId.toLowerCase();
+        if (inputSet.has(lowerCandidate) || seenResultIds.has(lowerCandidate)) {
+          continue;
+        }
+        const candidate = byId.get(lowerCandidate);
+        if (!candidate || !candidate.inStock) {
+          continue;
+        }
+        seenResultIds.add(lowerCandidate);
+        items.push(toProductCard(candidate));
+        if (items.length >= limit) {
+          return { items };
+        }
+      }
+    }
+
+    return { items };
   }
 }

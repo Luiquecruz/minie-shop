@@ -1,4 +1,5 @@
 import type {
+  CartCrossSellResponseDTO,
   CategoriesResponseDTO,
   FacetsDTO,
   FavoriteCreatedResponseDTO,
@@ -7,6 +8,9 @@ import type {
   PricingQuoteResponseDTO,
   ProductDetailDTO,
   ProductListResponseDTO,
+  ProductRecommendationsResponseDTO,
+  SearchResponseDTO,
+  SearchSuggestResponseDTO,
   SupportedCurrency,
 } from '@minieshop/contracts';
 import {
@@ -19,11 +23,27 @@ import {
   clientProductListResponseSchema,
 } from '@minieshop/contracts/catalog/client';
 import {
+  clientCartCrossSellResponseSchema,
+  clientProductRecommendationsResponseSchema,
+} from '@minieshop/contracts/recommendations/client';
+import {
+  clientSearchResponseSchema,
+  clientSearchSuggestResponseSchema,
+} from '@minieshop/contracts/search/client';
+import {
   buildCatalogQueryString,
+  buildCrossSellQueryString,
+  buildProductRecommendationsQueryString,
+  buildSearchQueryString,
+  buildSuggestQueryString,
   quotePricingInBatches,
+  type CrossSellParams,
   type FacetsParams,
   type ListProductsParams,
+  type ProductRecommendationsParams,
   type ProductRepository,
+  type SearchProductsParams,
+  type SuggestProductsParams,
 } from '../../domain/repositories/ProductRepository';
 import { createHttpClient, type HttpClient } from '../http/httpClient';
 
@@ -119,5 +139,57 @@ export class HttpProductRepository implements ProductRepository {
   removeFavorite(productId: string, signal?: AbortSignal): Promise<void> {
     const encodedId = encodeURIComponent(productId);
     return this.httpClient.delete(`/favorites/${encodedId}`, { signal });
+  }
+
+  searchProducts(
+    params: SearchProductsParams,
+    signal?: AbortSignal,
+  ): Promise<SearchResponseDTO> {
+    const query = buildSearchQueryString(params);
+    return this.httpClient.get<SearchResponseDTO>(
+      `/search${query}`,
+      clientSearchResponseSchema,
+      { signal },
+    );
+  }
+
+  suggestProducts(
+    params: SuggestProductsParams,
+    signal?: AbortSignal,
+  ): Promise<SearchSuggestResponseDTO> {
+    const query = buildSuggestQueryString(params);
+    return this.httpClient.get<SearchSuggestResponseDTO>(
+      `/search/suggest${query}`,
+      clientSearchSuggestResponseSchema,
+      { signal },
+    );
+  }
+
+  getProductRecommendations(
+    params: ProductRecommendationsParams,
+    signal?: AbortSignal,
+  ): Promise<ProductRecommendationsResponseDTO> {
+    const encodedSlug = encodeURIComponent(params.slug);
+    const query = buildProductRecommendationsQueryString({
+      types: params.types,
+      limit: params.limit,
+    });
+    return this.httpClient.get<ProductRecommendationsResponseDTO>(
+      `/products/${encodedSlug}/recommendations${query}`,
+      clientProductRecommendationsResponseSchema,
+      { signal },
+    );
+  }
+
+  getCrossSell(
+    params: CrossSellParams,
+    signal?: AbortSignal,
+  ): Promise<CartCrossSellResponseDTO> {
+    const query = buildCrossSellQueryString(params);
+    return this.httpClient.get<CartCrossSellResponseDTO>(
+      `/recommendations/cross-sell${query}`,
+      clientCartCrossSellResponseSchema,
+      { signal },
+    );
   }
 }

@@ -1,4 +1,4 @@
-import type { SupportedCurrency } from '@minieshop/contracts';
+import type { RecommendationType, SupportedCurrency } from '@minieshop/contracts';
 import type {
   CatalogFilterParams,
   ListProductsParams,
@@ -60,6 +60,33 @@ export const queryKeys = {
       [...queryKeys.products.all, 'facets', normalizeCatalogFilters(filters)] as const,
     stock: (slug: string, quantity: number) =>
       [...queryKeys.products.all, 'stock', slug, quantity] as const,
+  },
+  search: {
+    all: ['search'] as const,
+    suggest: (q: string, limit: number = 8) =>
+      [...queryKeys.search.all, 'suggest', q.trim(), limit] as const,
+  },
+  recommendations: {
+    all: ['recommendations'] as const,
+    product: (
+      slug: string,
+      types: readonly RecommendationType[] = ['related', 'upsell'],
+      limit?: number,
+    ) =>
+      [
+        ...queryKeys.recommendations.all,
+        'product',
+        slug,
+        [...types].sort(),
+        limit ?? null,
+      ] as const,
+    crossSell: (productIds: readonly string[], limit: number = 6) =>
+      [
+        ...queryKeys.recommendations.all,
+        'cross-sell',
+        [...new Set(productIds.map((id) => id.toLowerCase()))].sort(),
+        limit,
+      ] as const,
   },
   pricing: {
     all: ['pricing'] as const,

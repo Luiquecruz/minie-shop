@@ -25,6 +25,7 @@ import {
   selectCartStockWarningById,
   selectCartSubtotal,
   selectCartTotal,
+  selectRecentCartProductIds,
 } from './cartSelectors';
 
 function buildRootState(
@@ -139,5 +140,23 @@ describe('cartSelectors memoization & integer-cents calculations', () => {
     expect(selectCartTotal(state3)).toBeGreaterThan(total1);
     expect(selectCartSubtotal.recomputations()).toBe(2);
     expect(selectCartTotal.recomputations()).toBe(2);
+  });
+
+  it('caps selectRecentCartProductIds to the 20 most recent distinct product IDs', () => {
+    let cart = initialCartState;
+    for (let i = 1; i <= 25; i += 1) {
+      const product = {
+        ...cheapProduct,
+        id: `90000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+        slug: `product-${i}`,
+        name: `Product ${i}`,
+      };
+      cart = cartReducer(cart, addToCart(product));
+    }
+
+    const recent = selectRecentCartProductIds(buildRootState(cart));
+    expect(recent).toHaveLength(20);
+    expect(recent[0]).toBe('90000000-0000-4000-8000-000000000025');
+    expect(recent[19]).toBe('90000000-0000-4000-8000-000000000006');
   });
 });

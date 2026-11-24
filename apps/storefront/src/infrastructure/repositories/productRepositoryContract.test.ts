@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   pricingQuoteRequestSchema,
+  type RecommendationType,
+  type SearchRequestedMode,
   type SupportedCurrency,
 } from '@minieshop/contracts';
 import type { ProductRepository } from '../../domain/repositories/ProductRepository';
@@ -57,6 +59,99 @@ function createHttpBackedByMock(): HttpProductRepository {
               ? Number(url.searchParams.get('limit'))
               : undefined,
             cursor: url.searchParams.get('cursor') ?? undefined,
+          },
+          signal,
+        );
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (method === 'GET' && url.pathname === '/search') {
+        const data = await backend.searchProducts(
+          {
+            q: url.searchParams.get('q') ?? '',
+            limit: url.searchParams.has('limit')
+              ? Number(url.searchParams.get('limit'))
+              : undefined,
+            offset: url.searchParams.has('offset')
+              ? Number(url.searchParams.get('offset'))
+              : undefined,
+            category: url.searchParams.get('category') ?? undefined,
+            minPrice: url.searchParams.has('minPrice')
+              ? Number(url.searchParams.get('minPrice'))
+              : undefined,
+            maxPrice: url.searchParams.has('maxPrice')
+              ? Number(url.searchParams.get('maxPrice'))
+              : undefined,
+            inStock: url.searchParams.has('inStock')
+              ? url.searchParams.get('inStock') === 'true'
+              : undefined,
+            mode:
+              (url.searchParams.get('mode') as SearchRequestedMode | null) ??
+              undefined,
+          },
+          signal,
+        );
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (method === 'GET' && url.pathname === '/search/suggest') {
+        const data = await backend.suggestProducts(
+          {
+            q: url.searchParams.get('q') ?? '',
+            limit: url.searchParams.has('limit')
+              ? Number(url.searchParams.get('limit'))
+              : undefined,
+          },
+          signal,
+        );
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (
+        method === 'GET' &&
+        url.pathname.startsWith('/products/') &&
+        url.pathname.endsWith('/recommendations')
+      ) {
+        const slug = decodeURIComponent(
+          url.pathname.slice('/products/'.length, -'/recommendations'.length),
+        );
+        const rawTypes = url.searchParams.get('types');
+        const types = rawTypes
+          ? (rawTypes.split(',').filter(Boolean) as RecommendationType[])
+          : undefined;
+        const data = await backend.getProductRecommendations(
+          {
+            slug,
+            types,
+            limit: url.searchParams.has('limit')
+              ? Number(url.searchParams.get('limit'))
+              : undefined,
+          },
+          signal,
+        );
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (method === 'GET' && url.pathname === '/recommendations/cross-sell') {
+        const rawIds = url.searchParams.get('productIds') ?? '';
+        const data = await backend.getCrossSell(
+          {
+            productIds: rawIds.split(',').filter(Boolean),
+            limit: url.searchParams.has('limit')
+              ? Number(url.searchParams.get('limit'))
+              : undefined,
           },
           signal,
         );
@@ -315,6 +410,71 @@ function runProductRepositoryContractSuite(
 
       await repo.removeFavorite(productId);
       expect((await repo.getFavorites()).productIds).toEqual([]);
+    });
+
+    it('searches products and returns lexical suggestions respecting bounds', async () => {
+      const repo = factory();
+
+      const searchResult = await repo.searchProducts({
+        q: 'fone',
+        limit: 12,
+        offset: 0,
+      });
+      expect(searchResult.items.length).toBeGreaterThan(0);
+      expect(searchResult.estimatedTotal).toBeGreaterThanOrEqual(
+        searchResult.items.length,
+      );
+      expect(['hybrid', 'keyword', 'postgres']).toContain(searchResult.mode);
+
+      const keywordSearch = await repo.searchProducts({
+        q: 'fone',
+        mode: 'keyword',
+      });
+      expect(keywordSearch.mode).toBe('keyword');
+
+      const suggestResult = await repo.suggestProducts({ q: 'fone', limit: 8 });
+      expect(suggestResult.suggestions.length).toBeGreaterThan(0);
+      expect(suggestResult.suggestions.length).toBeLessThanOrEqual(8);
+      expect(suggestResult.suggestions[0]).toEqual(
+        expect.objectContaining({
+          slug: expect.any(String),
+          name: expect.any(String),
+          categoryName: expect.any(String),
+        }),
+      );
+
+      await expect(
+        repo.searchProducts({ q: 'fone', offset: 201 }),
+      ).rejects.toSatisfy(
+        (err: unknown) => err instanceof ApiError && err.status === 400,
+      );
+    });
+
+    it('returns PDP recommendations (excluding out-of-stock) and cart cross-sell excluding input IDs', async () => {
+      const repo = factory();
+      const first = FIXTURE_PRODUCTS_DETAIL[0];
+      const lonely = FIXTURE_PRODUCTS_DETAIL[5];
+
+      const pdpRecs = await repo.getProductRecommendations({
+        slug: first.slug,
+        types: ['related', 'upsell'],
+      });
+      expect(pdpRecs.related).toBeDefined();
+      expect(pdpRecs.upsell).toBeDefined();
+      expect(pdpRecs.related?.every((item) => item.inStock)).toBe(true);
+
+      const emptyRecs = await repo.getProductRecommendations({
+        slug: lonely.slug,
+        types: ['related', 'upsell'],
+      });
+      expect(emptyRecs).toEqual({ related: [], upsell: [] });
+
+      const crossSell = await repo.getCrossSell({
+        productIds: [first.id],
+        limit: 6,
+      });
+      expect(crossSell.items.length).toBeGreaterThan(0);
+      expect(crossSell.items.some((item) => item.id === first.id)).toBe(false);
     });
   });
 }

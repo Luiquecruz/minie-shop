@@ -43,6 +43,31 @@ export const selectCartItemIds = createSelector(
   (items): string[] => items.map((item) => item.id),
 );
 
+export const MAX_CROSS_SELL_CART_PRODUCT_IDS = 20;
+
+/**
+ * Returns up to 20 most recently added distinct product IDs in the cart
+ * (for R05.3 cross-sell recommendations).
+ */
+export const selectRecentCartProductIds = createSelector(
+  [selectCartItems],
+  (items): string[] => {
+    const seen = new Set<string>();
+    const recent: string[] = [];
+    for (let i = items.length - 1; i >= 0; i -= 1) {
+      const id = items[i].id;
+      if (!seen.has(id)) {
+        seen.add(id);
+        recent.push(id);
+        if (recent.length >= MAX_CROSS_SELL_CART_PRODUCT_IDS) {
+          break;
+        }
+      }
+    }
+    return recent;
+  },
+);
+
 export const selectCartItemsByIdMap = createSelector(
   [selectCartItems],
   (items): Record<string, CartItem> =>
