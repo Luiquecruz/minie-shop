@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { getStorefrontEnv } from './config/env';
 import { ProductRepositoryProvider } from './context/ProductRepositoryProvider';
+import { I18nProvider } from './i18n';
 import store from './store';
 import { queryClient } from './query/queryClient';
 import './index.css';
@@ -20,15 +21,17 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <ProductRepositoryProvider>
-      <QueryClientProvider client={queryClient}>
-        <Provider store={store}>
-          <App />
-        </Provider>
-        {import.meta.env.DEV && (
-          <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
-        )}
-      </QueryClientProvider>
-    </ProductRepositoryProvider>
+    <I18nProvider>
+      <ProductRepositoryProvider>
+        <QueryClientProvider client={queryClient}>
+          <Provider store={store}>
+            <App />
+          </Provider>
+          {import.meta.env.DEV && (
+            <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
+          )}
+        </QueryClientProvider>
+      </ProductRepositoryProvider>
+    </I18nProvider>
   </StrictMode>,
 );

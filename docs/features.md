@@ -10,7 +10,7 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
 | :--- | :--- | :--- | :--- | :--- |
 | `F-01` | Product Catalog, Filtering & Pagination (PLP) | Phase 3 / Post-Phase 5 | `ProductListingPage.tsx`, `Pagination.tsx`, `ProductCard.tsx`, `Dropdown.tsx` | Implemented |
 | `F-02` | Pricing & Discount Precedence Engine | Phase 3 | `utils/price.ts`, `PriceBox.tsx` | Implemented |
-| `F-03` | Multi-Currency Engine & Persistence | Phase 3 | `utils/currency.ts`, `currencySlice.ts`, `useCurrency.ts`, `Navbar.tsx` | Implemented |
+| `F-03` | Server-Side Multi-Currency Engine & Persistence | Phase 6.1 | `pricing.service.ts`, `currencySlice.ts`, `useCurrency.ts`, `useCartQuoteSync.ts`, `Navbar.tsx` | Implemented |
 | `F-04` | Product Detail Page (PDP) & SEO | Phase 4 / Post-Phase 5 | `ProductDetailPage.tsx`, `useProducts.ts`, `App.tsx` | Implemented |
 | `F-05` | Global Autocomplete Search | Phase 4 / Post-Phase 5 | `SearchBar.tsx`, `useDebounce.ts`, `useProducts.ts`, `api.ts` | Implemented |
 | `F-06` | Floating Mini-Cart & Stock Guardrails | Phase 5 / Post-Phase 5 | `MiniCart.tsx`, `cartSlice.ts`, `useCart.ts`, `useProducts.ts` | Implemented |
@@ -18,6 +18,7 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
 | `F-08` | React Query Caching, Optimistic Favorites & API Simulator | Post-Phase 5 | `src/query/*`, `useProducts.ts`, `useFavorites.ts`, `ApiDebugFab.tsx` | Implemented |
 | `F-09` | Dedicated Cart Page (Increment 2: Pure Redux + Memoized Selectors) | Phase 6 (Inc. 2) | `CartPage.tsx`, `cartSlice.ts`, `cartSelectors.ts`, `cartStorage.ts`, `useCart.ts` | Implemented |
 | `F-10` | Checkout Flow & Order Confirmation | Phase 6 (Inc. 3) | — | Planned |
+| `F-11` | Storefront Internationalization (`en` + `pt-BR`) | Phase 6.1 | `src/i18n/*`, `Navbar.tsx`, `useCurrency.ts`, all storefront pages/components | Implemented |
 
 ---
 

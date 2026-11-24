@@ -1,6 +1,6 @@
 # SDD-0005: Multi-Currency Server Pricing & Full Storefront i18n (Phase 6.1)
 
-- **Status:** In Progress (PR 1: Multi-Currency Pricing; PR 2: Storefront i18n)
+- **Status:** Implemented (PR 1: Multi-Currency Pricing; PR 2: Storefront i18n)
 - **Phase:** Phase 6.1 (Extraordinary Milestone)
 - **Related ADRs:** [ADR-0017](../adr/0017-camada-dados-storefront-repositorio-cursor-rotas.md), [ADR-0018](../adr/0018-multicurrency-pricing-and-storefront-i18n.md)
 - **Branches:**
@@ -53,9 +53,9 @@ Phase 6.1 completes both deferred capabilities across two focused Pull Requests 
 
 ## 3. Acceptance Criteria
 
-- [ ] `GET /products?currency=USD|EUR` applies explicit `product_prices` overrides and `exchange_rates` fallback accurately.
-- [ ] `minPrice`, `maxPrice`, `facets.price`, `price_asc`, `price_desc`, and cursor pagination operate on effective currency cents.
-- [ ] `POST /pricing/quote` returns authoritative item prices, stock flags, and currency-denominated shipping options.
-- [ ] Switching currency with `MiniCart` closed makes zero `/pricing/quote` calls; opening `MiniCart` or visiting `/cart` triggers progressive repricing with granular shimmers.
-- [ ] `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm --filter @minieshop/storefront test`, and `pnpm --filter @minieshop/api test:integration` pass.
-- [ ] Both PRs contain ≤ 100 changed files.
+- [x] `GET /products?currency=USD|EUR` applies explicit `product_prices` overrides and `exchange_rates` fallback accurately.
+- [x] `minPrice`, `maxPrice`, `facets.price`, `price_asc`, `price_desc`, and cursor pagination operate on effective currency cents.
+- [x] `POST /pricing/quote` returns authoritative item prices, stock flags, and currency-denominated shipping options.
+- [x] Switching currency with `MiniCart` closed makes zero `/pricing/quote` calls; opening `MiniCart` or visiting `/cart` triggers progressive repricing with granular shimmers.
+- [x] `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm --filter @minieshop/storefront test`, and `pnpm --filter @minieshop/api test:integration` pass.
+- [x] Both PRs contain ≤ 100 changed files.

@@ -4,9 +4,8 @@ import type {
   FacetAttributeDTO,
   FacetsDTO,
 } from '@minieshop/contracts';
-import { t } from '../../i18n';
+import { useI18n } from '../../i18n';
 import { useCurrency } from '../../hooks/useCurrency';
-import { formatCents } from '../../utils/money';
 import {
   hasActiveCatalogFilters,
   type CatalogUrlState,
@@ -52,6 +51,7 @@ function NumericAttributeFacet({
   resetSignal,
   onCommit,
 }: NumericAttrDraftProps) {
+  const { t } = useI18n();
   const idPrefix = useId();
   const urlSig = `${currentMin ?? ''}:${currentMax ?? ''}`;
   const [prevSyncKey, setPrevSyncKey] = useState(`${urlSig}|${resetSignal}`);
@@ -190,7 +190,8 @@ export function CatalogFilters({
   const minPriceId = useId();
   const maxPriceId = useId();
   const inStockId = useId();
-  const { currentCurrency } = useCurrency();
+  const { currentCurrency, formatPrice } = useCurrency();
+  const { t } = useI18n();
   const prevCurrencyRef = useRef(currentCurrency);
 
   const [resetSignal, setResetSignal] = useState(0);
@@ -453,8 +454,8 @@ export function CatalogFilters({
             facets?.price.min !== undefined &&
             facets?.price.max !== undefined && (
               <p className="catalog-filters__hint">
-                {formatCents(facets.price.min, currentCurrency)} –{' '}
-                {formatCents(facets.price.max, currentCurrency)}
+                {formatPrice(facets.price.min, currentCurrency)} –{' '}
+                {formatPrice(facets.price.max, currentCurrency)}
               </p>
             )}
           <div className="catalog-filters__range-row">

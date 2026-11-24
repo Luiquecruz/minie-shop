@@ -71,8 +71,8 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 
 ### `Navbar` (`src/components/Navbar/Navbar.tsx`)
 - **Purpose:** Top sticky navigation bar across all routes.
-- **Dependencies:** `Link`, `useCurrency`, `useCart`, `Dropdown<CurrencyCode>`, `SearchBar`.
-- **Behavior:** Displays brand link (`/`), global `SearchBar`, multi-currency `Dropdown` (`BRL`, `USD`, `EUR`), and cart toggle button displaying live `cartCount`.
+- **Dependencies:** `Link`, `useCurrency`, `useI18n`, `useCartBadge`, `SearchBar`.
+- **Behavior:** Displays brand link (`/`), global `SearchBar`, independent language selector (`EN` / `PT-BR`) and currency selector (`BRL` / `USD` / `EUR`), and isolated cart badge toggle button displaying live `cartCount`.
 
 ### `Pagination` (`src/components/Pagination/Pagination.tsx`)
 - **Purpose:** Numbered catalog pagination bar.
