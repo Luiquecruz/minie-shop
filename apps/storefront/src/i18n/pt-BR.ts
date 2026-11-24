@@ -13,6 +13,58 @@ export const ptBRMessages: Record<MessageKey, string> = {
   'search.ariaLabel': 'Buscar produtos',
   'search.clearAria': 'Limpar busca',
   'search.submitAria': 'Enviar busca',
+  'search.seeAllResults': 'Ver todos os resultados para «{query}»',
+  'search.noSuggestions': 'Nenhuma sugestão',
+  'search.suggestionsError': 'Não foi possível carregar sugestões',
+  'search.suggestionsLoading': 'Buscando sugestões...',
+  'search.suggestionsAvailableSingular': '1 sugestão disponível',
+  'search.suggestionsAvailable': '{count} sugestões disponíveis',
+  'search.suggestionsListboxAria': 'Sugestões de busca',
+
+  // Search Results Page
+  'searchPage.metaTitle': 'Buscar Produtos | Minie Shop',
+  'searchPage.metaTitleWithQuery': 'Busca: {query} | Minie Shop',
+  'searchPage.metaDescription':
+    'Busque produtos na Minie Shop com correspondência híbrida semântica e textual.',
+  'searchPage.badge': 'Busca no Catálogo',
+  'searchPage.heading': 'Buscar Produtos',
+  'searchPage.inputLabel': 'Buscar produtos',
+  'searchPage.inputPlaceholder': 'O que você está procurando?',
+  'searchPage.submitButton': 'Buscar',
+  'searchPage.resultsSingular': '1 resultado para «{query}»',
+  'searchPage.resultsPlural': '{count} resultados para «{query}»',
+  'searchPage.noResultsLive': 'Nenhum resultado',
+  'searchPage.showingOf': 'Exibindo {loaded} de {total} resultados para «{query}»',
+  'searchPage.updating': 'Atualizando resultados...',
+  'searchPage.loadingResults': 'Carregando resultados da busca',
+  'searchPage.emptyPromptTitle': 'Digite para buscar produtos',
+  'searchPage.emptyPromptText':
+    'Busque por nome do produto, categoria ou descreva como pretende utilizá-lo.',
+  'searchPage.emptyResultsTitle': 'Nenhum resultado para «{query}»',
+  'searchPage.emptyResultsTip':
+    'Revise a ortografia, use termos mais curtos ou explore o catálogo completo.',
+  'searchPage.backToCatalog': 'Explorar catálogo',
+  'searchPage.loadMore': 'Carregar mais',
+  'searchPage.loadingMore': 'Carregando mais...',
+  'searchPage.offsetLimitReached':
+    'Refine sua busca para ver resultados mais específicos',
+  'searchPage.errorTitle': 'Não foi possível concluir a busca',
+  'searchPage.errorFallback':
+    'A busca está temporariamente indisponível. Tente novamente.',
+  'searchPage.retry': 'Tentar novamente',
+  'searchPage.loadingRoute': 'Carregando busca...',
+  'searchPage.devBadge': 'DEV • mode: {mode} • {ms} ms',
+
+  // Recommendations & Carousel
+  'recommendations.relatedTitle': 'Você também pode gostar',
+  'recommendations.upsellTitle': 'Alternativas para considerar',
+  'recommendations.crossSellTitle': 'Combine com o seu pedido',
+  'recommendations.previousAria': 'Produtos anteriores em {title}',
+  'recommendations.nextAria': 'Próximos produtos em {title}',
+  'recommendations.previousLabel': 'Anterior',
+  'recommendations.nextLabel': 'Próximo',
+  'recommendations.loadingAria': 'Carregando {title}',
+  'recommendations.devErrorBadge': 'DEV • Erro ao carregar recomendações ({code})',
 
   // Pricing
   'price.currentPriceAria': 'Preço atual {price}',
