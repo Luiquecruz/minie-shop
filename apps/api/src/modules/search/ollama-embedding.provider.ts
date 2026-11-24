@@ -28,19 +28,39 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
   private readonly defaultTimeoutMs: number;
 
   constructor(@Optional() config?: OllamaEmbeddingConfig) {
-    const env = loadEnv();
-    this.baseUrl = (config?.baseUrl ?? env.EMBEDDINGS_BASE_URL).replace(/\/+$/, '');
-    this.modelName = config?.modelName ?? env.EMBEDDINGS_MODEL;
-    this.dimensions = config?.dimensions ?? env.EMBEDDINGS_DIMENSIONS;
+    const needsEnv =
+      config?.baseUrl === undefined ||
+      config?.modelName === undefined ||
+      config?.dimensions === undefined;
+    const env = needsEnv ? loadEnv() : null;
+    this.baseUrl = (config?.baseUrl ?? env!.EMBEDDINGS_BASE_URL).replace(/\/+$/, '');
+    this.modelName = config?.modelName ?? env!.EMBEDDINGS_MODEL;
+    this.dimensions = config?.dimensions ?? env!.EMBEDDINGS_DIMENSIONS;
     this.maxRetries = config?.maxRetries ?? 2;
     this.defaultTimeoutMs = config?.defaultTimeoutMs ?? 30_000;
   }
 
-  private async callEmbedApi(inputs: string[], timeoutMs: number): Promise<number[][]> {
+  private async callEmbedApi(
+    inputs: string[],
+    timeoutMs: number,
+    options?: { maxRetries?: number; signal?: AbortSignal },
+  ): Promise<number[][]> {
+    const maxRetries = options?.maxRetries ?? this.maxRetries;
+    const externalSignal = options?.signal;
     let lastError: unknown;
 
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (externalSignal?.aborted) {
+        throw new DOMException('Embedding request was aborted', 'AbortError');
+      }
+
       const controller = new AbortController();
+      const onExternalAbort = (): void => {
+        controller.abort(externalSignal?.reason);
+      };
+      if (externalSignal) {
+        externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+      }
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
@@ -77,11 +97,17 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
         return data.embeddings;
       } catch (error) {
         lastError = error;
-        if (attempt < this.maxRetries) {
+        if (externalSignal?.aborted) {
+          throw error instanceof Error ? error : new Error(String(error));
+        }
+        if (attempt < maxRetries) {
           await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
         }
       } finally {
         clearTimeout(timer);
+        if (externalSignal) {
+          externalSignal.removeEventListener('abort', onExternalAbort);
+        }
       }
     }
 
@@ -98,12 +124,21 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
     const formatted = items.map((item) =>
       formatEmbeddingDocumentForModel(this.modelName, item.title, item.text),
     );
-    return this.callEmbedApi(formatted, options?.timeoutMs ?? this.defaultTimeoutMs);
+    return this.callEmbedApi(formatted, options?.timeoutMs ?? this.defaultTimeoutMs, {
+      maxRetries: this.maxRetries,
+    });
   }
 
-  async embedQuery(query: string, options?: { timeoutMs?: number }): Promise<number[]> {
+  async embedQuery(
+    query: string,
+    options?: { timeoutMs?: number; maxRetries?: number; signal?: AbortSignal },
+  ): Promise<number[]> {
     const formatted = formatEmbeddingQueryForModel(this.modelName, query);
-    const [vector] = await this.callEmbedApi([formatted], options?.timeoutMs ?? 2_000);
+    // Fail fast on interactive search queries so keyword fallback responds well before client timeouts.
+    const [vector] = await this.callEmbedApi([formatted], options?.timeoutMs ?? 2_000, {
+      maxRetries: options?.maxRetries ?? 0,
+      signal: options?.signal,
+    });
     if (!vector) {
       throw new Error('Ollama returned empty embedding for query');
     }

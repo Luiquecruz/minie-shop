@@ -28,6 +28,8 @@ import {
 import ProductCard from '../../components/ProductCard/ProductCard';
 import './SearchResultsPage.css';
 
+const SEARCH_INPUT_DEBOUNCE_MS = 450;
+
 interface RawSearchTelemetryUserData {
   mode?: unknown;
   durationMs?: unknown;
@@ -166,7 +168,7 @@ function SearchResultsContent({
       lastSyncedUrlQueryRef.current = normalized;
       onUpdateUrlRef.current(normalized, true);
       refine(normalized);
-    }, 250);
+    }, SEARCH_INPUT_DEBOUNCE_MS);
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
@@ -176,9 +178,14 @@ function SearchResultsContent({
       debounceTimerRef.current = null;
     }
     const normalized = draftQuery.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
+    const shouldPushUrl = normalized !== urlQuery;
     lastSyncedUrlQueryRef.current = normalized;
-    onUpdateUrl(normalized, false);
-    refine(normalized);
+    if (shouldPushUrl) {
+      onUpdateUrl(normalized, false);
+    }
+    if (normalized !== query.trim() || status === 'error') {
+      refine(normalized);
+    }
   };
 
   const handleClear = (): void => {

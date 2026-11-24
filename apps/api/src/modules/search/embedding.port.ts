@@ -12,5 +12,8 @@ export interface EmbeddingProvider {
     items: EmbeddingDocumentInput[],
     options?: { timeoutMs?: number },
   ): Promise<number[][]>;
-  embedQuery(query: string, options?: { timeoutMs?: number }): Promise<number[]>;
+  embedQuery(
+    query: string,
+    options?: { timeoutMs?: number; maxRetries?: number; signal?: AbortSignal },
+  ): Promise<number[]>;
 }

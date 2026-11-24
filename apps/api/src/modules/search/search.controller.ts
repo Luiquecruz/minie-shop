@@ -69,22 +69,38 @@ export class SearchController {
     const parsed = searchQuerySchema.parse(request.query ?? {});
     const requestId = typeof request.id === 'string' ? request.id : String(request.id ?? 'unknown');
 
-    const result = await this.searchService.search(
-      {
-        q: parsed.q,
-        limit: parsed.limit ?? 12,
-        offset: parsed.offset ?? 0,
-        category: parsed.category,
-        minPrice: parsed.minPrice,
-        maxPrice: parsed.maxPrice,
-        inStock: parsed.inStock,
-        mode: parsed.mode ?? 'hybrid',
-      },
-      { requestId, logger: request.log },
-    );
+    const abortController = new AbortController();
+    const onClientDisconnect = (): void => {
+      if (!reply.raw.writableEnded) {
+        abortController.abort();
+      }
+    };
+    reply.raw.once('close', onClientDisconnect);
 
-    const payload = parseOutput(searchResponseSchema, result);
-    await sendWithPublicCache(request, reply, payload);
+    try {
+      const result = await this.searchService.search(
+        {
+          q: parsed.q,
+          limit: parsed.limit ?? 12,
+          offset: parsed.offset ?? 0,
+          category: parsed.category,
+          minPrice: parsed.minPrice,
+          maxPrice: parsed.maxPrice,
+          inStock: parsed.inStock,
+          mode: parsed.mode ?? 'hybrid',
+        },
+        { requestId, logger: request.log, signal: abortController.signal },
+      );
+
+      if (abortController.signal.aborted || reply.raw.writableEnded) {
+        return;
+      }
+
+      const payload = parseOutput(searchResponseSchema, result);
+      await sendWithPublicCache(request, reply, payload);
+    } finally {
+      reply.raw.off('close', onClientDisconnect);
+    }
   }
 
   @Get('suggest')

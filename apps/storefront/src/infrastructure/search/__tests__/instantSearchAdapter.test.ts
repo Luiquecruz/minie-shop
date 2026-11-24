@@ -61,11 +61,14 @@ describe('createStorefrontSearchClient — InstantSearch adapter (S08.3)', () =>
       },
     ])) as unknown as AdapterResponseShape;
 
-    expect(searchSpy).toHaveBeenCalledWith({
-      q: 'fone',
-      limit: 24,
-      offset: 48,
-    });
+    expect(searchSpy).toHaveBeenCalledWith(
+      {
+        q: 'fone',
+        limit: 24,
+        offset: 48,
+      },
+      expect.any(AbortSignal),
+    );
 
     const first = response.results[0];
     expect(first.hits).toHaveLength(2);
@@ -110,5 +113,61 @@ describe('createStorefrontSearchClient — InstantSearch adapter (S08.3)', () =>
         { indexName: 'products', params: { query: 'fone', page: 0, hitsPerPage: 24 } },
       ]),
     ).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it('aborts an in-flight search when a newer query arrives and defers superseded settlement', async () => {
+    const repository = new MockProductRepository();
+    const signals: AbortSignal[] = [];
+    const settlementOrder: string[] = [];
+
+    vi.spyOn(repository, 'searchProducts').mockImplementation((params, signal) => {
+      if (signal) {
+        signals.push(signal);
+      }
+      if (params.q === 'relogi') {
+        return new Promise((_resolve, reject) => {
+          signal?.addEventListener('abort', () => {
+            reject(new DOMException('The request was aborted.', 'AbortError'));
+          });
+        });
+      }
+      return Promise.resolve({
+        items: [FIXTURE_PRODUCT_CARDS[0]],
+        estimatedTotal: 1,
+        mode: 'hybrid',
+      });
+    });
+
+    const client = createStorefrontSearchClient(repository);
+
+    const firstPromise = client
+      .search([
+        { indexName: 'products', params: { query: 'relogi', page: 0, hitsPerPage: 24 } },
+      ])
+      .then((res) => {
+        settlementOrder.push('first');
+        return res;
+      });
+
+    const secondPromise = client
+      .search([
+        { indexName: 'products', params: { query: 'relogio branco', page: 0, hitsPerPage: 24 } },
+      ])
+      .then((res) => {
+        settlementOrder.push('second');
+        return res;
+      });
+
+    const [firstResult, secondResult] = (await Promise.all([
+      firstPromise,
+      secondPromise,
+    ])) as unknown as [AdapterResponseShape, AdapterResponseShape];
+
+    expect(signals).toHaveLength(2);
+    expect(signals[0].aborted).toBe(true);
+    expect(signals[1].aborted).toBe(false);
+    expect(settlementOrder).toEqual(['second', 'first']);
+    expect(secondResult.results[0].hits).toHaveLength(1);
+    expect(firstResult.results[0].hits).toEqual([]);
   });
 });

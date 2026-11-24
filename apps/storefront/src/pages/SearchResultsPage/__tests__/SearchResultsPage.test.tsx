@@ -151,6 +151,7 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
       await waitFor(() => {
         expect(searchSpy).toHaveBeenCalledWith(
           expect.objectContaining({ offset: page * 24, limit: 24 }),
+          expect.any(AbortSignal),
         );
       });
     }
@@ -263,6 +264,24 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
       );
       unmount();
     }
+  });
+
+  it('does not fire a duplicate search request when submitting an already-active query', async () => {
+    const repository = new MockProductRepository();
+    const searchSpy = vi.spyOn(repository, 'searchProducts');
+    const user = userEvent.setup();
+
+    renderSearchPage(repository, ['/search?q=fone']);
+
+    expect(
+      await screen.findByText(FIXTURE_PRODUCTS_DETAIL[0].name),
+    ).toBeInTheDocument();
+    expect(searchSpy).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
+    await new Promise((r) => setTimeout(r, 30));
+
+    expect(searchSpy).toHaveBeenCalledTimes(1);
   });
 
   it('passes vitest-axe with zero accessibility violations on SearchResultsPage', async () => {
