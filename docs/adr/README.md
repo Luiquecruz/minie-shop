@@ -41,3 +41,6 @@ This directory maintains an **incremental, append-only log** of architectural de
 | [ADR-0016](./0016-monorepo-pnpm-workspaces-turborepo.md) | Monorepo com pnpm Workspaces e Turborepo | Fase 6 (`T20`) | Accepted | 2026-11-23 |
 | [ADR-0017](./0017-camada-dados-storefront-repositorio-cursor-rotas.md) | Camada de Dados do Storefront, Parse Tolerante, Paginação por Cursor e Rotas Canônicas | Fase 6 (`T22`/`T23`) | Accepted | 2026-11-23 |
 | [ADR-0018](./0018-multicurrency-pricing-and-storefront-i18n.md) | Server-Side Multi-Currency Pricing, Progressive Cart Repricing, and Storefront i18n | Phase 6.1 (`SDD-0005`) | Accepted | 2026-11-23 |
+| [ADR-0019](./0019-busca-na-ui-instantsearch-lazy.md) | Busca na UI — React InstantSearch Restrito à Rota Preguiçosa `/search` vs `useInfiniteQuery` | Fase 7 (`S08.3`) | Accepted | 2026-11-24 |
+| [ADR-0020](./0020-combobox-autocomplete-apg-proprio.md) | Combobox de Autocomplete no Cabeçalho — Implementação Própria WAI-ARIA APG vs Downshift | Fase 7 (`S08.2`) | Accepted | 2026-11-24 |
+| [ADR-0021](./0021-carregamento-preguicoso-recomendacoes-pdp.md) | Carregamento Preguiçoso dos Blocos de Recomendação na PDP | Fase 7 (`R05.2`, `R05.4`) | Accepted | 2026-11-24 |
