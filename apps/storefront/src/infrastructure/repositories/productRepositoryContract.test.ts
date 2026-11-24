@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { SupportedCurrency } from '@minieshop/contracts';
+import {
+  pricingQuoteRequestSchema,
+  type SupportedCurrency,
+} from '@minieshop/contracts';
 import type { ProductRepository } from '../../domain/repositories/ProductRepository';
 import { FIXTURE_PRODUCTS_DETAIL } from '../../test/fixtures/catalogFixture';
 import { ApiError } from '../http/errors';
@@ -77,17 +80,20 @@ function createHttpBackedByMock(): HttpProductRepository {
 
       if (method === 'POST' && url.pathname === '/pricing/quote') {
         const rawBody = typeof init?.body === 'string' ? init.body : '{}';
-        const parsedBody = JSON.parse(rawBody) as {
-          currency?: 'BRL' | 'USD' | 'EUR';
-          productIds?: string[];
-        };
-        const data = await backend.quotePricing(
-          {
-            currency: parsedBody.currency ?? 'BRL',
-            productIds: parsedBody.productIds ?? [],
-          },
-          signal,
-        );
+        const parsed = pricingQuoteRequestSchema.safeParse(JSON.parse(rawBody));
+        if (!parsed.success) {
+          return new Response(
+            JSON.stringify({
+              error: {
+                code: 'VALIDATION_ERROR',
+                message: 'Invalid pricing quote request',
+                requestId: 'adapter-req',
+              },
+            }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+        const data = await backend.quotePricing(parsed.data, signal);
         return new Response(JSON.stringify(data), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },

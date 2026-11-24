@@ -512,7 +512,7 @@ export function MiniCart() {
                 type="button"
                 className="mini-cart__btn mini-cart__btn--primary"
                 onClick={handleCheckout}
-                disabled={isTotalsLoading || hasCurrencyMismatch}
+                disabled={isTotalsLoading || hasCurrencyMismatch || quoteError !== null}
               >
                 <span>{t('miniCart.proceedToCheckout')}</span>
               </button>

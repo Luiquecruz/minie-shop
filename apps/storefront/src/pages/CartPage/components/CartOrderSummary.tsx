@@ -8,6 +8,7 @@ import type { ShippingMethodId } from '../../../types';
 export interface CartOrderSummaryProps {
   isTotalsLoading?: boolean;
   hasCurrencyMismatch?: boolean;
+  quoteError?: string | null;
 }
 
 /**
@@ -16,6 +17,7 @@ export interface CartOrderSummaryProps {
 export const CartOrderSummary = memo(function CartOrderSummary({
   isTotalsLoading = false,
   hasCurrencyMismatch = false,
+  quoteError = null,
 }: CartOrderSummaryProps) {
   const {
     totalUnits,
@@ -224,7 +226,7 @@ export const CartOrderSummary = memo(function CartOrderSummary({
           type="button"
           className="cart-btn cart-btn--primary"
           onClick={handleCheckout}
-          disabled={isTotalsLoading || hasCurrencyMismatch}
+          disabled={isTotalsLoading || hasCurrencyMismatch || quoteError !== null}
         >
           <svg
             width="18"

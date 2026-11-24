@@ -433,4 +433,61 @@ describe('MiniCart progressive multi-currency repricing (Phase 6.1)', () => {
     expect(quoteSpy.mock.calls[0]?.[0].productIds).toHaveLength(100);
     expect(quoteSpy.mock.calls[1]?.[0].productIds).toHaveLength(5);
   });
+
+  it('disables checkout in both MiniCart and CartPage when an incomplete quote triggers quoteError even without currency mismatch', async () => {
+    const productA = FIXTURE_PRODUCTS_DETAIL[0];
+    const productB = FIXTURE_PRODUCTS_DETAIL[1];
+    const repository = new MockProductRepository();
+
+    vi.spyOn(repository, 'quotePricing').mockResolvedValueOnce({
+      currency: 'BRL',
+      items: [
+        {
+          productId: productA.id,
+          price: productA.price,
+          inStock: true,
+        },
+      ],
+      freeShippingThresholdCents: 50_000,
+      shippingOptions: [
+        { id: 'standard', basePriceCents: 1_990 },
+        { id: 'express', basePriceCents: 4_990 },
+        { id: 'pickup', basePriceCents: 0 },
+      ],
+    });
+
+    const store = createAppStore();
+    store.dispatch(addToCart({ product: productA, quantity: 1 }));
+    store.dispatch(addToCart({ product: productB, quantity: 1 }));
+    store.dispatch(openCart());
+
+    const queryClient = createTestQueryClient();
+
+    render(
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <ProductRepositoryProvider repository={repository}>
+            <MemoryRouter initialEntries={['/cart']}>
+              <MiniCart />
+              <CartPage />
+            </MemoryRouter>
+          </ProductRepositoryProvider>
+        </QueryClientProvider>
+      </Provider>,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(/Could not refresh cart prices for the selected currency/i),
+      ).toHaveLength(2);
+    });
+
+    const checkoutButtons = screen.getAllByRole('button', {
+      name: /Proceed to Checkout/i,
+    });
+    expect(checkoutButtons).toHaveLength(2);
+    checkoutButtons.forEach((btn) => {
+      expect(btn).toBeDisabled();
+    });
+  });
 });

@@ -121,6 +121,7 @@ export function CartPage() {
             <CartOrderSummary
               isTotalsLoading={isTotalsLoading}
               hasCurrencyMismatch={hasCurrencyMismatch}
+              quoteError={quoteError}
             />
           </div>
         </div>
