@@ -65,7 +65,8 @@ export const useAppSelector = useSelector.withTypes<RootState>();
 ### `cartSelectors` (`src/store/selectors/cartSelectors.ts`)
 - **Base Input Selectors:** `selectCartState`, `selectCartItems`, `selectIsCartOpen`, `selectCartStockWarnings`, `selectCartCouponInput`, `selectCartAppliedCoupon`, `selectCartCouponError`, `selectCartShippingMethod`, `selectCartOrderNote`.
 - **Memoized Selectors (`createSelector`):**
-  - `selectCartItemIds` -> `number[]`
+  - `selectCartItemIds` -> `string[]`
+  - `selectRecentCartProductIds` -> `string[]` (Phase 7: up to `20` most recently added distinct product IDs for `R05.3` Cart cross-sell, added without modifying frozen `cartSlice` reducers or existing selectors)
   - `selectCartItemsByIdMap` -> `Record<number, CartItem>` (`selectCartItemById(state, id)` O(1) lookup)
   - `selectCartStockWarningById(state, id)` -> `string | null`
   - `selectCartHasItems` -> `boolean`

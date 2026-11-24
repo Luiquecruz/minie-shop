@@ -8,9 +8,9 @@ Project constitution, context, and operational guidelines for AI agents and deve
 
 **Progressive Minie Shop** is an incremental e-commerce web application built from scratch with React, TypeScript, and Vite to explore and apply fundamental and advanced React patterns in structured phases.
 
-- **Current Phase:** Phase 6 — Increment 2 (`SDD-0001` / `ADR-0001` Frontend Baseline): Dedicated Cart Page (`/cart`) migrated from monolithic Context + `useReducer` to pure immutable Redux Toolkit `cartSlice` reducers, memoized `createSelector` selectors, listener-based `localStorage` persistence, and Vitest + React `<Profiler>` verification.
+- **Current Phase:** Phase 7 — Storefront Search UI (`S08`: accessible APG `useCombobox` header autocomplete + lazy-loaded `react-instantsearch` `/search` route) & Recommendation Carousels (`R05`: lazy `IntersectionObserver` PDP blocks + inline Cart cross-sell over a frozen `cartSlice`).
 - **Next Planned Phase:**
-  - **Phase 6 (Inc. 3):** Checkout flow & order confirmation.
+  - **Phase 8:** Design system & styling architecture evolution.
 
 ---
 
@@ -33,13 +33,12 @@ Project constitution, context, and operational guidelines for AI agents and deve
 ## Available Scripts
 
 ```bash
-npm run dev        # Start Vite local dev server (http://localhost:5199, auto-open)
-npm test           # Run Vitest unit, selector, and React Profiler tests (vitest run)
-npm run test:watch # Run Vitest in interactive watch mode
-npm run typecheck  # Run strict TypeScript compiler checks (tsc --noEmit)
-npm run lint       # Run Oxlint checks across the codebase
-npm run build      # Typecheck and build production bundle into dist/ (tsc --noEmit && vite build)
-npm run preview    # Preview production bundle locally
+pnpm dev           # Start monorepo dev servers via Turbo
+pnpm test          # Run API contract/unit tests and storefront Vitest + vitest-axe suites
+pnpm typecheck     # Run strict TypeScript compiler checks across all packages
+pnpm lint          # Run ESLint & Oxlint checks across the workspace
+pnpm build         # Build contracts, email, API, and storefront production bundle
+pnpm --filter @minieshop/storefront metrics  # Run Playwright metrics suite against live stack
 ```
 
 ---

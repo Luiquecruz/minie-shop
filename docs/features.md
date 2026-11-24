@@ -19,6 +19,8 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
 | `F-09` | Dedicated Cart Page (Increment 2: Pure Redux + Memoized Selectors) | Phase 6 (Inc. 2) | `CartPage.tsx`, `cartSlice.ts`, `cartSelectors.ts`, `cartStorage.ts`, `useCart.ts` | Implemented |
 | `F-10` | Checkout Flow & Order Confirmation | Phase 6 (Inc. 3) | — | Planned |
 | `F-11` | Storefront Internationalization (`en` + `pt-BR`) | Phase 6.1 | `src/i18n/*`, `Navbar.tsx`, `useCurrency.ts`, all storefront pages/components | Implemented |
+| `F-12` | Header APG Autocomplete Combobox & Lazy Search Route (`/search`) | Phase 7 (`S08`) | `useCombobox.ts`, `SearchBar.tsx`, `SearchResultsPage.tsx`, `instantSearchAdapter.ts`, `searchUrlParams.ts` | Implemented |
+| `F-13` | Lazy PDP Recommendations & Inline Cart Cross-Sell Carousels | Phase 7 (`R05`) | `RecommendationCarousel.tsx`, `PdpRecommendationsSection.tsx`, `CartCrossSellSection.tsx`, `useRecommendations.ts`, `useInView.ts` | Implemented |
 
 ---
 
@@ -92,3 +94,16 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
   - Persists items (`minieshop_cart`) and checkout preferences (`minieshop_cart_prefs`) to `localStorage` via RTK `createListenerMiddleware` (`cartStorage.ts`) without side effects inside reducers.
   - Displays cart line items with quantity steppers, numeric bounds (`1..stock`), debounced stock validation (`useStockValidationQuery`), item removal, and Clear Cart.
   - Supports promo coupons (`MINIE10`, `MINIE20`, `FREESHIP`), shipping method selection (`Standard Delivery`, `Express Courier`, `Store Pickup`), free-shipping threshold progress (`>= 500 BRL`), order/delivery notes (`maxLength = 200`), and multi-currency conversion (`useCurrency`).
+
+### F-12: Header APG Autocomplete Combobox & Lazy Search Route (`/search`) (`S08`)
+- **Locations:** `Navbar` (`SearchBar`, hidden on `/search`) and lazy route `/search` (`SearchResultsPage`).
+- **Capabilities:**
+  - `SearchBar` implements proprietary WAI-ARIA APG `useCombobox` (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-autocomplete="list"`, `aria-activedescendant`, `role="listbox"`, `role="option"`, `aria-live="polite"`) backed by 200 ms debounced `useSearchSuggestQuery` (>= 2 trimmed chars, max 8 suggestions, `AbortSignal` cancellation, `"Ver todos os resultados para «q»"` fallback option).
+  - `/search` loads `react-instantsearch@7.55.1` in a separate `React.lazy` chunk with custom `createStorefrontSearchClient` routing through `ProductRepository.searchProducts` (`hitsPerPage=24`, `offset <= 200` cutoff message, `?q=` Zod URL sync with `replace` while typing and `push` on submit, DEV-only mode + latency badge across `hybrid`, `keyword`, and `postgres` modes).
+
+### F-13: Lazy PDP Recommendations & Inline Cart Cross-Sell Carousels (`R05`)
+- **Locations:** `ProductDetailPage` (`PdpRecommendationsSection`) and `CartPage` (`CartCrossSellSection`).
+- **Capabilities:**
+  - Reusable accessible `RecommendationCarousel` with CSS `scroll-snap-type: x mandatory`, `overscroll-behavior-x: contain`, `prefers-reduced-motion` compliance, Prev/Next boundary disabling with focus redirection, horizontal focus-into-view, zero-CLS loading skeletons, and silent collapse on empty/error states.
+  - PDP loads `related` (`"Você também pode gostar"`) and `upsell` (`"Alternativas para considerar"`) in a single request only after `IntersectionObserver` triggers (`rootMargin: '200px 0px'`).
+  - Cart queries cross-sell (`"Combine com o seu pedido"`) for up to 20 most recent distinct item IDs (`selectRecentCartProductIds`), deduplicates already-added items immediately on client, and invokes `addToCart` + `closeCart` inline without opening `MiniCart` or modifying frozen `cartSlice` reducers.

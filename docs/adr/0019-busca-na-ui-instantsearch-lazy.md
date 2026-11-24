@@ -25,7 +25,7 @@ Precisamos decidir:
 ### 2. Contrato Real do `SearchClient` Adaptado ao `ProductRepository`
 De acordo com as definições TypeScript verificadas em `react-instantsearch@7.55.1` / `instantsearch.js@4.123.1` (`algoliasearch-helper/types/algoliasearch.d.ts`), `<InstantSearch searchClient={...}>` exige:
 - `search(requests: Array<{ indexName: string; params: SearchOptions }>): Promise<{ results: SearchResponse<THit>[] }>`
-- `searchForFacetValues(...)` (no-op retornando `[]` nesta fase, pois facetas na busca estão fora de escopo).
+- `searchForFacetValues(...)` (no-op retornando `{ facetHits: [], exhaustiveFacetsCount: true }` nesta fase, pois facetas na busca estão fora de escopo).
 
 O adaptador (`src/infrastructure/search/instantSearchAdapter.ts`) implementa o mapeamento:
 - **Consulta vazia (`query.trim().length === 0`):** curto-circuita imediatamente retornando `{ hits: [], nbHits: 0, page: 0, nbPages: 0, hitsPerPage, query: '' }` **sem chamar a API**.
@@ -36,10 +36,13 @@ O adaptador (`src/infrastructure/search/instantSearchAdapter.ts`) implementa o m
 
 ### 3. Custo de Bundle Medido
 - **Baseline pré-Fase 7 (`main` `a9eb8f2`, `vite build`):**
-  - Chunk principal JS (`index-*.js`): **`589,48 kB` raw (`169,91 kB` gzip)**
-  - CSS principal (`index-*.css`): **`68,72 kB` raw (`11,48 kB` gzip)**
-- **Dependência instalada:** `react-instantsearch@7.55.1` + `instantsearch.js@4.123.1` + `react-instantsearch-core@7.55.1` (`16,8 MB` no workspace pnpm).
-- **Meta de isolamento e medição pós-implementação:** com `React.lazy` na rota `/search`, o código do InstantSearch é emitido em chunk separado carregado apenas quando o usuário navega para `/search`. Os valores exatos finais do chunk principal vs chunk lazy `/search` após tree-shaking são registrados em `docs/metrics/search-and-recommendations-ui.md` na conclusão da fase.
+  - Chunk principal JS (`index-*.js`): **`589,48 kB` raw (`169,91 kB` gzip)** (`589,476 B`)
+  - CSS principal (`index-*.css`): **`68,72 kB` raw (`11,48 kB` gzip)** (`68,716 B`)
+- **Pós-Fase 7 (`feat/search-recs-ui`, `VITE_API_URL=http://localhost:3001 vite build`):**
+  - Chunk principal JS (`index-B8ZU7Jdq.js`): **`613,22 kB` raw (`175,122 B` gzip zlib)** (`613,225 B` — **`+23,75 kB` raw**, **`0` ocorrências de `react-instantsearch` / `algoliasearch-helper`**)
+  - CSS principal (`index-BVXtrhdg.css`): **`72,26 kB` raw (`12,057 B` gzip)** (`72,255 B`)
+  - Chunk lazy exclusivo de `/search` (`SearchResultsPage-Dck5R8YI.js` + `SearchResultsPage-CdVrgW9X.css`): **`189,19 kB` JS (`52,238 B` gzip) + `3,17 kB` CSS (`1,015 B` gzip)** (`192,357 B` total), carregado **somente** ao navegar para `/search` conforme verificado em rede via `vite preview` (ver `docs/metrics/search-and-recommendations-ui.md`).
+- **Dependência instalada:** `react-instantsearch@7.55.1` + `instantsearch.js@4.123.1` + `react-instantsearch-core@7.55.1`.
 
 ## Alternativas Consideradas
 

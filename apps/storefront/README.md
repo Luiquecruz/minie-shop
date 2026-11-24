@@ -1,16 +1,42 @@
-# React + Vite
+# `@minieshop/storefront`
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + TypeScript storefront for **Progressive Minie Shop**, integrated with `@minieshop/api` via `@minieshop/contracts` tolerant client schemas (`.strip()`), TanStack React Query, React Router, Redux Toolkit (frozen cart slice), and React InstantSearch (lazy-loaded on `/search`).
 
-Currently, two official plugins are available:
+## Routes
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Route | Component | Loading Strategy | Highlights |
+| :--- | :--- | :--- | :--- |
+| `/` | `ProductListingPage` | Eager (entry chunk) | URL-synced catalog filters (`category`, `q`, `minPrice`, `maxPrice`, `inStock`, `sort`, `attr.*`), infinite pagination, optimistic favorites |
+| `/search` | `SearchResultsPage` | Lazy (`React.lazy`) | Dedicated InstantSearch results route (`?q=` Zod-synced, `hitsPerPage=24`, `offset <= 200` cutoff, DEV telemetry badge) |
+| `/:category/:slug` | `ProductDetailPage` | Eager | Product gallery, attributes, sticky CTA, `IntersectionObserver` lazy `related` + `upsell` carousels |
+| `/cart` | `CartPage` | Eager | Redux Toolkit pure cart, `POST /pricing/quote` repricing, cross-sell carousel with inline silent Add to Cart |
+| `/product/:id` | `LegacyProductRedirect` | Eager | Redirects legacy numeric product URLs to `/:category/:slug` |
 
-## React Compiler
+## Architecture Highlights
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Single HTTP Transport:** `src/infrastructure/http/httpClient.ts` handles Zod env config (`VITE_API_URL`), `credentials: 'include'`, timeouts, `AbortSignal`, `ApiError`/`NetworkError`/`ContractViolationError`, and DEV chaos headers (`chaos.delay`, `chaos.fail`, `chaos.status` in `localStorage`).
+- **Search Split (`ADR-0019`, `ADR-0020`):**
+  - Header `SearchBar` uses proprietary WAI-ARIA APG `useCombobox` (`role="combobox"`, `aria-activedescendant`, `role="listbox"`, `aria-live="polite"`) + React Query (`useSearchSuggestQuery`, 200 ms debounce, min 2 trimmed chars, max 8 suggestions) — hidden on `/search`.
+  - `/search` loads `react-instantsearch@7.55.1` lazily via `React.lazy`, keeping InstantSearch completely out of the `/` and PDP entry chunks.
+- **Recommendations (`ADR-0021`):**
+  - `RecommendationCarousel` uses native CSS horizontal scroll-snap (`overscroll-behavior-x: contain`, `prefers-reduced-motion` support, focus redirection when boundary Prev/Next buttons disable, horizontal focus-into-view, zero-CLS loading skeletons, silent collapse on empty/errors).
+  - PDP fetches `related` and `upsell` once on intersection (`rootMargin: '200px 0px'`). Cart queries cross-sell for up to 20 most recent distinct item IDs via `selectRecentCartProductIds`.
 
-## Expanding the Oxlint configuration
+## Scripts
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+```bash
+pnpm --filter @minieshop/storefront dev        # Start Vite dev server (http://localhost:5199)
+pnpm --filter @minieshop/storefront build      # Strict tsc --noEmit && vite build
+pnpm --filter @minieshop/storefront preview    # Serve production dist/
+pnpm --filter @minieshop/storefront lint       # Oxlint across all files
+pnpm --filter @minieshop/storefront typecheck  # Strict TypeScript check
+pnpm --filter @minieshop/storefront test       # Vitest + RTL + vitest-axe suites
+pnpm --filter @minieshop/storefront test:watch # Vitest watch mode
+pnpm --filter @minieshop/storefront metrics    # Playwright benchmark (metrics/run-metrics.mjs)
+```
+
+## Environment Variables
+
+Validated at boot via Zod in `src/config/env.ts`:
+
+- `VITE_API_URL` (required in dev/build): API origin without trailing slash (e.g., `http://localhost:3001`). Falls back to `http://localhost:3001` in `MODE === 'test'`.

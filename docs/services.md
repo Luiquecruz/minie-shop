@@ -1,10 +1,23 @@
 # Services & Data Layer Inventory (Incremental)
 
-Tracks simulated API contracts (`src/services/`), domain types (`src/types/`), and mock datasets (`src/data/`).
+Tracks catalog, search, and recommendations data access (`ProductRepository`, `httpClient`, `instantSearchAdapter`), tolerant client contracts (`@minieshop/contracts/*/client`), and mock fixture providers.
 
 ---
 
-## Simulated API Service (`src/services/api.ts`)
+## Phase 6 & Phase 7 Live Data Layer (`src/domain/`, `src/infrastructure/`)
+
+- **`ProductRepository` (`src/domain/repositories/ProductRepository.ts`):** Interface implemented by `HttpProductRepository` and `MockProductRepository` (with constants `MAX_SEARCH_LIMIT = 60`, `SEARCH_PAGE_SIZE = 24`, `MAX_SEARCH_OFFSET = 200`, `MAX_SUGGEST_LIMIT = 8`, `MAX_CROSS_SELL_PRODUCT_IDS = 20`, `MAX_RECOMMENDATION_LIMIT = 24`).
+- **HTTP Transport (`src/infrastructure/http/httpClient.ts`):** Single shared HTTP client validating `VITE_API_URL` via Zod, forwarding `AbortSignal`, enforcing timeouts, setting `credentials: 'include'`, injecting DEV-only `x-chaos-*` headers, mapping `ApiError`/`NetworkError`/`ContractViolationError`, and validating responses with `.strip()` tolerant client schemas from `@minieshop/contracts/catalog/client`, `search/client`, and `recommendations/client`.
+- **Phase 7 Methods (`HttpProductRepository` & `MockProductRepository`):**
+  - `searchProducts(params, signal?)` -> `GET /search` (supports `hybrid`, `keyword`, and `postgres` simulation in `MockProductRepository`).
+  - `suggestProducts(params, signal?)` -> `GET /search/suggest` (max 8 suggestions + error simulation in `MockProductRepository`).
+  - `getProductRecommendations(params, signal?)` -> `GET /products/:slug/recommendations` (`types`, optional `limit`).
+  - `getCrossSell(params, signal?)` -> `GET /recommendations/cross-sell` (up to 20 `productIds`, excludes input IDs and out-of-stock products).
+- **`instantSearchAdapter.ts` (`src/infrastructure/search/instantSearchAdapter.ts`):** Custom `SearchClient` bridging React InstantSearch pagination (`page`, `hitsPerPage = 24`) to `ProductRepository.searchProducts`, short-circuiting empty queries and `offset > 200` without network calls.
+
+---
+
+## Legacy Phase 1–5 Simulated API Service (Historical Baseline)
 
 Exports `productsApi` (named and default export), `ProductNotFoundError`, and `apiErrorSimulator` backed by `PRODUCTS_MOCK` and `localStorage` (`minieshop_favorites`). Uses `DEFAULT_DELAY_MS = 300` and an internal `delay(ms, signal)` helper that cleans up abort listeners and rejects with `DOMException('The user aborted a request.', 'AbortError')` when aborted.
 
