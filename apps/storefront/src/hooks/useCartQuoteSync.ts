@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { PricingQuoteResponseDTO, SupportedCurrency } from '@minieshop/contracts';
+import { quotePricingInBatches } from '../domain/repositories/ProductRepository';
 import { FIVE_MINUTES_MS } from '../query/queryClient';
 import { queryKeys } from '../query/queryKeys';
 import { useAppSelector } from '../store/hooks';
@@ -52,7 +53,8 @@ export function useCartQuoteSync(active: boolean): UseCartQuoteSyncResult {
   const attemptedStaleRefreshKeyRef = useRef<string | null>(null);
 
   const productIds = useMemo(
-    () => items.map((item) => item.id).sort(),
+    () =>
+      Array.from(new Set(items.map((item) => item.id.toLowerCase()))).sort(),
     [items],
   );
   const productIdsKey = productIds.join(',');
@@ -76,12 +78,10 @@ export function useCartQuoteSync(active: boolean): UseCartQuoteSyncResult {
   } = useQuery<ScopedQuoteResult>({
     queryKey: queryKeys.pricing.quote(currentCurrency, productIds),
     queryFn: async ({ signal }) => {
-      const quote = await repository.quotePricing(
-        {
-          currency: currentCurrency,
-          productIds,
-        },
-        signal,
+      const quote = await quotePricingInBatches(
+        currentCurrency,
+        productIds,
+        (batchRequest) => repository.quotePricing(batchRequest, signal),
       );
       return {
         quote,
@@ -95,16 +95,32 @@ export function useCartQuoteSync(active: boolean): UseCartQuoteSyncResult {
     retry: false,
   });
 
-  useEffect(() => {
-    if (!shouldEnable || !data) {
-      return;
-    }
+  const isSnapshotMatch =
+    shouldEnable &&
+    data !== undefined &&
+    data.currency === currentCurrency &&
+    data.productIdsKey === productIdsKey &&
+    data.quote.currency === currentCurrency;
 
-    if (
-      data.currency !== currentCurrency ||
-      data.productIdsKey !== productIdsKey ||
-      data.quote.currency !== currentCurrency
-    ) {
+  const hasMissingQuoteItems = useMemo(() => {
+    if (!isSnapshotMatch || !data) {
+      return false;
+    }
+    const returnedIds = new Set(
+      data.quote.items.map((quotedItem) => quotedItem.productId.toLowerCase()),
+    );
+    return productIds.some((id) => !returnedIds.has(id));
+  }, [isSnapshotMatch, data, productIds]);
+
+  const hasIncompleteQuote =
+    isSnapshotMatch &&
+    dataUpdatedAt >= lastQuoteUpdatedAt &&
+    !isFetching &&
+    !isError &&
+    hasMissingQuoteItems;
+
+  useEffect(() => {
+    if (!isSnapshotMatch || !data) {
       return;
     }
 
@@ -123,18 +139,22 @@ export function useCartQuoteSync(active: boolean): UseCartQuoteSyncResult {
     }
 
     attemptedStaleRefreshKeyRef.current = null;
+
+    if (hasMissingQuoteItems) {
+      return;
+    }
+
     applyCartQuote({ quote: data.quote, updatedAt: dataUpdatedAt });
   }, [
-    shouldEnable,
+    isSnapshotMatch,
     data,
     dataUpdatedAt,
     isFetching,
     isError,
     refetch,
-    currentCurrency,
-    productIdsKey,
     snapshotKey,
     lastQuoteUpdatedAt,
+    hasMissingQuoteItems,
     applyCartQuote,
   ]);
 
@@ -153,7 +173,7 @@ export function useCartQuoteSync(active: boolean): UseCartQuoteSyncResult {
   );
 
   const quoteError =
-    shouldEnable && isError ? t('cart.quoteError') : null;
+    shouldEnable && (isError || hasIncompleteQuote) ? t('cart.quoteError') : null;
 
   return {
     isQuoting,

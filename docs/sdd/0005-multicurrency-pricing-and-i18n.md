@@ -1,6 +1,6 @@
 # SDD-0005: Multi-Currency Server Pricing & Full Storefront i18n (Phase 6.1)
 
-- **Status:** Implemented (PR 1: Multi-Currency Pricing; PR 2: Storefront i18n)
+- **Status:** In Progress (PR 1: Multi-Currency Pricing; PR 2: Storefront i18n — pending Light/Dark desktop & mobile browser flow validation)
 - **Phase:** Phase 6.1 (Extraordinary Milestone)
 - **Related ADRs:** [ADR-0017](../adr/0017-camada-dados-storefront-repositorio-cursor-rotas.md), [ADR-0018](../adr/0018-multicurrency-pricing-and-storefront-i18n.md)
 - **Branches:**

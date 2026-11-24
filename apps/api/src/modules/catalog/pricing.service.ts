@@ -110,7 +110,9 @@ export class PricingService {
 
   async quoteCart(request: PricingQuoteRequestDTO): Promise<PricingQuoteResponseDTO> {
     const { currency } = request;
-    const uniqueIds = Array.from(new Set(request.productIds));
+    const uniqueIds = Array.from(
+      new Set(request.productIds.map((id) => id.toLowerCase())),
+    );
     const shipping = this.getShippingPricing(currency);
 
     if (uniqueIds.length === 0) {

@@ -380,7 +380,7 @@ export class MockProductRepository implements ProductRepository {
 
     const attributes: FacetAttributeDTO[] = [];
     for (const [code, meta] of attrMeta.entries()) {
-      const attrPool = this.products.filter((product) =>
+      const attrPool = pricedProducts.filter((product) =>
         matchesFilters(product, this.categories, params, { attributeCode: code }),
       );
 
@@ -437,10 +437,14 @@ export class MockProductRepository implements ProductRepository {
     await sleepWithAbort(this.delayMs, signal);
     const currency = request.currency ?? 'BRL';
     const shipping = MOCK_SHIPPING_PRICING[currency];
-    const uniqueIds = Array.from(new Set(request.productIds));
+    const uniqueIds = Array.from(
+      new Set(request.productIds.map((id) => id.toLowerCase())),
+    );
     const items = uniqueIds
       .map((productId) => {
-        const found = this.products.find((product) => product.id === productId);
+        const found = this.products.find(
+          (product) => product.id.toLowerCase() === productId,
+        );
         if (!found) return null;
         const priced = priceProductForCurrency(found, currency);
         return {

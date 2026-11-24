@@ -26,4 +26,4 @@ This directory stores feature and architectural specifications authored **before
 | `SDD-0002` *(planned)* | Automated Test Suite Adoption | Phase 6 / 7 | Not Started | — |
 | [SDD-0003](./0003-incremental-typescript-migration.md) | Incremental TypeScript Migration | Pre-Phase 6 | Implemented | [ADR-0001](../adr/0001-frontend-architecture-baseline.md) |
 | [SDD-0004](./0004-tanstack-react-query-migration.md) | TanStack React Query Migration & Optimistic Favorites | Post-Phase 5 | In Progress | [ADR-0001](../adr/0001-frontend-architecture-baseline.md) |
-| [SDD-0005](./0005-multicurrency-pricing-and-i18n.md) | Multi-Currency Server Pricing & Full Storefront i18n | Phase 6.1 | Implemented | [ADR-0018](../adr/0018-multicurrency-pricing-and-storefront-i18n.md) |
+| [SDD-0005](./0005-multicurrency-pricing-and-i18n.md) | Multi-Currency Server Pricing & Full Storefront i18n | Phase 6.1 | In Progress | [ADR-0018](../adr/0018-multicurrency-pricing-and-storefront-i18n.md) |

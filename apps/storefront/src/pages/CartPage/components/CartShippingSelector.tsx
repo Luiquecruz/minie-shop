@@ -6,6 +6,7 @@ import type { ShippingMethodId } from '../../../types';
 
 export interface CartShippingSelectorProps {
   isPriceLoading?: boolean;
+  hasCurrencyMismatch?: boolean;
 }
 
 /**
@@ -14,6 +15,7 @@ export interface CartShippingSelectorProps {
  */
 export const CartShippingSelector = memo(function CartShippingSelector({
   isPriceLoading = false,
+  hasCurrencyMismatch = false,
 }: CartShippingSelectorProps) {
   const {
     shippingMethod,
@@ -102,6 +104,10 @@ export const CartShippingSelector = memo(function CartShippingSelector({
                     className="cart-shimmer cart-shimmer--shipping"
                     aria-label={t('cart.updatingShippingPrice')}
                   />
+                ) : hasCurrencyMismatch &&
+                  option.basePriceCents > 0 &&
+                  !hasFreeShippingCoupon ? (
+                  '—'
                 ) : isFree ? (
                   t('cart.shippingFree')
                 ) : (

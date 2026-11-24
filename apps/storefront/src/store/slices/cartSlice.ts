@@ -407,15 +407,29 @@ export const cartSlice = createSlice({
         return state;
       }
 
-      const quotedById = new Map(quote.items.map((item) => [item.productId, item]));
+      const quotedById = new Map(
+        quote.items.map((item) => [item.productId.toLowerCase(), item]),
+      );
 
       let itemsChanged = false;
       let nextWarnings = state.stockWarnings;
 
       const nextItems = state.items.map((item) => {
-        const quoted = quotedById.get(item.id);
+        const quoted = quotedById.get(item.id.toLowerCase());
         if (!quoted) {
-          return item;
+          nextWarnings = setWarningImmutable(
+            nextWarnings,
+            item.id,
+            'This product is currently out of stock.',
+          );
+          if (!item.inStock) {
+            return item;
+          }
+          itemsChanged = true;
+          return {
+            ...item,
+            inStock: false,
+          };
         }
 
         const priceChanged =

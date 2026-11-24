@@ -40,6 +40,7 @@ export {
   productSlugParamSchema,
   productIdParamSchema,
   shippingMethodCodeSchema,
+  MAX_PRICING_QUOTE_PRODUCT_IDS,
   pricingQuoteRequestSchema,
   quotedProductPriceSchema,
   quotedShippingOptionSchema,

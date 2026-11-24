@@ -84,7 +84,9 @@ export const CartOrderSummary = memo(function CartOrderSummary({
         </h2>
       </div>
 
-      {shippingMethod === 'standard' && !appliedCoupon?.freeShipping && (
+      {shippingMethod === 'standard' &&
+        !appliedCoupon?.freeShipping &&
+        !hasCurrencyMismatch && (
         <div className="cart-summary__shipping-progress">
           <div className="cart-summary__progress-text">
             {freeShippingRemaining > 0 ? (
@@ -122,6 +124,8 @@ export const CartOrderSummary = memo(function CartOrderSummary({
                 className="cart-shimmer cart-shimmer--summary"
                 aria-label={t('cart.updatingSubtotal')}
               />
+            ) : hasCurrencyMismatch ? (
+              '—'
             ) : (
               formatPrice(subtotal)
             )}
@@ -137,6 +141,8 @@ export const CartOrderSummary = memo(function CartOrderSummary({
                   className="cart-shimmer cart-shimmer--summary"
                   aria-label={t('cart.updatingDiscount')}
                 />
+              ) : hasCurrencyMismatch ? (
+                '—'
               ) : (
                 `-${formatPrice(discountAmount)}`
               )}
@@ -156,6 +162,8 @@ export const CartOrderSummary = memo(function CartOrderSummary({
                 className="cart-shimmer cart-shimmer--summary"
                 aria-label={t('cart.updatingShipping')}
               />
+            ) : hasCurrencyMismatch ? (
+              '—'
             ) : shippingCost === 0 ? (
               <span className="cart-summary__free-tag">
                 {t('cart.shippingFree')}
@@ -181,6 +189,8 @@ export const CartOrderSummary = memo(function CartOrderSummary({
                 className="cart-shimmer cart-shimmer--summary-total"
                 aria-label={t('cart.updatingEstimatedTotal')}
               />
+            ) : hasCurrencyMismatch ? (
+              '—'
             ) : (
               formatPrice(total)
             )}

@@ -1,14 +1,15 @@
-import type {
-  CategoriesResponseDTO,
-  FacetsDTO,
-  FavoriteCreatedResponseDTO,
-  FavoritesListResponseDTO,
-  PricingQuoteRequestDTO,
-  PricingQuoteResponseDTO,
-  ProductDetailDTO,
-  ProductListResponseDTO,
-  ProductSort,
-  SupportedCurrency,
+import {
+  MAX_PRICING_QUOTE_PRODUCT_IDS,
+  type CategoriesResponseDTO,
+  type FacetsDTO,
+  type FavoriteCreatedResponseDTO,
+  type FavoritesListResponseDTO,
+  type PricingQuoteRequestDTO,
+  type PricingQuoteResponseDTO,
+  type ProductDetailDTO,
+  type ProductListResponseDTO,
+  type ProductSort,
+  type SupportedCurrency,
 } from '@minieshop/contracts';
 
 export interface NumericAttributeRangeFilter {
@@ -137,4 +138,51 @@ export function buildCatalogQueryString(
 
   const serialized = search.toString();
   return serialized.length > 0 ? `?${serialized}` : '';
+}
+
+/**
+ * Quotes cart product IDs in batches honoring the server `MAX_PRICING_QUOTE_PRODUCT_IDS` limit.
+ * Normalizes and deduplicates UUIDs to lowercase before issuing batches and preserves single-call
+ * behavior whenever the deduplicated list fits within `maxBatchSize`.
+ */
+export async function quotePricingInBatches(
+  currency: SupportedCurrency,
+  productIds: readonly string[],
+  fetchBatch: (
+    batchRequest: PricingQuoteRequestDTO,
+  ) => Promise<PricingQuoteResponseDTO>,
+  maxBatchSize: number = MAX_PRICING_QUOTE_PRODUCT_IDS,
+): Promise<PricingQuoteResponseDTO> {
+  const normalizedIds = Array.from(
+    new Set(productIds.map((id) => id.toLowerCase())),
+  );
+
+  if (normalizedIds.length <= maxBatchSize) {
+    return fetchBatch({
+      currency,
+      productIds: normalizedIds,
+    });
+  }
+
+  const chunks: string[][] = [];
+  for (let i = 0; i < normalizedIds.length; i += maxBatchSize) {
+    chunks.push(normalizedIds.slice(i, i + maxBatchSize));
+  }
+
+  const batchResponses = await Promise.all(
+    chunks.map((chunk) =>
+      fetchBatch({
+        currency,
+        productIds: chunk,
+      }),
+    ),
+  );
+
+  const first = batchResponses[0];
+  return {
+    currency: first.currency,
+    items: batchResponses.flatMap((batch) => batch.items),
+    freeShippingThresholdCents: first.freeShippingThresholdCents,
+    shippingOptions: first.shippingOptions,
+  };
 }

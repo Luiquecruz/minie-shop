@@ -108,7 +108,10 @@ export function CartPage() {
 
             <div className="cart-config-grid">
               <CartPromoBox />
-              <CartShippingSelector isPriceLoading={isTotalsLoading} />
+              <CartShippingSelector
+                isPriceLoading={isTotalsLoading}
+                hasCurrencyMismatch={hasCurrencyMismatch}
+              />
             </div>
 
             <CartOrderNote />

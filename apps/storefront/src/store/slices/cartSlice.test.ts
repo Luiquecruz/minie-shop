@@ -523,5 +523,38 @@ describe('cartSlice pure functional reducers & immutability', () => {
       }),
     );
     expect(staleRejected).toBe(partialShippingState);
+
+    // Items omitted from quote.items (e.g. unpublished/unavailable) are marked unavailable with warning,
+    // while items returned in quote.items still receive price/stock updates.
+    const omittedResult = cartReducer(
+      partialShippingState,
+      applyCartQuote({
+        quote: {
+          currency: 'USD',
+          items: [
+            {
+              productId: productA.id,
+              price: { amount: 5_998, currency: 'USD' },
+              inStock: true,
+            },
+          ],
+          freeShippingThresholdCents: 10_000,
+          shippingOptions: [
+            { id: 'standard', basePriceCents: 490 },
+            { id: 'pickup', basePriceCents: 0 },
+          ],
+        },
+        updatedAt: 3_000,
+      }),
+    );
+    expect(omittedResult.items[0].price).toEqual({
+      amount: 5_998,
+      currency: 'USD',
+    });
+    expect(omittedResult.items[0].inStock).toBe(true);
+    expect(omittedResult.items[1].inStock).toBe(false);
+    expect(omittedResult.stockWarnings[productB.id]).toBe(
+      'This product is currently out of stock.',
+    );
   });
 });

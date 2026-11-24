@@ -732,14 +732,14 @@ describe('Phase 2 API Integration Suite (real Postgres app_test + Fastify inject
       'VALIDATION_ERROR',
     );
 
-    // 6. POST /pricing/quote
+    // 6. POST /pricing/quote (normalizes uppercase UUIDs cleanly before lookup)
     const quoteRes = await app.inject({
       method: 'POST',
       url: '/pricing/quote',
       headers: { origin: 'http://localhost:5199' },
       payload: {
         currency: 'USD',
-        productIds: [prodOverride.id, prodFallback.id],
+        productIds: [prodOverride.id, prodFallback.id.toUpperCase()],
       },
     });
     expect(quoteRes.statusCode).toBe(200);

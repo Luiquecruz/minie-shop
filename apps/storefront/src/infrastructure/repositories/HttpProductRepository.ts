@@ -20,6 +20,7 @@ import {
 } from '@minieshop/contracts/catalog/client';
 import {
   buildCatalogQueryString,
+  quotePricingInBatches,
   type FacetsParams,
   type ListProductsParams,
   type ProductRepository,
@@ -83,10 +84,15 @@ export class HttpProductRepository implements ProductRepository {
     request: PricingQuoteRequestDTO,
     signal?: AbortSignal,
   ): Promise<PricingQuoteResponseDTO> {
-    return this.httpClient.post<PricingQuoteResponseDTO>(
-      '/pricing/quote',
-      clientPricingQuoteResponseSchema,
-      { body: request, signal },
+    return quotePricingInBatches(
+      request.currency ?? 'BRL',
+      request.productIds,
+      (batchRequest) =>
+        this.httpClient.post<PricingQuoteResponseDTO>(
+          '/pricing/quote',
+          clientPricingQuoteResponseSchema,
+          { body: batchRequest, signal },
+        ),
     );
   }
 

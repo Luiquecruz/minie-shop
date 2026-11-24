@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { SupportedCurrency } from '@minieshop/contracts';
 import type { ProductRepository } from '../../domain/repositories/ProductRepository';
 import { FIXTURE_PRODUCTS_DETAIL } from '../../test/fixtures/catalogFixture';
 import { ApiError } from '../http/errors';
@@ -179,7 +180,14 @@ function parseQueryParams(searchParams: URLSearchParams) {
     }
   }
 
+  const rawCurrency = searchParams.get('currency');
+  const currency: SupportedCurrency | undefined =
+    rawCurrency === 'BRL' || rawCurrency === 'USD' || rawCurrency === 'EUR'
+      ? rawCurrency
+      : undefined;
+
   return {
+    currency,
     category: searchParams.get('category') ?? undefined,
     q: searchParams.get('q') ?? undefined,
     minPrice: searchParams.has('minPrice')
@@ -251,6 +259,42 @@ function runProductRepositoryContractSuite(
       expect(facets.price.min).not.toBeNull();
       expect(facets.categories.length).toBeGreaterThan(1);
       expect(facets.attributes.length).toBeGreaterThan(0);
+
+      const usdFacets = await repo.getFacets({
+        currency: 'USD',
+        maxPrice: 4_000,
+      });
+      const usdList = await repo.listProducts({
+        currency: 'USD',
+        maxPrice: 4_000,
+      });
+      expect(usdList.items.every((item) => item.price.currency === 'USD')).toBe(
+        true,
+      );
+      expect(usdList.items.every((item) => item.price.amount <= 4_000)).toBe(
+        true,
+      );
+      expect(usdFacets.price.max ?? 0).toBeLessThan(10_000);
+      expect(usdFacets.attributes.length).toBeGreaterThan(0);
+    });
+
+    it('batches quotePricing requests exceeding 100 unique productIds cleanly', async () => {
+      const repo = factory();
+      const ids = Array.from({ length: 105 }, (_, idx) =>
+        `99999999-0000-4000-8000-${String(idx).padStart(12, '0')}`,
+      );
+      ids[0] = FIXTURE_PRODUCTS_DETAIL[0].id.toUpperCase();
+      ids[102] = FIXTURE_PRODUCTS_DETAIL[1].id.toUpperCase();
+
+      const quoted = await repo.quotePricing({
+        currency: 'USD',
+        productIds: ids,
+      });
+      expect(quoted.currency).toBe('USD');
+      expect(quoted.items.map((item) => item.productId)).toEqual([
+        FIXTURE_PRODUCTS_DETAIL[0].id,
+        FIXTURE_PRODUCTS_DETAIL[1].id,
+      ]);
     });
 
     it('lists, adds, and removes favorites idempotently', async () => {

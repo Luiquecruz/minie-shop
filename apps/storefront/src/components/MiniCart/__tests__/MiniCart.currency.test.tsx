@@ -11,6 +11,7 @@ import { createStorefrontQueryClient } from '../../../query/queryClient';
 import { createAppStore } from '../../../store';
 import { addToCart, closeCart, openCart, removeFromCart } from '../../../store/slices/cartSlice';
 import { setCurrency } from '../../../store/slices/currencySlice';
+import CartPage from '../../../pages/CartPage/CartPage';
 import Navbar from '../../Navbar/Navbar';
 import MiniCart from '../MiniCart';
 
@@ -117,9 +118,11 @@ describe('MiniCart progressive multi-currency repricing (Phase 6.1)', () => {
     });
     expect(quoteSpy).toHaveBeenCalledTimes(1);
 
-    // Item remains visible, Checkout disabled due to currency mismatch
+    // Item remains visible, Checkout disabled due to currency mismatch,
+    // and stale BRL totals remain hidden instead of being formatted as EUR
     expect(screen.getByText(product.name)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Proceed to Checkout/i })).toBeDisabled();
+    expect(screen.queryByText(/€/)).not.toBeInTheDocument();
 
     // Clicking Retry recovers and updates item to EUR
     await user.click(screen.getByRole('button', { name: /Retry/i }));
@@ -289,5 +292,145 @@ describe('MiniCart progressive multi-currency repricing (Phase 6.1)', () => {
       expect(store.getState().cart.items[0].price.currency).toBe('USD');
     });
     expect(screen.getByRole('button', { name: /Proceed to Checkout/i })).toBeEnabled();
+  });
+
+  it('rejects incomplete quotes with quoteError and keeps CartPage shipping/summary amounts hidden while currency mismatches', async () => {
+    const productA = FIXTURE_PRODUCTS_DETAIL[0];
+    const productB = FIXTURE_PRODUCTS_DETAIL[1];
+    const repository = new MockProductRepository();
+
+    const quoteSpy = vi
+      .spyOn(repository, 'quotePricing')
+      // 1st quote omits productB -> incomplete quote must NOT update cart
+      .mockResolvedValueOnce({
+        currency: 'USD',
+        items: [
+          {
+            productId: productA.id,
+            price: { amount: 5_998, currency: 'USD' },
+            inStock: true,
+          },
+        ],
+        freeShippingThresholdCents: 10_000,
+        shippingOptions: [
+          { id: 'standard', basePriceCents: 490 },
+          { id: 'express', basePriceCents: 990 },
+          { id: 'pickup', basePriceCents: 0 },
+        ],
+      })
+      // Retry returns full items
+      .mockResolvedValueOnce({
+        currency: 'USD',
+        items: [
+          {
+            productId: productA.id,
+            price: { amount: 5_998, currency: 'USD' },
+            inStock: true,
+          },
+          {
+            productId: productB.id,
+            price: { amount: 3_798, currency: 'USD' },
+            inStock: true,
+          },
+        ],
+        freeShippingThresholdCents: 10_000,
+        shippingOptions: [
+          { id: 'standard', basePriceCents: 490 },
+          { id: 'express', basePriceCents: 990 },
+          { id: 'pickup', basePriceCents: 0 },
+        ],
+      });
+
+    const store = createAppStore();
+    store.dispatch(addToCart({ product: productA, quantity: 1 }));
+    store.dispatch(addToCart({ product: productB, quantity: 1 }));
+    store.dispatch(setCurrency('USD'));
+
+    const queryClient = createTestQueryClient();
+    const user = userEvent.setup();
+
+    render(
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <ProductRepositoryProvider repository={repository}>
+            <MemoryRouter initialEntries={['/cart']}>
+              <CartPage />
+            </MemoryRouter>
+          </ProductRepositoryProvider>
+        </QueryClientProvider>
+      </Provider>,
+    );
+
+    await waitFor(() => {
+      expect(quoteSpy).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByText(/Could not refresh cart prices for the selected currency/i),
+      ).toBeInTheDocument();
+    });
+
+    // Incomplete quote was rejected -> cart remains in BRL, shipping/summary/free-shipping remain hidden
+    expect(store.getState().cart.items[0].price.currency).toBe('BRL');
+    expect(
+      screen.queryByText(/more for free Standard Delivery/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('radiogroup', { name: /Shipping Method/i }).textContent,
+    ).not.toMatch(/R\$|\$|€/);
+    expect(
+      screen.getByRole('heading', { name: 'Order Summary' }).closest('aside')
+        ?.textContent,
+    ).not.toMatch(/R\$|\$|€/);
+    expect(screen.getByRole('button', { name: /Proceed to Checkout/i })).toBeDisabled();
+
+    // Retry recovers full USD quote and restores formatted amounts + free-shipping prompt
+    await user.click(screen.getByRole('button', { name: /Retry/i }));
+
+    await waitFor(() => {
+      expect(store.getState().cart.items[0].price.currency).toBe('USD');
+      expect(store.getState().cart.items[1].price.currency).toBe('USD');
+    });
+    expect(screen.getByText(/more for free Standard Delivery/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Proceed to Checkout/i })).toBeEnabled();
+  });
+
+  it('batches quotes exceeding 100 distinct items inside useCartQuoteSync', async () => {
+    const batchProducts = Array.from({ length: 105 }, (_, idx) => ({
+      ...FIXTURE_PRODUCTS_DETAIL[0],
+      id: `aaaaaaaa-0000-4000-8000-${String(idx).padStart(12, '0')}`,
+      slug: `batch-product-${idx}`,
+      name: `Batch Product ${idx}`,
+    }));
+    const fullRepo = new MockProductRepository({ products: batchProducts });
+    const quoteSpy = vi.spyOn(fullRepo, 'quotePricing');
+
+    const store = createAppStore();
+    for (const prod of batchProducts) {
+      store.dispatch(addToCart({ product: prod, quantity: 1 }));
+    }
+    store.dispatch(setCurrency('USD'));
+    store.dispatch(openCart());
+
+    const queryClient = createTestQueryClient();
+
+    render(
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <ProductRepositoryProvider repository={fullRepo}>
+            <MemoryRouter>
+              <MiniCart />
+            </MemoryRouter>
+          </ProductRepositoryProvider>
+        </QueryClientProvider>
+      </Provider>,
+    );
+
+    await waitFor(() => {
+      expect(quoteSpy).toHaveBeenCalledTimes(2);
+      expect(
+        store.getState().cart.items.every((item) => item.price.currency === 'USD'),
+      ).toBe(true);
+    });
+    expect(quoteSpy.mock.calls[0]?.[0].productIds).toHaveLength(100);
+    expect(quoteSpy.mock.calls[1]?.[0].productIds).toHaveLength(5);
   });
 });

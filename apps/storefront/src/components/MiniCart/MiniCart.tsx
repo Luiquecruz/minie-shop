@@ -461,7 +461,7 @@ export function MiniCart() {
                   ? t('miniCart.liveUpdatingTotals', {
                       currency: currentCurrency,
                     })
-                  : quoteError
+                  : quoteError || hasCurrencyMismatch
                     ? ''
                     : t('miniCart.liveSubtotalUpdated', {
                         currency: currentCurrency,
@@ -478,6 +478,8 @@ export function MiniCart() {
                       className="mini-cart__shimmer mini-cart__shimmer--total"
                       aria-label={t('miniCart.updatingSubtotal')}
                     />
+                  ) : hasCurrencyMismatch ? (
+                    <span aria-label={t('miniCart.updatingSubtotal')}>—</span>
                   ) : (
                     formatPrice(subtotal, currentCurrency)
                   )}
@@ -493,6 +495,8 @@ export function MiniCart() {
                       className="mini-cart__shimmer mini-cart__shimmer--total-lg"
                       aria-label={t('miniCart.updatingTotal')}
                     />
+                  ) : hasCurrencyMismatch ? (
+                    <span aria-label={t('miniCart.updatingTotal')}>—</span>
                   ) : (
                     formatPrice(subtotal, currentCurrency)
                   )}

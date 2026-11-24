@@ -241,10 +241,19 @@ export const shippingMethodCodeSchema = z.enum(['standard', 'express', 'pickup']
 
 export type ShippingMethodCode = z.infer<typeof shippingMethodCodeSchema>;
 
+export const MAX_PRICING_QUOTE_PRODUCT_IDS = 100;
+
 export const pricingQuoteRequestSchema = z
   .object({
     currency: supportedCurrencySchema.default('BRL'),
-    productIds: z.array(z.string().uuid('Each productId must be a valid UUID')).max(100),
+    productIds: z
+      .array(
+        z
+          .string()
+          .uuid('Each productId must be a valid UUID')
+          .transform((id) => id.toLowerCase()),
+      )
+      .max(MAX_PRICING_QUOTE_PRODUCT_IDS),
   })
   .strict();
 
