@@ -5,11 +5,14 @@ import type {
   CartItem,
   CartProductInput,
   ShippingMethodId,
+  ShippingOption,
   StockWarningsMap,
 } from '../types';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   addToCart as addToCartAction,
+  applyCartQuote as applyCartQuoteAction,
+  type ApplyCartQuotePayload,
   applyCoupon as applyCouponAction,
   clearCart as clearCartAction,
   closeCart as closeCartAction,
@@ -30,6 +33,7 @@ import {
   selectCartCouponInput,
   selectCartDiscountAmount,
   selectCartFreeShippingRemaining,
+  selectCartFreeShippingThresholdCents,
   selectCartHasFreeShippingCoupon,
   selectCartHasItems,
   selectCartItemById,
@@ -39,6 +43,8 @@ import {
   selectCartQualifiesForFreeStandardShipping,
   selectCartShippingCost,
   selectCartShippingMethod,
+  selectCartShippingOptions,
+  selectCartShippingPricing,
   selectCartStockWarningById,
   selectCartStockWarnings,
   selectCartSubtotal,
@@ -60,6 +66,7 @@ export interface CartActions {
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
+  applyCartQuote: (payload: ApplyCartQuotePayload) => void;
 }
 
 export interface UseCartReturn extends CartActions {
@@ -117,9 +124,22 @@ export function useCartActions(): CartActions {
       toggleCart: () => {
         dispatch(toggleCartAction());
       },
+      applyCartQuote: (payload: ApplyCartQuotePayload) => {
+        dispatch(applyCartQuoteAction(payload));
+      },
     }),
     [dispatch],
   );
+}
+
+/**
+ * Isolated badge hook for Navbar: subscribes strictly to `cartCount` so
+ * price/total repricing never triggers Navbar re-renders.
+ */
+export function useCartBadge(): { cartCount: number; toggleCart: () => void } {
+  const cartCount = useAppSelector(selectCartCount);
+  const { toggleCart } = useCartActions();
+  return { cartCount, toggleCart };
 }
 
 /**
@@ -181,15 +201,26 @@ export function useCartPromoState(): {
 
 export function useCartShippingState(): {
   shippingMethod: ShippingMethodId;
+  shippingOptions: readonly ShippingOption[];
   qualifiesForFreeStandard: boolean;
   hasFreeShippingCoupon: boolean;
 } {
   const shippingMethod = useAppSelector(selectCartShippingMethod);
+  const shippingOptions = useAppSelector(selectCartShippingOptions);
   const qualifiesForFreeStandard = useAppSelector(
     selectCartQualifiesForFreeStandardShipping,
   );
   const hasFreeShippingCoupon = useAppSelector(selectCartHasFreeShippingCoupon);
-  return { shippingMethod, qualifiesForFreeStandard, hasFreeShippingCoupon };
+  return {
+    shippingMethod,
+    shippingOptions,
+    qualifiesForFreeStandard,
+    hasFreeShippingCoupon,
+  };
+}
+
+export function useCartShippingPricing() {
+  return useAppSelector(selectCartShippingPricing);
 }
 
 export function useCartOrderNoteState(): string {
@@ -202,6 +233,8 @@ export function useCartSummaryState(): {
   discountAmount: number;
   shippingCost: number;
   freeShippingRemaining: number;
+  freeShippingThresholdCents: number;
+  shippingOptions: readonly ShippingOption[];
   total: number;
   appliedCoupon: AppliedCoupon | null;
   shippingMethod: ShippingMethodId;
@@ -212,6 +245,10 @@ export function useCartSummaryState(): {
   const discountAmount = useAppSelector(selectCartDiscountAmount);
   const shippingCost = useAppSelector(selectCartShippingCost);
   const freeShippingRemaining = useAppSelector(selectCartFreeShippingRemaining);
+  const freeShippingThresholdCents = useAppSelector(
+    selectCartFreeShippingThresholdCents,
+  );
+  const shippingOptions = useAppSelector(selectCartShippingOptions);
   const total = useAppSelector(selectCartTotal);
   const appliedCoupon = useAppSelector(selectCartAppliedCoupon);
   const shippingMethod = useAppSelector(selectCartShippingMethod);
@@ -223,6 +260,8 @@ export function useCartSummaryState(): {
     discountAmount,
     shippingCost,
     freeShippingRemaining,
+    freeShippingThresholdCents,
+    shippingOptions,
     total,
     appliedCoupon,
     shippingMethod,

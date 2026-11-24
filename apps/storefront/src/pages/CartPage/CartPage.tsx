@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useCartHasItems, useCartItemIds, useCartPageMeta } from '../../hooks/useCart';
+import { useCartQuoteSync } from '../../hooks/useCartQuoteSync';
 import CartHeader from './components/CartHeader';
 import CartItemRow from './components/CartItemRow';
 import CartPromoBox from './components/CartPromoBox';
@@ -35,6 +36,12 @@ const CartPageTitle = memo(function CartPageTitle() {
 export function CartPage() {
   const hasItems = useCartHasItems();
   const itemIds = useCartItemIds();
+  const {
+    hasCurrencyMismatch,
+    isTotalsLoading,
+    quoteError,
+    retryQuote,
+  } = useCartQuoteSync(hasItems);
 
   return (
     <div className="cart-page">
@@ -71,24 +78,44 @@ export function CartPage() {
       ) : (
         <div className="cart-layout">
           <div className="cart-main">
+            {quoteError && (
+              <div className="cart-alert cart-alert--warning cart-quote-alert" role="alert">
+                <span>{quoteError}</span>
+                <button
+                  type="button"
+                  className="cart-quote-alert__retry"
+                  onClick={retryQuote}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
             <section className="cart-items-section" aria-label="Cart items">
               <ul className="cart-items-list">
                 {itemIds.map((id) => (
-                  <CartItemRow key={id} itemId={id} />
+                  <CartItemRow
+                    key={id}
+                    itemId={id}
+                    isCurrencyRepricing={isTotalsLoading}
+                  />
                 ))}
               </ul>
             </section>
 
             <div className="cart-config-grid">
               <CartPromoBox />
-              <CartShippingSelector />
+              <CartShippingSelector isPriceLoading={isTotalsLoading} />
             </div>
 
             <CartOrderNote />
           </div>
 
           <div className="cart-sidebar">
-            <CartOrderSummary />
+            <CartOrderSummary
+              isTotalsLoading={isTotalsLoading}
+              hasCurrencyMismatch={hasCurrencyMismatch}
+            />
           </div>
         </div>
       )}

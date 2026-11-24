@@ -1,15 +1,24 @@
 import { memo } from 'react';
-import { SHIPPING_OPTIONS } from '../../../store/slices/cartSlice';
 import { useCartActions, useCartShippingState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
+
+export interface CartShippingSelectorProps {
+  isPriceLoading?: boolean;
+}
 
 /**
  * Memoized shipping method selector subscribed only to shipping method
  * and memoized free-shipping eligibility booleans.
  */
-export const CartShippingSelector = memo(function CartShippingSelector() {
-  const { shippingMethod, qualifiesForFreeStandard, hasFreeShippingCoupon } =
-    useCartShippingState();
+export const CartShippingSelector = memo(function CartShippingSelector({
+  isPriceLoading = false,
+}: CartShippingSelectorProps) {
+  const {
+    shippingMethod,
+    shippingOptions,
+    qualifiesForFreeStandard,
+    hasFreeShippingCoupon,
+  } = useCartShippingState();
   const { setShippingMethod } = useCartActions();
   const { formatPrice } = useCurrency();
 
@@ -25,8 +34,9 @@ export const CartShippingSelector = memo(function CartShippingSelector() {
         className="cart-shipping__list"
         role="radiogroup"
         aria-labelledby="cart-shipping-heading"
+        aria-busy={isPriceLoading}
       >
-        {SHIPPING_OPTIONS.map((option) => {
+        {shippingOptions.map((option) => {
           const isSelected = shippingMethod === option.id;
           const isFree =
             option.basePriceCents === 0 ||
@@ -57,7 +67,16 @@ export const CartShippingSelector = memo(function CartShippingSelector() {
                   isFree ? 'cart-shipping__price--free' : ''
                 }`}
               >
-                {isFree ? 'Free' : formatPrice(option.basePriceCents)}
+                {isPriceLoading && option.basePriceCents > 0 ? (
+                  <span
+                    className="cart-shimmer cart-shimmer--shipping"
+                    aria-label="Updating shipping price"
+                  />
+                ) : isFree ? (
+                  'Free'
+                ) : (
+                  formatPrice(option.basePriceCents)
+                )}
               </span>
             </label>
           );

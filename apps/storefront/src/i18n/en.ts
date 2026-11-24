@@ -1,6 +1,8 @@
 export const enMessages = {
   // Navigation & Global
   'nav.brandAria': 'Minie Shop Home',
+  'nav.currencyLabel': 'Currency',
+  'nav.currencyAria': 'Select display currency',
   'nav.cartAria': 'Shopping cart with {count} items',
   'nav.cartLabel': 'Cart',
   'search.placeholder': 'Search products...',
@@ -46,8 +48,8 @@ export const enMessages = {
   'filters.categoriesLegend': 'Categories',
   'filters.allCategories': 'All categories',
   'filters.priceLegend': 'Price range',
-  'filters.minPriceLabel': 'Min price (BRL)',
-  'filters.maxPriceLabel': 'Max price (BRL)',
+  'filters.minPriceLabel': 'Min price ({currency})',
+  'filters.maxPriceLabel': 'Max price ({currency})',
   'filters.availabilityLegend': 'Availability',
   'filters.inStockOnly': 'In stock only',
   'filters.yes': 'Yes',

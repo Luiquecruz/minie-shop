@@ -1,15 +1,16 @@
+import type { SupportedCurrency } from '@minieshop/contracts';
+
 /**
  * Supported ISO currency codes in Minie Shop.
  */
-export type CurrencyCode = 'BRL' | 'USD' | 'EUR';
+export type CurrencyCode = SupportedCurrency;
 
 /**
- * Configuration metadata for a supported currency.
+ * Display metadata for a supported currency (zero client-side FX rates).
  */
 export interface CurrencyConfig {
   code: CurrencyCode;
   label: string;
   symbol: string;
-  rate: number;
   locale: string;
 }

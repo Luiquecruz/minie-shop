@@ -1007,3 +1007,76 @@ html.dark .cart-summary__free-tag {
     flex-direction: column;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Progressive Repricing Shimmers & Quote Alert (Phase 6.1)
+   -------------------------------------------------------------------------- */
+@keyframes cartShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.cart-shimmer {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--chip-bg, #e5e7eb) 25%,
+    var(--card-subtle, #f3f4f6) 50%,
+    var(--chip-bg, #e5e7eb) 75%
+  );
+  background-size: 200% 100%;
+  animation: cartShimmer 1.3s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+.cart-shimmer--unit {
+  width: 92px;
+  height: 16px;
+}
+
+.cart-shimmer--line-total {
+  width: 100px;
+  height: 20px;
+}
+
+.cart-shimmer--shipping {
+  width: 64px;
+  height: 16px;
+}
+
+.cart-shimmer--summary {
+  width: 82px;
+  height: 16px;
+}
+
+.cart-shimmer--summary-total {
+  width: 108px;
+  height: 22px;
+}
+
+.cart-quote-alert {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cart-quote-alert__retry {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cart-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

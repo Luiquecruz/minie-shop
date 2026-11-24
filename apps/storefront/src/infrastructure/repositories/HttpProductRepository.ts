@@ -3,14 +3,18 @@ import type {
   FacetsDTO,
   FavoriteCreatedResponseDTO,
   FavoritesListResponseDTO,
+  PricingQuoteRequestDTO,
+  PricingQuoteResponseDTO,
   ProductDetailDTO,
   ProductListResponseDTO,
+  SupportedCurrency,
 } from '@minieshop/contracts';
 import {
   clientCategoriesResponseSchema,
   clientFacetsDtoSchema,
   clientFavoriteCreatedResponseSchema,
   clientFavoritesListResponseSchema,
+  clientPricingQuoteResponseSchema,
   clientProductDetailDtoSchema,
   clientProductListResponseSchema,
 } from '@minieshop/contracts/catalog/client';
@@ -44,10 +48,12 @@ export class HttpProductRepository implements ProductRepository {
   getProductBySlug(
     slug: string,
     signal?: AbortSignal,
+    currency: SupportedCurrency = 'BRL',
   ): Promise<ProductDetailDTO> {
     const encodedSlug = encodeURIComponent(slug);
+    const query = currency !== 'BRL' ? `?currency=${encodeURIComponent(currency)}` : '';
     return this.httpClient.get<ProductDetailDTO>(
-      `/products/${encodedSlug}`,
+      `/products/${encodedSlug}${query}`,
       clientProductDetailDtoSchema,
       { signal },
     );
@@ -70,6 +76,17 @@ export class HttpProductRepository implements ProductRepository {
       `/products/facets${query}`,
       clientFacetsDtoSchema,
       { signal },
+    );
+  }
+
+  quotePricing(
+    request: PricingQuoteRequestDTO,
+    signal?: AbortSignal,
+  ): Promise<PricingQuoteResponseDTO> {
+    return this.httpClient.post<PricingQuoteResponseDTO>(
+      '/pricing/quote',
+      clientPricingQuoteResponseSchema,
+      { body: request, signal },
     );
   }
 

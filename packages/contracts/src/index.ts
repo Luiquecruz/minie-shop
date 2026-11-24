@@ -15,6 +15,8 @@ export {
 } from './errors.js';
 
 export {
+  SUPPORTED_CURRENCY_CODES,
+  supportedCurrencySchema,
   moneySchema,
   imageVariantSchema,
   imageDtoSchema,
@@ -37,6 +39,12 @@ export {
   productSortSchema,
   productSlugParamSchema,
   productIdParamSchema,
+  shippingMethodCodeSchema,
+  pricingQuoteRequestSchema,
+  quotedProductPriceSchema,
+  quotedShippingOptionSchema,
+  pricingQuoteResponseSchema,
+  type SupportedCurrency,
   type MoneyDTO,
   type ImageVariantDTO,
   type ImageDTO,
@@ -59,6 +67,11 @@ export {
   type ProductSort,
   type ProductSlugParam,
   type ProductIdParam,
+  type ShippingMethodCode,
+  type PricingQuoteRequestDTO,
+  type QuotedProductPriceDTO,
+  type QuotedShippingOptionDTO,
+  type PricingQuoteResponseDTO,
 } from './catalog/public.js';
 
 export {

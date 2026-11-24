@@ -1,7 +1,7 @@
-import type { MoneyDTO } from '@minieshop/contracts';
+import type { MoneyDTO, SupportedCurrency } from '@minieshop/contracts';
 
 const DEFAULT_LOCALE = 'pt-BR';
-const DEFAULT_CURRENCY = 'BRL';
+const DEFAULT_CURRENCY: SupportedCurrency = 'BRL';
 
 /**
  * Formats an integer-cents MoneyDTO at the UI display boundary.
@@ -10,8 +10,7 @@ const DEFAULT_CURRENCY = 'BRL';
  * - All monetary values in domain, cart, shipping, and discount logic are
  *   strictly integer cents (never floating-point currency values).
  * - The frontend NEVER computes currency conversion rates; it formats the
- *   exact MoneyDTO returned by the API (backend multi-currency pricing is
- *   queued for Phase 6.1).
+ *   exact MoneyDTO returned by the API (ADR-0017 / ADR-0018).
  */
 export function formatMoney(
   money: MoneyDTO,
@@ -31,7 +30,7 @@ export function formatMoney(
  */
 export function formatCents(
   amountCents: number,
-  currency: string = DEFAULT_CURRENCY,
+  currency: SupportedCurrency = DEFAULT_CURRENCY,
   locale: string = DEFAULT_LOCALE,
 ): string {
   return formatMoney({ amount: amountCents, currency }, locale);

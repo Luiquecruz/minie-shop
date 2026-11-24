@@ -78,6 +78,13 @@
       "when": 1764050000000,
       "tag": "0010_identity_phase5_and_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1764100000000,
+      "tag": "0011_catalog_multicurrency_pricing",
+      "breakpoints": true
     }
   ]
 }

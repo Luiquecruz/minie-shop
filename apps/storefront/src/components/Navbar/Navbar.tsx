@@ -1,11 +1,26 @@
 import { Link } from 'react-router-dom';
-import { useCart } from '../../hooks/useCart';
+import { useCartBadge } from '../../hooks/useCart';
+import { useCurrency } from '../../hooks/useCurrency';
 import { t } from '../../i18n';
+import {
+  isCurrencyCode,
+  SUPPORTED_CURRENCY_LIST,
+} from '../../utils/currency';
 import SearchBar from '../SearchBar/SearchBar';
 import './Navbar.css';
 
 export function Navbar() {
-  const { cartCount, toggleCart } = useCart();
+  const { cartCount, toggleCart } = useCartBadge();
+  const { currentCurrency, setCurrency } = useCurrency();
+
+  const handleCurrencyChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ): void => {
+    const nextValue = event.target.value;
+    if (isCurrencyCode(nextValue)) {
+      setCurrency(nextValue);
+    }
+  };
 
   return (
     <header className="navbar">
@@ -35,6 +50,25 @@ export function Navbar() {
         </div>
 
         <div className="navbar__actions">
+          <div className="navbar__currency-wrapper">
+            <label htmlFor="navbar-currency-select" className="visually-hidden">
+              {t('nav.currencyLabel')}
+            </label>
+            <select
+              id="navbar-currency-select"
+              className="navbar__currency-select"
+              value={currentCurrency}
+              onChange={handleCurrencyChange}
+              aria-label={t('nav.currencyAria')}
+            >
+              {SUPPORTED_CURRENCY_LIST.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             type="button"
             className="navbar__cart-btn"

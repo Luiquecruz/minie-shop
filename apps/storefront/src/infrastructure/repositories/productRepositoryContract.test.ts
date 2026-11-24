@@ -64,7 +64,29 @@ function createHttpBackedByMock(): HttpProductRepository {
 
       if (method === 'GET' && url.pathname.startsWith('/products/')) {
         const slug = decodeURIComponent(url.pathname.slice('/products/'.length));
-        const data = await backend.getProductBySlug(slug, signal);
+        const currency =
+          (url.searchParams.get('currency') as 'BRL' | 'USD' | 'EUR' | null) ??
+          'BRL';
+        const data = await backend.getProductBySlug(slug, signal, currency);
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (method === 'POST' && url.pathname === '/pricing/quote') {
+        const rawBody = typeof init?.body === 'string' ? init.body : '{}';
+        const parsedBody = JSON.parse(rawBody) as {
+          currency?: 'BRL' | 'USD' | 'EUR';
+          productIds?: string[];
+        };
+        const data = await backend.quotePricing(
+          {
+            currency: parsedBody.currency ?? 'BRL',
+            productIds: parsedBody.productIds ?? [],
+          },
+          signal,
+        );
         return new Response(JSON.stringify(data), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },

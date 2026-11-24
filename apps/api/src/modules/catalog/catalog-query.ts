@@ -1,4 +1,10 @@
-import { productSortSchema, type ErrorDetail, type ProductSort } from '@minieshop/contracts';
+import {
+  productSortSchema,
+  supportedCurrencySchema,
+  type ErrorDetail,
+  type ProductSort,
+  type SupportedCurrency,
+} from '@minieshop/contracts';
 import { z } from 'zod';
 import { validationError } from '../../common/errors.js';
 
@@ -26,6 +32,7 @@ export interface NumericAttributeFilter {
 }
 
 export interface ParsedCatalogFilters {
+  currency: SupportedCurrency;
   category?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -45,6 +52,7 @@ export interface DecodedCursor {
   s: ProductSort;
   k: string | number;
   id: string;
+  cur?: SupportedCurrency;
 }
 
 const cursorPayloadSchema = z
@@ -52,6 +60,7 @@ const cursorPayloadSchema = z
     s: productSortSchema,
     k: z.union([z.string(), z.number()]),
     id: z.string().uuid(),
+    cur: supportedCurrencySchema.optional(),
   })
   .strict();
 
@@ -59,12 +68,20 @@ export function encodeCursor(payload: DecodedCursor): string {
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
 }
 
-export function decodeCursor(raw: string, expectedSort: ProductSort): DecodedCursor {
+export function decodeCursor(
+  raw: string,
+  expectedSort: ProductSort,
+  expectedCurrency: SupportedCurrency = 'BRL',
+): DecodedCursor {
   try {
     const json = Buffer.from(raw, 'base64url').toString('utf8');
     const parsed = cursorPayloadSchema.parse(JSON.parse(json));
     if (parsed.s !== expectedSort) {
       throw new Error('Cursor sort mismatch');
+    }
+    const cursorCurrency: SupportedCurrency = parsed.cur ?? 'BRL';
+    if (cursorCurrency !== expectedCurrency) {
+      throw new Error('Cursor currency mismatch');
     }
     return parsed;
   } catch {
@@ -73,6 +90,7 @@ export function decodeCursor(raw: string, expectedSort: ProductSort): DecodedCur
 }
 
 const KNOWN_LIST_KEYS = new Set([
+  'currency',
   'category',
   'minPrice',
   'maxPrice',
@@ -83,7 +101,7 @@ const KNOWN_LIST_KEYS = new Set([
   'cursor',
 ]);
 
-const KNOWN_FACETS_KEYS = new Set(['category', 'minPrice', 'maxPrice', 'inStock', 'q']);
+const KNOWN_FACETS_KEYS = new Set(['currency', 'category', 'minPrice', 'maxPrice', 'inStock', 'q']);
 
 function getSingleStringParam(
   rawQuery: Record<string, unknown>,
@@ -141,6 +159,29 @@ function parseFiniteNumber(
     return undefined;
   }
   return num;
+}
+
+export function parseCurrencyQueryParam(rawQuery: Record<string, unknown>): SupportedCurrency {
+  const details: ErrorDetail[] = [];
+  for (const key of Object.keys(rawQuery)) {
+    if (key !== 'currency') {
+      details.push({ path: key, message: `Unknown query parameter "${key}"` });
+    }
+  }
+  const currencyRaw = getSingleStringParam(rawQuery, 'currency', details);
+  let currency: SupportedCurrency = 'BRL';
+  if (currencyRaw !== undefined) {
+    const parsed = supportedCurrencySchema.safeParse(currencyRaw.trim().toUpperCase());
+    if (!parsed.success) {
+      details.push({ path: 'currency', message: 'currency must be one of: BRL, USD, EUR' });
+    } else {
+      currency = parsed.data;
+    }
+  }
+  if (details.length > 0) {
+    throw validationError(details);
+  }
+  return currency;
 }
 
 export function parseCatalogFilters(
@@ -262,6 +303,17 @@ export function parseCatalogFilters(
     }
   }
 
+  const currencyRaw = getSingleStringParam(rawQuery, 'currency', details);
+  let currency: SupportedCurrency = 'BRL';
+  if (currencyRaw !== undefined) {
+    const parsedCurrency = supportedCurrencySchema.safeParse(currencyRaw.trim().toUpperCase());
+    if (!parsedCurrency.success) {
+      details.push({ path: 'currency', message: 'currency must be one of: BRL, USD, EUR' });
+    } else {
+      currency = parsedCurrency.data;
+    }
+  }
+
   const categoryRaw = getSingleStringParam(rawQuery, 'category', details);
   let category: string | undefined;
   if (categoryRaw !== undefined) {
@@ -317,6 +369,7 @@ export function parseCatalogFilters(
   }
 
   return {
+    currency,
     category,
     minPrice,
     maxPrice,
@@ -376,7 +429,8 @@ export function parseProductListQuery(
     throw validationError(details);
   }
 
-  const cursor = cursorRaw !== undefined ? decodeCursor(cursorRaw, sort) : undefined;
+  const cursor =
+    cursorRaw !== undefined ? decodeCursor(cursorRaw, sort, filters.currency) : undefined;
 
   return {
     ...filters,

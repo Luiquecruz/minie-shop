@@ -8,6 +8,7 @@ import {
 } from '@minieshop/contracts';
 import { sendWithPublicCache } from '../../common/http-cache.js';
 import { parseOutput } from '../../common/parse-response.js';
+import { parseCurrencyQueryParam } from './catalog-query.js';
 import { CatalogService } from './catalog.service.js';
 
 @Controller('products')
@@ -40,7 +41,9 @@ export class ProductsController {
     @Res() reply: FastifyReply,
   ): Promise<void> {
     const { slug } = productSlugParamSchema.parse({ slug: rawSlug });
-    const detail = await this.catalogService.getProductBySlug(slug);
+    const rawQuery = (request.query ?? {}) as Record<string, unknown>;
+    const currency = parseCurrencyQueryParam(rawQuery);
+    const detail = await this.catalogService.getProductBySlug(slug, currency);
     const payload = parseOutput(productDetailDtoSchema, detail);
     await sendWithPublicCache(request, reply, payload);
   }

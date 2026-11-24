@@ -17,6 +17,7 @@ export function buildSearchRankSql(q: string): SQL<number> {
 export interface BuildFilterConditionsOptions {
   filters: ParsedCatalogFilters;
   categoryIds?: string[] | null;
+  effectivePriceExpr?: SQL<number>;
   exclude?: {
     category?: boolean;
     price?: boolean;
@@ -26,6 +27,7 @@ export interface BuildFilterConditionsOptions {
 
 export function buildProductFilterConditions(options: BuildFilterConditionsOptions): SQL[] {
   const { filters, categoryIds, exclude } = options;
+  const priceExpr = options.effectivePriceExpr ?? effectivePriceSql;
   const conditions: SQL[] = [eq(products.status, 'published')];
 
   if (!exclude?.category && filters.category !== undefined) {
@@ -38,10 +40,10 @@ export function buildProductFilterConditions(options: BuildFilterConditionsOptio
 
   if (!exclude?.price) {
     if (filters.minPrice !== undefined) {
-      conditions.push(sql`${effectivePriceSql} >= ${filters.minPrice}`);
+      conditions.push(sql`${priceExpr} >= ${filters.minPrice}`);
     }
     if (filters.maxPrice !== undefined) {
-      conditions.push(sql`${effectivePriceSql} <= ${filters.maxPrice}`);
+      conditions.push(sql`${priceExpr} <= ${filters.maxPrice}`);
     }
   }
 

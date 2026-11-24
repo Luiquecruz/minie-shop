@@ -3,9 +3,12 @@ import type {
   FacetsDTO,
   FavoriteCreatedResponseDTO,
   FavoritesListResponseDTO,
+  PricingQuoteRequestDTO,
+  PricingQuoteResponseDTO,
   ProductDetailDTO,
   ProductListResponseDTO,
   ProductSort,
+  SupportedCurrency,
 } from '@minieshop/contracts';
 
 export interface NumericAttributeRangeFilter {
@@ -14,6 +17,7 @@ export interface NumericAttributeRangeFilter {
 }
 
 export interface CatalogFilterParams {
+  currency?: SupportedCurrency;
   category?: string;
   q?: string;
   minPrice?: number;
@@ -38,16 +42,24 @@ export interface ListProductsParams extends CatalogFilterParams {
 export type FacetsParams = CatalogFilterParams;
 
 /**
- * Domain repository port for all public catalog & favorites operations.
+ * Domain repository port for all public catalog, pricing & favorites operations.
  */
 export interface ProductRepository {
   listProducts(
     params?: ListProductsParams,
     signal?: AbortSignal,
   ): Promise<ProductListResponseDTO>;
-  getProductBySlug(slug: string, signal?: AbortSignal): Promise<ProductDetailDTO>;
+  getProductBySlug(
+    slug: string,
+    signal?: AbortSignal,
+    currency?: SupportedCurrency,
+  ): Promise<ProductDetailDTO>;
   getCategories(signal?: AbortSignal): Promise<CategoriesResponseDTO>;
   getFacets(params?: FacetsParams, signal?: AbortSignal): Promise<FacetsDTO>;
+  quotePricing(
+    request: PricingQuoteRequestDTO,
+    signal?: AbortSignal,
+  ): Promise<PricingQuoteResponseDTO>;
   getFavorites(signal?: AbortSignal): Promise<FavoritesListResponseDTO>;
   addFavorite(
     productId: string,
@@ -65,6 +77,9 @@ export function buildCatalogQueryString(
 ): string {
   const search = new URLSearchParams();
 
+  if (params.currency && params.currency !== 'BRL') {
+    search.set('currency', params.currency);
+  }
   if (params.category) {
     search.set('category', params.category);
   }

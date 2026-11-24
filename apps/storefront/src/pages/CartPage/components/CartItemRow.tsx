@@ -9,6 +9,7 @@ import ProductImage from '../../../components/ProductImage/ProductImage';
 
 export interface CartItemRowProps {
   itemId: string;
+  isCurrencyRepricing?: boolean;
 }
 
 /**
@@ -17,10 +18,11 @@ export interface CartItemRowProps {
  */
 export const CartItemRow = memo(function CartItemRow({
   itemId,
+  isCurrencyRepricing = false,
 }: CartItemRowProps) {
   const { item, stockWarning } = useCartItemState(itemId);
   const { updateQuantity, removeFromCart } = useCartActions();
-  const { formatPrice } = useCurrency();
+  const { currentCurrency, formatPrice } = useCurrency();
 
   const [localWarning, setLocalWarning] = useState<string | null>(null);
   const [hasEditedQuantity, setHasEditedQuantity] = useState(false);
@@ -53,6 +55,8 @@ export const CartItemRow = memo(function CartItemRow({
   const unitPriceCents = item.price.amount;
   const lineTotalCents = unitPriceCents * item.quantity;
   const productPath = `/${item.categorySlug}/${item.slug}`;
+  const isPriceShimmer =
+    isCurrencyRepricing && item.price.currency !== currentCurrency;
 
   const handleIncrement = (): void => {
     setDraftQty(null);
@@ -171,10 +175,17 @@ export const CartItemRow = memo(function CartItemRow({
           {item.name}
         </Link>
 
-        <div className="cart-item__unit-pricing">
-          <span className="cart-item__unit-current">
-            {formatPrice(unitPriceCents, item.price.currency)} each
-          </span>
+        <div className="cart-item__unit-pricing" aria-busy={isPriceShimmer}>
+          {isPriceShimmer ? (
+            <span
+              className="cart-shimmer cart-shimmer--unit"
+              aria-label="Updating unit price"
+            />
+          ) : (
+            <span className="cart-item__unit-current">
+              {formatPrice(unitPriceCents, item.price.currency)} each
+            </span>
+          )}
         </div>
 
         {activeWarning && (
@@ -287,11 +298,18 @@ export const CartItemRow = memo(function CartItemRow({
             )}
           </div>
 
-          <div className="cart-item__line-total-group">
+          <div className="cart-item__line-total-group" aria-busy={isPriceShimmer}>
             <span className="cart-item__line-total-label">Line Total</span>
-            <span className="cart-item__line-total">
-              {formatPrice(lineTotalCents, item.price.currency)}
-            </span>
+            {isPriceShimmer ? (
+              <span
+                className="cart-shimmer cart-shimmer--line-total"
+                aria-label="Updating line total"
+              />
+            ) : (
+              <span className="cart-item__line-total">
+                {formatPrice(lineTotalCents, item.price.currency)}
+              </span>
+            )}
           </div>
         </div>
       </div>

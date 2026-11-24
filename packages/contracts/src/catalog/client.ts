@@ -3,6 +3,8 @@ import { errorCodeSchema } from '../errors.js';
 import {
   attributeValueSchema,
   facetAttributeTypeSchema,
+  shippingMethodCodeSchema,
+  supportedCurrencySchema,
   type CategoriesResponseDTO,
   type CategoryDTO,
   type CategoryRefDTO,
@@ -16,10 +18,13 @@ import {
   type ImageDTO,
   type ImageVariantDTO,
   type MoneyDTO,
+  type PricingQuoteResponseDTO,
   type ProductAttributeDTO,
   type ProductCardDTO,
   type ProductDetailDTO,
   type ProductListResponseDTO,
+  type QuotedProductPriceDTO,
+  type QuotedShippingOptionDTO,
 } from './public.js';
 import type { ApiErrorResponse, ErrorDetail } from '../errors.js';
 
@@ -31,7 +36,7 @@ import type { ApiErrorResponse, ErrorDetail } from '../errors.js';
 export const clientMoneySchema: z.ZodType<MoneyDTO> = z
   .object({
     amount: z.number().int().nonnegative(),
-    currency: z.string().min(3).max(3),
+    currency: supportedCurrencySchema,
   })
   .strip();
 
@@ -179,6 +184,30 @@ export const clientFavoriteCreatedResponseSchema: z.ZodType<FavoriteCreatedRespo
 export const clientFavoritesListResponseSchema: z.ZodType<FavoritesListResponseDTO> = z
   .object({
     productIds: z.array(z.string().uuid()),
+  })
+  .strip();
+
+export const clientQuotedProductPriceSchema: z.ZodType<QuotedProductPriceDTO> = z
+  .object({
+    productId: z.string().uuid(),
+    price: clientMoneySchema,
+    inStock: z.boolean(),
+  })
+  .strip();
+
+export const clientQuotedShippingOptionSchema: z.ZodType<QuotedShippingOptionDTO> = z
+  .object({
+    id: shippingMethodCodeSchema,
+    basePriceCents: z.number().int().nonnegative(),
+  })
+  .strip();
+
+export const clientPricingQuoteResponseSchema: z.ZodType<PricingQuoteResponseDTO> = z
+  .object({
+    currency: supportedCurrencySchema,
+    items: z.array(clientQuotedProductPriceSchema),
+    freeShippingThresholdCents: z.number().int().nonnegative(),
+    shippingOptions: z.array(clientQuotedShippingOptionSchema).min(1),
   })
   .strip();
 

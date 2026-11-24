@@ -12,6 +12,7 @@ import {
   queryKeys,
   type ProductInfiniteFilters,
 } from '../query/queryKeys';
+import { useCurrency } from './useCurrency';
 import { useProductRepository } from './useProductRepository';
 
 const THIRTY_SECONDS_MS = 30 * 1000;
@@ -23,14 +24,17 @@ const THIRTY_SECONDS_MS = 30 * 1000;
  */
 export function useProductsQuery(filters: ProductInfiniteFilters) {
   const repository = useProductRepository();
+  const { currentCurrency } = useCurrency();
+  const currency = filters.currency ?? currentCurrency;
+  const scopedFilters: ProductInfiniteFilters = { ...filters, currency };
 
   return useInfiniteQuery({
-    queryKey: queryKeys.products.infinite(filters),
+    queryKey: queryKeys.products.infinite(scopedFilters),
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       repository.listProducts(
         {
-          ...filters,
+          ...scopedFilters,
           cursor: pageParam,
         },
         signal,
@@ -57,32 +61,36 @@ export function useCategoriesQuery() {
 }
 
 /**
- * Fetches disjunctive catalog facets matching the active filters.
+ * Fetches disjunctive catalog facets matching the active filters and currency.
  */
 export function useFacetsQuery(filters: CatalogFilterParams) {
   const repository = useProductRepository();
+  const { currentCurrency } = useCurrency();
+  const currency = filters.currency ?? currentCurrency;
+  const scopedFilters: CatalogFilterParams = { ...filters, currency };
 
   return useQuery({
-    queryKey: queryKeys.products.facets(filters),
-    queryFn: ({ signal }) => repository.getFacets(filters, signal),
+    queryKey: queryKeys.products.facets(scopedFilters),
+    queryFn: ({ signal }) => repository.getFacets(scopedFilters, signal),
     placeholderData: keepPreviousData,
     staleTime: TWO_MINUTES_MS,
   });
 }
 
 /**
- * Fetches a single product detail by slug.
+ * Fetches a single product detail by slug in the active currency.
  */
 export function useProductQuery(slug: string | undefined) {
   const repository = useProductRepository();
+  const { currentCurrency } = useCurrency();
 
   return useQuery({
-    queryKey: queryKeys.products.detail(slug ?? ''),
+    queryKey: queryKeys.products.detail(slug ?? '', currentCurrency),
     queryFn: ({ signal }) => {
       if (!slug) {
         return Promise.reject(new Error('Product slug is missing.'));
       }
-      return repository.getProductBySlug(slug, signal);
+      return repository.getProductBySlug(slug, signal, currentCurrency);
     },
     enabled: Boolean(slug),
     staleTime: TWO_MINUTES_MS,

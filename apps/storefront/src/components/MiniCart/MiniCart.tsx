@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CartItem as CartItemType } from '../../types';
 import { useCart } from '../../hooks/useCart';
+import { useCartQuoteSync } from '../../hooks/useCartQuoteSync';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useStockValidationQuery } from '../../hooks/useProducts';
@@ -13,12 +14,19 @@ interface CartItemProps {
   onUpdateQuantity: (id: string, quantity: number) => void;
   onRemove: (id: string) => void;
   warning?: string;
+  isPriceLoading?: boolean;
 }
 
 /**
  * Individual Cart Item with debounced React Query availability check and guardrails.
  */
-function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) {
+function CartItem({
+  item,
+  onUpdateQuantity,
+  onRemove,
+  warning,
+  isPriceLoading = false,
+}: CartItemProps) {
   const { formatPrice } = useCurrency();
   const [localWarning, setLocalWarning] = useState<string | null>(null);
   const [hasEditedQuantity, setHasEditedQuantity] = useState(false);
@@ -134,14 +142,23 @@ function CartItem({ item, onUpdateQuantity, onRemove, warning }: CartItemProps) 
           {item.name}
         </Link>
 
-        <div className="mini-cart__item-pricing">
-          <span className="mini-cart__item-total">
-            {formatPrice(itemTotalCents, item.price.currency)}
-          </span>
-          {item.quantity > 1 && (
-            <span className="mini-cart__item-unit-price">
-              ({formatPrice(item.price.amount, item.price.currency)} each)
-            </span>
+        <div className="mini-cart__item-pricing" aria-busy={isPriceLoading}>
+          {isPriceLoading ? (
+            <span
+              className="mini-cart__shimmer mini-cart__shimmer--price"
+              aria-label="Updating item price"
+            />
+          ) : (
+            <>
+              <span className="mini-cart__item-total">
+                {formatPrice(itemTotalCents, item.price.currency)}
+              </span>
+              {item.quantity > 1 && (
+                <span className="mini-cart__item-unit-price">
+                  ({formatPrice(item.price.amount, item.price.currency)} each)
+                </span>
+              )}
+            </>
           )}
         </div>
 
@@ -265,7 +282,14 @@ export function MiniCart() {
     closeCart,
   } = useCart();
 
-  const { formatPrice } = useCurrency();
+  const { currentCurrency, formatPrice } = useCurrency();
+  const {
+    hasCurrencyMismatch,
+    isTotalsLoading,
+    quoteError,
+    retryQuote,
+    isItemPriceLoading,
+  } = useCartQuoteSync(isOpen);
   const navigate = useNavigate();
   const drawerRef = useRef<HTMLDivElement | null>(null);
   const [feedbackNotice, setFeedbackNotice] = useState('');
@@ -351,6 +375,19 @@ export function MiniCart() {
           </div>
         )}
 
+        {quoteError && (
+          <div className="mini-cart__quote-error" role="alert">
+            <span>{quoteError}</span>
+            <button
+              type="button"
+              className="mini-cart__retry-btn"
+              onClick={retryQuote}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         <div className="mini-cart__body">
           {items.length === 0 ? (
             <div className="mini-cart__empty">
@@ -375,6 +412,7 @@ export function MiniCart() {
                   onUpdateQuantity={updateQuantity}
                   onRemove={removeFromCart}
                   warning={stockWarnings[item.id]}
+                  isPriceLoading={isItemPriceLoading(item.price.currency)}
                 />
               ))}
             </ul>
@@ -383,11 +421,30 @@ export function MiniCart() {
 
         {items.length > 0 && (
           <footer className="mini-cart__footer">
-            <div className="mini-cart__totals">
+            <div className="mini-cart__totals" aria-busy={isTotalsLoading}>
+              <span
+                className="mini-cart__sr-only"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {isTotalsLoading
+                  ? `Updating cart totals in ${currentCurrency}...`
+                  : quoteError
+                    ? ''
+                    : `Cart subtotal in ${currentCurrency}: ${formatPrice(subtotal, currentCurrency)}`}
+              </span>
               <div className="mini-cart__total-row">
                 <span className="mini-cart__total-label">Subtotal</span>
                 <span className="mini-cart__total-val">
-                  {formatPrice(subtotal)}
+                  {isTotalsLoading ? (
+                    <span
+                      className="mini-cart__shimmer mini-cart__shimmer--total"
+                      aria-label="Updating subtotal"
+                    />
+                  ) : (
+                    formatPrice(subtotal, currentCurrency)
+                  )}
                 </span>
               </div>
               <div className="mini-cart__total-row mini-cart__total-row--final">
@@ -395,7 +452,14 @@ export function MiniCart() {
                   Total
                 </span>
                 <span className="mini-cart__total-val mini-cart__total-val--large">
-                  {formatPrice(subtotal)}
+                  {isTotalsLoading ? (
+                    <span
+                      className="mini-cart__shimmer mini-cart__shimmer--total-lg"
+                      aria-label="Updating total"
+                    />
+                  ) : (
+                    formatPrice(subtotal, currentCurrency)
+                  )}
                 </span>
               </div>
               <span className="mini-cart__tax-note">
@@ -408,6 +472,7 @@ export function MiniCart() {
                 type="button"
                 className="mini-cart__btn mini-cart__btn--primary"
                 onClick={handleCheckout}
+                disabled={isTotalsLoading || hasCurrencyMismatch}
               >
                 <span>Proceed to Checkout</span>
               </button>

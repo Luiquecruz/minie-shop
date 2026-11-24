@@ -1,22 +1,28 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  FREE_SHIPPING_THRESHOLD_CENTS,
-  SHIPPING_OPTIONS,
-} from '../../../store/slices/cartSlice';
 import { useCartSummaryState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
+
+export interface CartOrderSummaryProps {
+  isTotalsLoading?: boolean;
+  hasCurrencyMismatch?: boolean;
+}
 
 /**
  * Memoized sticky order summary sidebar driven by memoized Redux selectors.
  */
-export const CartOrderSummary = memo(function CartOrderSummary() {
+export const CartOrderSummary = memo(function CartOrderSummary({
+  isTotalsLoading = false,
+  hasCurrencyMismatch = false,
+}: CartOrderSummaryProps) {
   const {
     totalUnits,
     subtotal,
     discountAmount,
     shippingCost,
     freeShippingRemaining,
+    freeShippingThresholdCents,
+    shippingOptions,
     total,
     appliedCoupon,
     shippingMethod,
@@ -35,13 +41,13 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
   }, []);
 
   const selectedShipping =
-    SHIPPING_OPTIONS.find((opt) => opt.id === shippingMethod) ??
-    SHIPPING_OPTIONS[0];
+    shippingOptions.find((opt) => opt.id === shippingMethod) ??
+    shippingOptions[0];
 
-  const progressRatio = Math.min(
-    100,
-    Math.round((subtotal / FREE_SHIPPING_THRESHOLD_CENTS) * 100),
-  );
+  const progressRatio =
+    freeShippingThresholdCents > 0
+      ? Math.min(100, Math.round((subtotal / freeShippingThresholdCents) * 100))
+      : 100;
 
   const handleCheckout = (): void => {
     if (noticeTimerRef.current !== null) {
@@ -92,23 +98,46 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
         </div>
       )}
 
-      <dl className="cart-summary__breakdown">
+      <dl className="cart-summary__breakdown" aria-busy={isTotalsLoading}>
         <div className="cart-summary__row">
           <dt>Subtotal ({totalUnits} units)</dt>
-          <dd>{formatPrice(subtotal)}</dd>
+          <dd>
+            {isTotalsLoading ? (
+              <span
+                className="cart-shimmer cart-shimmer--summary"
+                aria-label="Updating subtotal"
+              />
+            ) : (
+              formatPrice(subtotal)
+            )}
+          </dd>
         </div>
 
         {appliedCoupon && discountAmount > 0 && (
           <div className="cart-summary__row cart-summary__row--discount">
             <dt>Promo ({appliedCoupon.code})</dt>
-            <dd>-{formatPrice(discountAmount)}</dd>
+            <dd>
+              {isTotalsLoading ? (
+                <span
+                  className="cart-shimmer cart-shimmer--summary"
+                  aria-label="Updating discount"
+                />
+              ) : (
+                `-${formatPrice(discountAmount)}`
+              )}
+            </dd>
           </div>
         )}
 
         <div className="cart-summary__row">
           <dt>Shipping ({selectedShipping.name})</dt>
           <dd>
-            {shippingCost === 0 ? (
+            {isTotalsLoading ? (
+              <span
+                className="cart-shimmer cart-shimmer--summary"
+                aria-label="Updating shipping"
+              />
+            ) : shippingCost === 0 ? (
               <span className="cart-summary__free-tag">Free</span>
             ) : (
               formatPrice(shippingCost)
@@ -125,7 +154,16 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
 
         <div className="cart-summary__row cart-summary__row--total">
           <dt>Estimated Total</dt>
-          <dd>{formatPrice(total)}</dd>
+          <dd>
+            {isTotalsLoading ? (
+              <span
+                className="cart-shimmer cart-shimmer--summary-total"
+                aria-label="Updating estimated total"
+              />
+            ) : (
+              formatPrice(total)
+            )}
+          </dd>
         </div>
       </dl>
 
@@ -155,6 +193,7 @@ export const CartOrderSummary = memo(function CartOrderSummary() {
           type="button"
           className="cart-btn cart-btn--primary"
           onClick={handleCheckout}
+          disabled={isTotalsLoading || hasCurrencyMismatch}
         >
           <svg
             width="18"
