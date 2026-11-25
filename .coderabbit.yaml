@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://www.coderabbit.ai/integrations/schema.v2.json
+reviews:
+  profile: chill
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enable: true
+    drafts: false
+

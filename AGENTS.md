@@ -33,11 +33,12 @@ Project constitution, context, and operational guidelines for AI agents and deve
 ## Available Scripts
 
 ```bash
-pnpm dev           # Start monorepo dev servers via Turbo
-pnpm test          # Run API contract/unit tests and storefront Vitest + vitest-axe suites
-pnpm typecheck     # Run strict TypeScript compiler checks across all packages
-pnpm lint          # Run ESLint & Oxlint checks across the workspace
-pnpm build         # Build contracts, email, API, and storefront production bundle
+pnpm dev:storefront  # Start Vite storefront dev server on port 5199
+pnpm dev:api         # Start NestJS API dev server
+pnpm test            # Run API contract/unit tests and storefront Vitest + vitest-axe suites
+pnpm typecheck       # Run strict TypeScript compiler checks across all packages
+pnpm lint            # Run ESLint & Oxlint checks across the workspace
+pnpm build           # Build contracts, email, API, and storefront production bundle
 pnpm --filter @minieshop/storefront metrics  # Run Playwright metrics suite against live stack
 ```
 
@@ -105,3 +106,6 @@ react-minieshop/
    - Every SDD specification or feature increment **must** have its own dedicated Git branch (`feat/<slug>`, `fix/<slug>`, `refactor/<slug>`).
    - **Clean Branch Names (No SDD IDs):** Branch names must be clear, concise, and domain-focused (e.g., `feat/dedicated-cart-page`). Never include SDD prefixes or numbers (such as `sdd-0001`) in branch names.
    - Never start implementing a new spec on `main` or on another spec's existing branch. Check `git branch --show-current` first: continue on the spec's dedicated branch if already checked out, otherwise create/checkout a new dedicated branch before writing code.
+8. **Explicit Commit & Push Approval Gate (No Auto-Commit):**
+   - **Never commit or push changes (`git commit`, `git push`) without explicit user approval** of both the approach and the resulting changes.
+   - **Open PR Heightened Gate:** Especially when the current branch already has an open Pull Request, never commit or push fixes, refactors, or review responses autonomously—present the diagnosis/approach and local verification first, and wait for explicit approval before committing or pushing.

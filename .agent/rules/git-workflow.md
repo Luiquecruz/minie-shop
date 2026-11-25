@@ -5,6 +5,10 @@ description: "Git branching, Conventional Commits standard, and pre-commit/PR ve
 
 # Git Workflow & Commit Conventions
 
+## 0. Mandatory Commit & Push Approval Gate
+- **Never commit or push without explicit user approval:** Never run `git commit` or `git push` automatically after edits, test fixes, or code review adjustments. Validate locally first, present the changes, and wait for the user's explicit authorization to commit or push.
+- **Strict Gate for Open Pull Requests:** Whenever an open Pull Request already exists for the current branch, every new fix or modification requires prior validation of the approach and changes by the user before committing or updating the remote PR branch.
+
 ## 1. Commit Message Standard
 Follow **Conventional Commits** matching the repository history:
 
