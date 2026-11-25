@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useMatch, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { CategoriesResponseDTO, CategoryDTO, SearchSuggestionDTO } from '@minieshop/contracts';
 import { useCombobox } from '../../hooks/useCombobox';
@@ -7,7 +7,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { MIN_SUGGEST_QUERY_LENGTH, useSearchSuggestQuery } from '../../hooks/useSearch';
 import { useI18n } from '../../i18n';
 import { queryKeys } from '../../query/queryKeys';
-import { MAX_SEARCH_QUERY_LENGTH } from '../../utils/searchUrlParams';
+import { MAX_SEARCH_QUERY_LENGTH, parseSearchUrlQuery } from '../../utils/searchUrlParams';
 import './SearchBar.css';
 
 export interface SearchBarProps {
@@ -63,14 +63,29 @@ export function SearchBar({ placeholder }: SearchBarProps) {
   const resolvedPlaceholder = placeholder ?? t('search.placeholder');
   const navigate = useNavigate();
   const location = useLocation();
+  const isSearchRoute = useMatch('/search') !== null;
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const [inputValue, setInputValue] = useState<string>('');
+  const urlSearchQuery = isSearchRoute
+    ? parseSearchUrlQuery(new URLSearchParams(location.search))
+    : null;
+
+  const [inputValue, setInputValue] = useState<string>(() => urlSearchQuery ?? '');
+  const [prevUrlSearchQuery, setPrevUrlSearchQuery] = useState<string | null>(
+    urlSearchQuery,
+  );
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [prevPathKey, setPrevPathKey] = useState<string>(
     `${location.pathname}${location.search}`,
   );
+
+  if (prevUrlSearchQuery !== urlSearchQuery) {
+    setPrevUrlSearchQuery(urlSearchQuery);
+    if (urlSearchQuery !== null) {
+      setInputValue(urlSearchQuery);
+    }
+  }
 
   const pathKey = `${location.pathname}${location.search}`;
   if (prevPathKey !== pathKey) {
@@ -115,6 +130,8 @@ export function SearchBar({ placeholder }: SearchBarProps) {
       if (normalized.length === 0) {
         return;
       }
+      setInputValue(normalized);
+      setPrevUrlSearchQuery(normalized);
       setIsOpen(false);
       navigate(`/search?q=${encodeURIComponent(normalized)}`);
     },
@@ -349,7 +366,7 @@ export function SearchBar({ placeholder }: SearchBarProps) {
                       </svg>
                     </span>
                     <span className="search-bar__see-all-text">
-                      {t('search.seeAllResults', { query: option.query })}
+                      {t('search.seeAllResults')} <strong>{option.query}</strong>
                     </span>
                   </li>
                 );

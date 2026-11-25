@@ -96,10 +96,10 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
   - Supports promo coupons (`MINIE10`, `MINIE20`, `FREESHIP`), shipping method selection (`Standard Delivery`, `Express Courier`, `Store Pickup`), free-shipping threshold progress (`>= 500 BRL`), order/delivery notes (`maxLength = 200`), and multi-currency conversion (`useCurrency`).
 
 ### F-12: Header APG Autocomplete Combobox & Lazy Search Route (`/search`) (`S08`)
-- **Locations:** `Navbar` (`SearchBar`, hidden on `/search`) and lazy route `/search` (`SearchResultsPage`).
+- **Locations:** Persistent `Navbar` (`SearchBar`, visible across all routes including `/search`) and lazy route `/search` (`SearchResultsPage`).
 - **Capabilities:**
-  - `SearchBar` implements proprietary WAI-ARIA APG `useCombobox` (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-autocomplete="list"`, `aria-activedescendant`, `role="listbox"`, `role="option"`, `aria-live="polite"`) backed by 200 ms debounced `useSearchSuggestQuery` (>= 2 trimmed chars, max 8 suggestions, `AbortSignal` cancellation, `"Ver todos os resultados para «q»"` fallback option).
-  - `/search` loads `react-instantsearch@7.55.1` in a separate `React.lazy` chunk with custom `createStorefrontSearchClient` routing through `ProductRepository.searchProducts` (`hitsPerPage=24`, `offset <= 200` cutoff message, `?q=` Zod URL sync with `replace` while typing and `push` on submit, DEV-only mode + latency badge across `hybrid`, `keyword`, and `postgres` modes).
+  - `SearchBar` implements proprietary WAI-ARIA APG `useCombobox` (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-autocomplete="list"`, `aria-activedescendant`, `role="listbox"`, `role="option"`, `aria-live="polite"`) backed by 200 ms debounced `useSearchSuggestQuery` (>= 2 trimmed chars, max 8 suggestions, `AbortSignal` cancellation, `"Ver todos os resultados para "` + `<strong>` fallback option, and `?q=` sync on `/search`).
+  - `/search` loads `react-instantsearch@7.55.1` in a separate `React.lazy` chunk with custom `createStorefrontSearchClient` routing through `ProductRepository.searchProducts` (`hitsPerPage=24`, `offset <= 200` cutoff message, `?q=` Zod URL sync from global `SearchBar` navigation, semantic `<strong>` query emphasis, DEV-only mode + latency badge across `hybrid`, `keyword`, and `postgres` modes).
 
 ### F-13: Lazy PDP Recommendations & Inline Cart Cross-Sell Carousels (`R05`)
 - **Locations:** `ProductDetailPage` (`PdpRecommendationsSection`) and `CartPage` (`CartCrossSellSection`).

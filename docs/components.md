@@ -96,13 +96,13 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 
 ### `SearchResultsPage` (`src/pages/SearchResultsPage/SearchResultsPage.tsx`)
 - **Route:** `/search` (lazy-loaded chunk via `React.lazy` in `App.tsx`)
-- **Dependencies:** `react-instantsearch@7.55.1` (`InstantSearch`, `useSearchBox`, `useInfiniteHits`, `useInstantSearch`, `useConfigure`), `createStorefrontSearchClient`, `parseSearchUrlQuery`, `serializeSearchUrlQuery`, `ProductCard`, `Helmet`.
-- **Behavior:** Synchronizes `?q=` URL parameter with InstantSearch (`replace` while typing with debounce, `push` on submit), skips API requests on empty queries, renders infinite pagination (`hitsPerPage=24`) enforcing the `offset <= 200` cutoff notice, announces result counts via `aria-live="polite"`, and shows a DEV-only `mode` + response latency badge.
+- **Dependencies:** `react-instantsearch@7.55.1` (`InstantSearch`, `useSearchBox`, `useInfiniteHits`, `useInstantSearch`, `useConfigure`), `createStorefrontSearchClient`, `parseSearchUrlQuery`, `ProductCard`, `Helmet`.
+- **Behavior:** Driven by `?q=` URL parameter updated from the persistent global `SearchBar`, skips API requests on empty queries, highlights the queried term with semantic `<strong>` (`1rem`, bold, no guillemets), renders infinite pagination (`hitsPerPage=24`) enforcing the `offset <= 200` cutoff notice, announces result counts via `aria-live="polite"`, and shows a DEV-only `mode` + response latency badge.
 
 ### `SearchBar` (`src/components/SearchBar/SearchBar.tsx`)
-- **Purpose:** Global accessible WAI-ARIA APG autocomplete combobox in `Navbar` (hidden when `location.pathname === '/search'`).
-- **Dependencies:** `useNavigate`, `useLocation`, `useQueryClient`, `useDebounce`, `useSearchSuggestQuery`, `useCombobox`.
-- **Behavior:** Queries `/search/suggest` after ~200 ms debounce from >= 2 trimmed chars (max 8 suggestions + `"Ver todos os resultados para «q»"`), handles `ArrowDown`/`ArrowUp`/`Home`/`End`/`Escape`/outside click while keeping DOM focus on `<input>`, announces counts via `aria-live="polite"`, navigates directly to `/:category/:slug` (or `/search?q=` on empty selection / `"See all"`), and preserves Enter submission when `suggest` fails.
+- **Purpose:** Global accessible WAI-ARIA APG autocomplete combobox persistent in `Navbar` across all routes (including `/search`, where it stays synced with `?q=`).
+- **Dependencies:** `useNavigate`, `useLocation`, `useMatch`, `useQueryClient`, `useDebounce`, `useSearchSuggestQuery`, `useCombobox`, `parseSearchUrlQuery`.
+- **Behavior:** Queries `/search/suggest` after ~200 ms debounce from >= 2 trimmed chars (max 8 suggestions + `"Ver todos os resultados para "` with semantic `<strong>`), handles `ArrowDown`/`ArrowUp`/`Home`/`End`/`Escape`/outside click while keeping DOM focus on `<input>`, announces counts via `aria-live="polite"`, navigates directly to `/:category/:slug` (or `/search?q=` on empty selection / `"See all"`), and preserves Enter submission when `suggest` fails.
 
 ### `RecommendationCarousel` (`src/components/RecommendationCarousel/RecommendationCarousel.tsx`)
 - **Purpose:** Reusable accessible horizontal product carousel (`R05.4`).

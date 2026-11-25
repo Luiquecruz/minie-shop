@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import type { ProductCardDTO, SearchResponseDTO } from '@minieshop/contracts';
+import Navbar from '../../../components/Navbar/Navbar';
 import { ProductRepositoryProvider } from '../../../context/ProductRepositoryProvider';
 import { I18nProvider } from '../../../i18n';
 import { ApiError } from '../../../infrastructure/http/errors';
@@ -58,6 +59,7 @@ function renderSearchPage(
           <QueryClientProvider client={queryClient}>
             <Provider store={store}>
               <MemoryRouter initialEntries={initialEntries}>
+                <Navbar />
                 <UrlTracker />
                 <Routes>
                   <Route path="/search" element={<SearchResultsPage />} />
@@ -72,7 +74,7 @@ function renderSearchPage(
 }
 
 describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () => {
-  it('renders empty-query prompt without calling API when ?q= is absent', () => {
+  it('renders empty-query prompt without calling API or rendering a duplicate search input when ?q= is absent', () => {
     const repository = new MockProductRepository();
     const searchSpy = vi.spyOn(repository, 'searchProducts');
 
@@ -80,37 +82,39 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
 
     expect(screen.getByText('Digite para buscar produtos')).toBeInTheDocument();
     expect(searchSpy).not.toHaveBeenCalled();
+    // Only the unified global SearchBar combobox should exist (no isolated page search form)
+    expect(screen.getAllByRole('search')).toHaveLength(1);
+    expect(screen.getByRole('combobox', { name: /Buscar produtos/i })).toBeInTheDocument();
   });
 
-  it('reproduces results from shareable URL ?q=, announces count, and updates URL on typing (replace) vs Enter (push)', async () => {
+  it('reproduces results from shareable URL ?q=, uses semantic <strong> without guillemets, and navigates via the unified header SearchBar', async () => {
     const repository = new MockProductRepository();
     const user = userEvent.setup();
 
-    renderSearchPage(repository, ['/search?q=fone']);
+    const { container } = renderSearchPage(repository, ['/search?q=fone']);
 
     expect(
       await screen.findByText(FIXTURE_PRODUCTS_DETAIL[0].name),
     ).toBeInTheDocument();
     expect(screen.getByTestId('search-results-live')).toHaveTextContent(
-      '1 resultado para «fone»',
+      '1 resultado para fone',
     );
 
-    const searchInput = screen.getByRole('searchbox', { name: /Buscar produtos/i });
-    expect(searchInput).toHaveValue('fone');
+    const countEl = container.querySelector('.search-page__count');
+    expect(countEl).toBeTruthy();
+    expect(countEl?.textContent).not.toContain('«');
+    expect(countEl?.textContent).not.toContain('»');
+    expect(countEl?.querySelector('strong')).toHaveTextContent('fone');
 
-    // Live typing updates URL with replace (so Back still goes to before /search?q=fone, not intermediate keystrokes)
-    await user.clear(searchInput);
-    await user.type(searchInput, 'tecl');
-    await waitFor(
-      () => {
-        expect(screen.getByTestId('search-url')).toHaveTextContent('/search?q=tecl');
-      },
-      { timeout: 2000 },
-    );
+    // Global header SearchBar stays synced with the URL query
+    const headerSearchInput = screen.getByRole('combobox', {
+      name: /Buscar produtos/i,
+    });
+    expect(headerSearchInput).toHaveValue('fone');
 
-    // Explicit Enter uses push so Back returns to /search?q=tecl
-    await user.clear(searchInput);
-    await user.type(searchInput, 'caixa{Enter}');
+    // Submitting a new query from the global SearchBar pushes to URL and updates results
+    await user.clear(headerSearchInput);
+    await user.type(headerSearchInput, 'caixa{Enter}');
     await waitFor(() => {
       expect(screen.getByTestId('search-url')).toHaveTextContent('/search?q=caixa');
     });
@@ -118,10 +122,12 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
       await screen.findByText(FIXTURE_PRODUCTS_DETAIL[1].name),
     ).toBeInTheDocument();
 
+    // Browser Back restores the previous query in both URL and global SearchBar
     await user.click(screen.getByRole('button', { name: 'Back' }));
     await waitFor(() => {
-      expect(screen.getByTestId('search-url')).toHaveTextContent('/search?q=tecl');
+      expect(screen.getByTestId('search-url')).toHaveTextContent('/search?q=fone');
     });
+    expect(headerSearchInput).toHaveValue('fone');
   });
 
   it('loads more results via "Carregar mais" and enforces the offset=200 limit notice', async () => {
@@ -170,14 +176,17 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
     ).not.toBeInTheDocument();
   });
 
-  it('renders empty results state and recovers from errors via "Tentar novamente"', async () => {
+  it('renders empty results state with semantic <strong> and recovers from errors via "Tentar novamente"', async () => {
     const repository = new MockProductRepository();
     const user = userEvent.setup();
 
     renderSearchPage(repository, ['/search?q=inexistente']);
-    expect(
-      await screen.findByText('Nenhum resultado para «inexistente»'),
-    ).toBeInTheDocument();
+    const emptyHeading = await screen.findByRole('heading', {
+      level: 2,
+      name: /Nenhum resultado para inexistente/i,
+    });
+    expect(emptyHeading.querySelector('strong')).toHaveTextContent('inexistente');
+    expect(emptyHeading.textContent).not.toContain('«');
     expect(screen.getByTestId('search-results-live')).toHaveTextContent(
       'Nenhum resultado',
     );
@@ -192,9 +201,11 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
       }),
     );
 
-    const searchInput = screen.getByRole('searchbox', { name: /Buscar produtos/i });
-    await user.clear(searchInput);
-    await user.type(searchInput, 'fone{Enter}');
+    const headerSearchInput = screen.getByRole('combobox', {
+      name: /Buscar produtos/i,
+    });
+    await user.clear(headerSearchInput);
+    await user.type(headerSearchInput, 'fone{Enter}');
 
     expect(
       await screen.findByText('Simulated search error'),
@@ -227,9 +238,11 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
     const user = userEvent.setup();
     renderSearchPage(repository, ['/search?q=lento']);
 
-    const searchInput = screen.getByRole('searchbox', { name: /Buscar produtos/i });
-    await user.clear(searchInput);
-    await user.type(searchInput, 'teclado{Enter}');
+    const headerSearchInput = screen.getByRole('combobox', {
+      name: /Buscar produtos/i,
+    });
+    await user.clear(headerSearchInput);
+    await user.type(headerSearchInput, 'teclado{Enter}');
 
     // Fast response appears
     expect(
@@ -267,91 +280,6 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
       );
       unmount();
     }
-  });
-
-  it('does not fire a duplicate search request when submitting an already-active query', async () => {
-    const repository = new MockProductRepository();
-    const searchSpy = vi.spyOn(repository, 'searchProducts');
-    const user = userEvent.setup();
-
-    renderSearchPage(repository, ['/search?q=fone']);
-
-    expect(
-      await screen.findByText(FIXTURE_PRODUCTS_DETAIL[0].name),
-    ).toBeInTheDocument();
-    expect(searchSpy).toHaveBeenCalledTimes(1);
-
-    await user.click(screen.getByRole('button', { name: 'Buscar' }));
-    await new Promise((r) => setTimeout(r, 30));
-
-    expect(searchSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('preserves trailing spaces across debounced URL syncs so consecutive words never merge', async () => {
-    const repository = new MockProductRepository();
-    const searchSpy = vi.spyOn(repository, 'searchProducts');
-    const user = userEvent.setup();
-
-    renderSearchPage(repository, ['/search']);
-
-    const searchInput = screen.getByRole('searchbox', { name: /Buscar produtos/i });
-
-    // Type first word plus trailing space and wait for the debounced URL sync to land
-    await user.type(searchInput, 'tenis ');
-    await waitFor(
-      () => {
-        expect(screen.getByTestId('search-url')).toHaveTextContent('/search?q=tenis');
-      },
-      { timeout: 2000 },
-    );
-
-    // Trailing space must remain in the input instead of being clobbered by trimmed urlQuery
-    expect(searchInput).toHaveValue('tenis ');
-
-    // Continue typing the rest of the phrase
-    await user.type(searchInput, 'para correr');
-    expect(searchInput).toHaveValue('tenis para correr');
-
-    await waitFor(
-      () => {
-        expect(screen.getByTestId('search-url')).toHaveTextContent(
-          '/search?q=tenis+para+correr',
-        );
-      },
-      { timeout: 2000 },
-    );
-    expect(searchSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ q: 'tenis para correr' }),
-      expect.any(AbortSignal),
-    );
-  });
-
-  it('ignores 1-character live input and debounces multi-word typing into a single request', async () => {
-    const repository = new MockProductRepository();
-    const searchSpy = vi.spyOn(repository, 'searchProducts');
-    const user = userEvent.setup();
-
-    renderSearchPage(repository, ['/search']);
-
-    const searchInput = screen.getByRole('searchbox', { name: /Buscar produtos/i });
-
-    // Single character should not trigger live search after debounce
-    await user.type(searchInput, 'f');
-    await new Promise((r) => setTimeout(r, 750));
-    expect(searchSpy).not.toHaveBeenCalled();
-
-    // Typing a multi-word phrase continuously fires only a single debounced request
-    await user.type(searchInput, 'ones de ouvido');
-    await waitFor(
-      () => {
-        expect(searchSpy).toHaveBeenCalledTimes(1);
-      },
-      { timeout: 2000 },
-    );
-    expect(searchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ q: 'fones de ouvido' }),
-      expect.any(AbortSignal),
-    );
   });
 
   it('passes vitest-axe with zero accessibility violations on SearchResultsPage', async () => {

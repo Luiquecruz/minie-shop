@@ -47,14 +47,19 @@ function renderSearchBar(
 }
 
 describe('SearchBar S08.2 — Accessible WAI-ARIA APG Combobox', () => {
-  it('hides header SearchBar on /search and /search/ and renders it on catalog and PDP routes', () => {
+  it('renders the global SearchBar across catalog, PDP, and /search routes while syncing ?q=', () => {
     const repository = new MockProductRepository();
-    const first = renderSearchBar(repository, ['/search?q=fone']);
-    expect(screen.queryByRole('combobox', { name: /Buscar produtos/i })).not.toBeInTheDocument();
-    first.unmount();
+    const searchView = renderSearchBar(repository, ['/search?q=fone']);
+    const searchRouteInput = screen.getByRole('combobox', {
+      name: /Buscar produtos/i,
+    });
+    expect(searchRouteInput).toHaveValue('fone');
+    searchView.unmount();
 
-    const trailingSlash = renderSearchBar(repository, ['/search/?q=fone']);
-    expect(screen.queryByRole('combobox', { name: /Buscar produtos/i })).not.toBeInTheDocument();
+    const trailingSlash = renderSearchBar(repository, ['/search/?q=teclado']);
+    expect(
+      screen.getByRole('combobox', { name: /Buscar produtos/i }),
+    ).toHaveValue('teclado');
     trailingSlash.unmount();
 
     renderSearchBar(repository, ['/audio/fone-de-ouvido-bluetooth-over-ear-pro']);
@@ -134,11 +139,12 @@ describe('SearchBar S08.2 — Accessible WAI-ARIA APG Combobox', () => {
         name: /Fone de Ouvido Bluetooth Over-Ear Pro/i,
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('option', {
-        name: /Ver todos os resultados para «fone»/i,
-      }),
-    ).toBeInTheDocument();
+    const seeAllOption = screen.getByRole('option', {
+      name: /Ver todos os resultados para fone/i,
+    });
+    expect(seeAllOption).toBeInTheDocument();
+    expect(seeAllOption.querySelector('strong')).toHaveTextContent('fone');
+    expect(seeAllOption.textContent).not.toContain('«');
     expect(screen.getByTestId('search-suggestions-live')).toHaveTextContent(
       '1 sugestão disponível',
     );
@@ -238,7 +244,7 @@ describe('SearchBar S08.2 — Accessible WAI-ARIA APG Combobox', () => {
     const input2 = screen.getByRole('combobox', { name: /Buscar produtos/i });
     await user.type(input2, 'fone');
     const seeAllOption = await screen.findByRole('option', {
-      name: /Ver todos os resultados para «fone»/i,
+      name: /Ver todos os resultados para fone/i,
     });
     await user.click(seeAllOption);
     expect(screen.getByTestId('location-probe')).toHaveTextContent(

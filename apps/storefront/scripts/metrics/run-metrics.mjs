@@ -215,7 +215,7 @@ async function measureChaosLatencyAndSearch(browser, url) {
   const page = await context.newPage();
 
   await page.goto(`${url}/search`, { waitUntil: 'domcontentloaded' });
-  const searchInput = page.getByRole('searchbox', { name: /Search products/i });
+  const searchInput = page.getByRole('combobox', { name: /Search products/i });
   await searchInput.waitFor({ state: 'visible', timeout: 15_000 });
 
   await page.evaluate(() => {
@@ -240,7 +240,7 @@ async function measureChaosLatencyAndSearch(browser, url) {
     () =>
       document
         .querySelector('.search-page__count')
-        ?.textContent?.includes('«teclado»') &&
+        ?.textContent?.includes('teclado') &&
       document.querySelectorAll('#search-results-grid .product-card__title')
         .length > 0,
     null,
@@ -253,7 +253,7 @@ async function measureChaosLatencyAndSearch(browser, url) {
     .allTextContents();
 
   const settledOnTeclado =
-    summaryText.includes('«teclado»') &&
+    summaryText.includes('teclado') &&
     visibleTitles.length > 0 &&
     visibleTitles[0].toLowerCase().includes('teclado');
 

@@ -194,6 +194,11 @@
   box-shadow: inset 2px 0 0 var(--primary, #7c3aed);
 }
 
+.search-bar__see-all-text strong {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .search-bar__item-image {
   width: 44px;
   height: 44px;

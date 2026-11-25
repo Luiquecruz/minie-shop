@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -20,16 +20,9 @@ import {
   type StorefrontSearchHit,
 } from '../../infrastructure/search/instantSearchAdapter';
 import { useI18n } from '../../i18n';
-import {
-  MAX_SEARCH_QUERY_LENGTH,
-  parseSearchUrlQuery,
-  serializeSearchUrlQuery,
-} from '../../utils/searchUrlParams';
+import { parseSearchUrlQuery } from '../../utils/searchUrlParams';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import './SearchResultsPage.css';
-
-const SEARCH_INPUT_DEBOUNCE_MS = 650;
-const MIN_LIVE_SEARCH_QUERY_LENGTH = 2;
 
 interface RawSearchTelemetryUserData {
   mode?: unknown;
@@ -78,16 +71,11 @@ function toProductCardDto(hit: StorefrontSearchHit): ProductCardDTO {
 
 interface SearchResultsContentProps {
   urlQuery: string;
-  onUpdateUrl: (nextQuery: string, replace: boolean) => void;
 }
 
-function SearchResultsContent({
-  urlQuery,
-  onUpdateUrl,
-}: SearchResultsContentProps) {
+function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
   useConfigure({ hitsPerPage: SEARCH_HITS_PER_PAGE });
 
-  const inputId = useId();
   const { query, refine } = useSearchBox();
   const { items, results, isLastPage, showMore } =
     useInfiniteHits<StorefrontSearchHit>();
@@ -95,7 +83,6 @@ function SearchResultsContent({
   const { addToCart } = useCart();
   const { t } = useI18n();
 
-  const [draftQuery, setDraftQuery] = useState<string>(urlQuery);
   const [favoriteError, setFavoriteError] = useState<Error | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [prevStatus, setPrevStatus] = useState(status);
@@ -107,49 +94,16 @@ function SearchResultsContent({
     }
   }
 
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSyncedUrlQueryRef = useRef<string>(urlQuery);
-  const onUpdateUrlRef = useRef(onUpdateUrl);
 
-  useEffect(() => {
-    onUpdateUrlRef.current = onUpdateUrl;
-  }, [onUpdateUrl]);
-
-  // Cancel any pending debounce on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current !== null) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Sync external URL navigation (Back/Forward or header link) into InstantSearch
+  // Sync URL navigation (global SearchBar submits, shared links, Back/Forward) into InstantSearch
   useEffect(() => {
     if (urlQuery === lastSyncedUrlQueryRef.current) {
       return;
     }
-    if (debounceTimerRef.current !== null) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
     lastSyncedUrlQueryRef.current = urlQuery;
     refine(urlQuery);
   }, [urlQuery, refine]);
-
-  const [prevUrlQuery, setPrevUrlQuery] = useState<string>(urlQuery);
-  const [pendingCommittedUrlQuery, setPendingCommittedUrlQuery] = useState<string | null>(null);
-  if (prevUrlQuery !== urlQuery) {
-    setPrevUrlQuery(urlQuery);
-    if (urlQuery === pendingCommittedUrlQuery) {
-      // Our own debounced/submitted URL sync landed; keep draftQuery intact so
-      // trailing spaces or newly typed characters are never clobbered.
-      setPendingCommittedUrlQuery(null);
-    } else {
-      setPendingCommittedUrlQuery(null);
-      setDraftQuery(urlQuery);
-    }
-  }
 
   // Auto-dismiss favorite rollback notice
   useEffect(() => {
@@ -158,77 +112,16 @@ function SearchResultsContent({
     return () => clearTimeout(timer);
   }, [favoriteError]);
 
-  const handleInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ): void => {
-    const nextValue = event.target.value;
-    setDraftQuery(nextValue);
-
-    if (debounceTimerRef.current !== null) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    debounceTimerRef.current = setTimeout(() => {
-      debounceTimerRef.current = null;
-      const normalized = nextValue.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
-      if (
-        normalized.length > 0 &&
-        normalized.length < MIN_LIVE_SEARCH_QUERY_LENGTH
-      ) {
-        return;
-      }
-      if (normalized === lastSyncedUrlQueryRef.current) {
-        return;
-      }
-      lastSyncedUrlQueryRef.current = normalized;
-      setPendingCommittedUrlQuery(normalized);
-      onUpdateUrlRef.current(normalized, true);
-      refine(normalized);
-    }, SEARCH_INPUT_DEBOUNCE_MS);
-  };
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
-    event.preventDefault();
-    if (debounceTimerRef.current !== null) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
-    const normalized = draftQuery.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
-    const shouldPushUrl = normalized !== urlQuery;
-    lastSyncedUrlQueryRef.current = normalized;
-    if (shouldPushUrl) {
-      setPendingCommittedUrlQuery(normalized);
-      onUpdateUrl(normalized, false);
-    }
-    if (normalized !== query.trim() || status === 'error') {
-      refine(normalized);
-    }
-  };
-
-  const handleClear = (): void => {
-    if (debounceTimerRef.current !== null) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
-    setDraftQuery('');
-    lastSyncedUrlQueryRef.current = '';
-    setPendingCommittedUrlQuery('');
-    onUpdateUrl('', false);
-    refine('');
-  };
-
   const handleShowMore = (): void => {
     setIsLoadingMore(true);
     showMore();
   };
 
   const handleRetry = (): void => {
-    const targetQuery =
-      urlQuery || draftQuery.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
-    if (targetQuery && targetQuery !== query.trim()) {
+    if (urlQuery && urlQuery !== query.trim()) {
       // InstantSearch's index widget rolls helper.state back to lastValidSearchParameters
-      // when a request fails; re-refine with the active URL/draft query to retry it.
-      refine(targetQuery);
+      // when a request fails; re-refine with the active URL query to retry it.
+      refine(urlQuery);
       return;
     }
     refresh();
@@ -327,74 +220,6 @@ function SearchResultsContent({
       <header className="search-page__header">
         <span className="plp-header__badge">{t('searchPage.badge')}</span>
         <h1 className="search-page__title">{t('searchPage.heading')}</h1>
-
-        <form
-          className="search-page__form"
-          role="search"
-          onSubmit={handleSubmit}
-        >
-          <label htmlFor={inputId} className="visually-hidden">
-            {t('searchPage.inputLabel')}
-          </label>
-          <div className="search-page__input-wrap">
-            <span className="search-page__icon" aria-hidden="true">
-              <svg
-                width="20"
-                height="20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </span>
-
-            <input
-              id={inputId}
-              type="search"
-              name="q"
-              maxLength={MAX_SEARCH_QUERY_LENGTH}
-              className="search-page__input"
-              placeholder={t('searchPage.inputPlaceholder')}
-              value={draftQuery}
-              onChange={handleInputChange}
-            />
-
-            {draftQuery.length > 0 && (
-              <button
-                type="button"
-                className="search-page__clear-btn"
-                onClick={handleClear}
-                aria-label={t('search.clearAria')}
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          <button type="submit" className="search-page__submit-btn">
-            {t('searchPage.submitButton')}
-          </button>
-        </form>
       </header>
 
       {hasActiveQuery && (
@@ -405,8 +230,8 @@ function SearchResultsContent({
                 {t('searchPage.showingOf', {
                   loaded: items.length,
                   total: estimatedTotal,
-                  query: activeQuery,
-                })}
+                })}{' '}
+                <strong>{activeQuery}</strong>
               </span>
             )}
             {isFetching && !isLoadingMore && (
@@ -521,7 +346,7 @@ function SearchResultsContent({
       {showEmptyResults && (
         <section className="plp-empty">
           <h2 className="plp-empty__title">
-            {t('searchPage.emptyResultsTitle', { query: activeQuery })}
+            {t('searchPage.emptyResultsTitle')} <strong>{activeQuery}</strong>
           </h2>
           <p className="plp-empty__text">{t('searchPage.emptyResultsTip')}</p>
           <Link to="/" className="plp-empty__reset-btn search-page__catalog-link">
@@ -536,10 +361,11 @@ function SearchResultsContent({
 /**
  * Dedicated lazy-loaded Search Results Page (/search) backed by React InstantSearch
  * (`useSearchBox`, `useInfiniteHits`, `useInstantSearch`) and `ProductRepository`.
+ * Driven by the `?q=` URL parameter updated from the unified global header SearchBar.
  */
 export function SearchResultsPage() {
   const repository = useProductRepository();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const urlQuery = useMemo(
     () => parseSearchUrlQuery(searchParams),
     [searchParams],
@@ -550,10 +376,6 @@ export function SearchResultsPage() {
     () => createStorefrontSearchClient(repository),
     [repository],
   );
-
-  const handleUpdateUrl = (nextQuery: string, replace: boolean): void => {
-    setSearchParams(serializeSearchUrlQuery(nextQuery), { replace });
-  };
 
   return (
     <InstantSearch
@@ -566,10 +388,7 @@ export function SearchResultsPage() {
       }}
       future={{ preserveSharedStateOnUnmount: true }}
     >
-      <SearchResultsContent
-        urlQuery={urlQuery}
-        onUpdateUrl={handleUpdateUrl}
-      />
+      <SearchResultsContent urlQuery={urlQuery} />
     </InstantSearch>
   );
 }
