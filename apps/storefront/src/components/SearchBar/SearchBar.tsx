@@ -105,10 +105,19 @@ export function SearchBar({ placeholder }: SearchBarProps) {
 
   const suggestions = useMemo(
     () =>
-      meetsMinChars && !isWaitingDebounce && !suggestQuery.isError
+      meetsMinChars &&
+      !isWaitingDebounce &&
+      !suggestQuery.isPlaceholderData &&
+      !suggestQuery.isError
         ? (suggestQuery.data?.suggestions ?? [])
         : [],
-    [meetsMinChars, isWaitingDebounce, suggestQuery.isError, suggestQuery.data],
+    [
+      meetsMinChars,
+      isWaitingDebounce,
+      suggestQuery.isPlaceholderData,
+      suggestQuery.isError,
+      suggestQuery.data,
+    ],
   );
 
   const options = useMemo<ComboboxOption[]>(() => {

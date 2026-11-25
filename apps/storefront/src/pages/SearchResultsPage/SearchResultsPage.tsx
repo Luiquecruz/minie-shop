@@ -147,9 +147,13 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
   const settledQuery = results?.query?.trim() ?? '';
   const isQueryMatch = settledQuery === activeQuery;
   const showInitialSkeleton =
-    hasActiveQuery && !isErrorState && isFetching && (!isQueryMatch || items.length === 0);
+    hasActiveQuery && !isErrorState && (!isQueryMatch || (isFetching && items.length === 0));
   const showResultsGrid =
-    hasActiveQuery && !isErrorState && !showInitialSkeleton && items.length > 0;
+    hasActiveQuery &&
+    !isErrorState &&
+    !showInitialSkeleton &&
+    isQueryMatch &&
+    items.length > 0;
   const showEmptyResults =
     hasActiveQuery &&
     !isErrorState &&

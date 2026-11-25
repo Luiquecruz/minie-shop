@@ -238,11 +238,13 @@ async function measureChaosLatencyAndSearch(browser, url) {
 
   await page.waitForFunction(
     () =>
+      document.querySelector('.plp-sync-pill') === null &&
       document
-        .querySelector('.search-page__count')
-        ?.textContent?.includes('teclado') &&
-      document.querySelectorAll('#search-results-grid .product-card__title')
-        .length > 0,
+        .querySelector('.search-page__count strong')
+        ?.textContent?.trim() === 'teclado' &&
+      Array.from(
+        document.querySelectorAll('#search-results-grid .product-card__title'),
+      ).some((el) => el.textContent?.toLowerCase().includes('teclado')),
     null,
     { timeout: 10_000 },
   );

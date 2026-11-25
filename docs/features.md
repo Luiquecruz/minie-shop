@@ -60,11 +60,9 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
   - Distinguishes `ProductNotFoundError` from transient/simulated errors, offering a **"Try Again"** (`refetch()`) button for recoverable errors.
 
 ### F-05: Global Autocomplete Search
-- **Location:** `Navbar`
+- **Location:** `Navbar` (persistent across all routes, including `/search`)
 - **Capabilities:**
-  - Uses `useDebounce(query, 300)` + `useProductSearchQuery(debouncedQuery, 6)` backed by `productsApi.searchProducts` with `AbortSignal` support.
-  - Caches search results per normalized query term for 1 minute and shows inline error + **"Try Again"** recovery inside the dropdown on failure.
-  - ARIA combobox pattern with `ArrowUp`, `ArrowDown`, `Enter`, `Escape` keyboard support, click-outside dismissal, match highlighting (`<mark>`), skeleton loading, and direct route navigation to `/product/:id`.
+  - Replaced in Phase 7 (`F-12`) by the unified `SearchBar` combobox (`useCombobox` + `useSearchSuggestQuery` backed by `GET /search/suggest` with 200 ms debounce and `AbortSignal` cancellation), navigating to canonical `/:category/:slug` PDP routes or `/search?q=` (see **F-12** below for complete current details).
 
 ### F-06: Floating Mini-Cart & Stock Guardrails
 - **Location:** `RootLayout` (mounted globally)

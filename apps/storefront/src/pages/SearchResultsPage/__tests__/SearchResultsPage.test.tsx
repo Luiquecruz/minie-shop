@@ -297,6 +297,56 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
     ).not.toBeInTheDocument();
   });
 
+  it('hides previous-query results immediately when transitioning to a new ?q= query', async () => {
+    const repository = new MockProductRepository();
+    let resolveTeclado!: (res: SearchResponseDTO) => void;
+    const pendingTeclado = new Promise<SearchResponseDTO>((resolve) => {
+      resolveTeclado = resolve;
+    });
+
+    vi.spyOn(repository, 'searchProducts').mockImplementation((params) => {
+      if (params.q === 'teclado') {
+        return pendingTeclado;
+      }
+      return Promise.resolve({
+        items: [FIXTURE_PRODUCT_CARDS[0]],
+        estimatedTotal: 1,
+        mode: 'hybrid',
+      });
+    });
+
+    const user = userEvent.setup();
+    renderSearchPage(repository, ['/search?q=fone']);
+
+    expect(
+      await screen.findByText(FIXTURE_PRODUCTS_DETAIL[0].name),
+    ).toBeInTheDocument();
+
+    const headerSearchInput = screen.getByRole('combobox', {
+      name: /Buscar produtos/i,
+    });
+    await user.clear(headerSearchInput);
+    await user.type(headerSearchInput, 'teclado{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('search-url')).toHaveTextContent('/search?q=teclado');
+    });
+    // Old 'fone' result must NOT be visible under the 'teclado' heading/toolbar
+    expect(
+      screen.queryByText(FIXTURE_PRODUCTS_DETAIL[0].name),
+    ).not.toBeInTheDocument();
+
+    resolveTeclado({
+      items: [FIXTURE_PRODUCT_CARDS[2]],
+      estimatedTotal: 1,
+      mode: 'hybrid',
+    });
+
+    expect(
+      await screen.findByText(FIXTURE_PRODUCTS_DETAIL[2].name),
+    ).toBeInTheDocument();
+  });
+
   it('renders identical user-facing layout across hybrid, keyword, and postgres modes', async () => {
     for (const mode of ['hybrid', 'keyword', 'postgres'] as const) {
       const repository = new MockProductRepository({ searchMode: mode });

@@ -13,6 +13,7 @@ import { MockProductRepository } from '../../infrastructure/repositories/MockPro
 import { createStorefrontQueryClient } from '../../query/queryClient';
 import { createAppStore } from '../../store';
 import { addToCart } from '../../store/slices/cartSlice';
+import { setCurrency } from '../../store/slices/currencySlice';
 import {
   getActiveIntersectionObserverCount,
   triggerAllIntersections,
@@ -117,6 +118,7 @@ describe('Recommendations Integration R05.2, R05.3 & R05.5', () => {
         slug: FIXTURE_PRODUCTS_DETAIL[0].slug,
         types: ['related', 'upsell'],
         limit: undefined,
+        currency: 'BRL',
       },
       expect.any(AbortSignal),
     );
@@ -167,9 +169,10 @@ describe('Recommendations Integration R05.2, R05.3 & R05.5', () => {
 
     await waitFor(() => {
       expect(
-        screen.queryByTestId('pdp-related-carousel'),
+        screen.queryByTestId('pdp-recommendations-section'),
       ).not.toBeInTheDocument();
     });
+    expect(screen.queryByTestId('pdp-related-carousel')).not.toBeInTheDocument();
     expect(screen.queryByTestId('pdp-upsell-carousel')).not.toBeInTheDocument();
     unmount();
 
@@ -305,5 +308,24 @@ describe('Recommendations Integration R05.2, R05.3 & R05.5', () => {
     expect(calledIds).toHaveLength(20);
     expect(calledIds[0]).toBe('80000000-0000-4000-8000-000000000024');
     expect(calledIds[19]).toBe('80000000-0000-4000-8000-000000000005');
+  });
+
+  it('propagates selected currency to PDP recommendations and Cart cross-sell queries', async () => {
+    const repository = new MockProductRepository();
+    const crossSellSpy = vi.spyOn(repository, 'getCrossSell');
+
+    const { store } = renderCartRoute(repository, [FIXTURE_PRODUCTS_DETAIL[0]]);
+    await screen.findByTestId('cart-cross-sell-carousel');
+
+    act(() => {
+      store.dispatch(setCurrency('USD'));
+    });
+
+    await waitFor(() => {
+      expect(crossSellSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ currency: 'USD' }),
+        expect.any(AbortSignal),
+      );
+    });
   });
 });

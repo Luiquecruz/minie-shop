@@ -7,7 +7,7 @@
 ## Contexto
 
 A Fase 7 introduz duas superfícies de busca no storefront (`apps/storefront`):
-1. **Autocomplete global no cabeçalho (`S08.2`):** presente em todas as páginas exceto `/search`, consumindo `GET /search/suggest` (máx. 8 sugestões lexicais rápidas).
+1. **Autocomplete global no cabeçalho (`S08.2`):** presente em todas as páginas (incluindo `/search`, onde sincroniza o termo com `?q=`), consumindo `GET /search/suggest` (máx. 8 sugestões lexicais rápidas).
 2. **Página dedicada de resultados (`/search`, `S08.3`):** consumindo `GET /search` (`mode`: `hybrid`, `keyword`, `postgres`, `limit=24`, `offset <= 200`), sincronizada com `?q=` na URL, paginação incremental ("Carregar mais") e proteção rigorosa contra respostas fora de ordem.
 
 Precisamos decidir:

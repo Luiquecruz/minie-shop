@@ -338,6 +338,73 @@ describe('SearchBar S08.2 — Accessible WAI-ARIA APG Combobox', () => {
     );
   });
 
+  it('hides stale placeholder suggestions while the new debounced query is in flight', async () => {
+    const repository = new MockProductRepository();
+    let resolveTeclado!: (res: SearchSuggestResponseDTO) => void;
+    const tecladoPromise = new Promise<SearchSuggestResponseDTO>((resolve) => {
+      resolveTeclado = resolve;
+    });
+
+    vi.spyOn(repository, 'suggestProducts').mockImplementation((params) => {
+      if (params.q === 'teclado') {
+        return tecladoPromise;
+      }
+      return Promise.resolve({
+        suggestions: [
+          {
+            slug: FIXTURE_PRODUCTS_DETAIL[0].slug,
+            name: FIXTURE_PRODUCTS_DETAIL[0].name,
+            categoryName: FIXTURE_PRODUCTS_DETAIL[0].category.name,
+          },
+        ],
+        mode: 'keyword',
+      });
+    });
+
+    const user = userEvent.setup();
+    renderSearchBar(repository, ['/']);
+
+    const input = screen.getByRole('combobox', { name: /Buscar produtos/i });
+    await user.type(input, 'fone');
+    expect(
+      await screen.findByRole('option', {
+        name: new RegExp(FIXTURE_PRODUCTS_DETAIL[0].name, 'i'),
+      }),
+    ).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, 'teclado');
+
+    // Once the 200ms debounce settles and 'teclado' is in flight (`isPlaceholderData`),
+    // previous 'fone' suggestions must NOT remain selectable.
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('option', {
+          name: new RegExp(FIXTURE_PRODUCTS_DETAIL[0].name, 'i'),
+        }),
+      ).not.toBeInTheDocument();
+    });
+
+    await act(async () => {
+      resolveTeclado({
+        suggestions: [
+          {
+            slug: FIXTURE_PRODUCTS_DETAIL[2].slug,
+            name: FIXTURE_PRODUCTS_DETAIL[2].name,
+            categoryName: FIXTURE_PRODUCTS_DETAIL[2].category.name,
+          },
+        ],
+        mode: 'keyword',
+      });
+    });
+
+    expect(
+      await screen.findByRole('option', {
+        name: new RegExp(FIXTURE_PRODUCTS_DETAIL[2].name, 'i'),
+      }),
+    ).toBeInTheDocument();
+  });
+
   it('passes vitest-axe with zero accessibility violations when combobox is open', async () => {
     const repository = new MockProductRepository();
     const user = userEvent.setup();

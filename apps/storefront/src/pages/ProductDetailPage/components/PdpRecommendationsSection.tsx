@@ -36,16 +36,18 @@ export function PdpRecommendationsSection({
   const isSettled = hasIntersected && !recsQuery.isPending;
   const hasVisibleRecommendations =
     !recsQuery.isError && (relatedItems.length > 0 || upsellItems.length > 0);
-  const reserveSpace = !isSettled || hasVisibleRecommendations;
+  const showDevErrorBadge = import.meta.env.DEV && hasIntersected && recsQuery.isError;
   const errorCode =
     recsQuery.error instanceof ApiError ? recsQuery.error.code : null;
+
+  if (isSettled && !hasVisibleRecommendations && !showDevErrorBadge) {
+    return null;
+  }
 
   return (
     <div
       ref={ref}
-      className={`pdp-recommendations ${
-        reserveSpace ? 'pdp-recommendations--reserved' : ''
-      }`}
+      className="pdp-recommendations"
       data-testid="pdp-recommendations-section"
       style={
         !isSettled
