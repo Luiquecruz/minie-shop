@@ -128,6 +128,9 @@ function createHttpBackedByMock(): HttpProductRepository {
         const types = rawTypes
           ? (rawTypes.split(',').filter(Boolean) as RecommendationType[])
           : undefined;
+        const currency =
+          (url.searchParams.get('currency') as SupportedCurrency | null) ??
+          undefined;
         const data = await backend.getProductRecommendations(
           {
             slug,
@@ -135,6 +138,7 @@ function createHttpBackedByMock(): HttpProductRepository {
             limit: url.searchParams.has('limit')
               ? Number(url.searchParams.get('limit'))
               : undefined,
+            currency,
           },
           signal,
         );
@@ -146,12 +150,16 @@ function createHttpBackedByMock(): HttpProductRepository {
 
       if (method === 'GET' && url.pathname === '/recommendations/cross-sell') {
         const rawIds = url.searchParams.get('productIds') ?? '';
+        const currency =
+          (url.searchParams.get('currency') as SupportedCurrency | null) ??
+          undefined;
         const data = await backend.getCrossSell(
           {
             productIds: rawIds.split(',').filter(Boolean),
             limit: url.searchParams.has('limit')
               ? Number(url.searchParams.get('limit'))
               : undefined,
+            currency,
           },
           signal,
         );
@@ -475,6 +483,20 @@ function runProductRepositoryContractSuite(
       });
       expect(crossSell.items.length).toBeGreaterThan(0);
       expect(crossSell.items.some((item) => item.id === first.id)).toBe(false);
+
+      const usdRecs = await repo.getProductRecommendations({
+        slug: first.slug,
+        types: ['related', 'upsell'],
+        currency: 'USD',
+      });
+      expect(usdRecs.related?.[0]?.price.currency).toBe('USD');
+
+      const usdCrossSell = await repo.getCrossSell({
+        productIds: [first.id],
+        limit: 6,
+        currency: 'USD',
+      });
+      expect(usdCrossSell.items[0]?.price.currency).toBe('USD');
     });
   });
 }

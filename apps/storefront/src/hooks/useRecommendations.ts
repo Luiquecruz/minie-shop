@@ -7,6 +7,7 @@ import type {
 import { MAX_CROSS_SELL_PRODUCT_IDS } from '../domain/repositories/ProductRepository';
 import { FIVE_MINUTES_MS } from '../query/queryClient';
 import { queryKeys } from '../query/queryKeys';
+import { useCurrency } from './useCurrency';
 import { useProductRepository } from './useProductRepository';
 
 export interface UseProductRecommendationsOptions {
@@ -30,10 +31,16 @@ export function useProductRecommendationsQuery({
   enabled = true,
 }: UseProductRecommendationsOptions) {
   const repository = useProductRepository();
+  const { currentCurrency } = useCurrency();
   const normalizedTypes = Array.from(new Set(types));
 
   return useQuery<ProductRecommendationsResponseDTO>({
-    queryKey: queryKeys.recommendations.product(slug ?? '', normalizedTypes, limit),
+    queryKey: queryKeys.recommendations.product(
+      slug ?? '',
+      normalizedTypes,
+      limit,
+      currentCurrency,
+    ),
     queryFn: ({ signal }) => {
       if (!slug) {
         return Promise.reject(new Error('Product slug is missing.'));
@@ -43,6 +50,7 @@ export function useProductRecommendationsQuery({
           slug,
           types: normalizedTypes,
           limit,
+          currency: currentCurrency,
         },
         signal,
       );
@@ -70,17 +78,23 @@ export function useCartCrossSellQuery({
   enabled = true,
 }: UseCartCrossSellOptions) {
   const repository = useProductRepository();
+  const { currentCurrency } = useCurrency();
   const boundedIds = Array.from(
     new Set(productIds.map((id) => id.trim()).filter(Boolean)),
   ).slice(0, MAX_CROSS_SELL_PRODUCT_IDS);
 
   return useQuery<CartCrossSellResponseDTO>({
-    queryKey: queryKeys.recommendations.crossSell(boundedIds, limit),
+    queryKey: queryKeys.recommendations.crossSell(
+      boundedIds,
+      limit,
+      currentCurrency,
+    ),
     queryFn: ({ signal }) =>
       repository.getCrossSell(
         {
           productIds: boundedIds,
           limit,
+          currency: currentCurrency,
         },
         signal,
       ),

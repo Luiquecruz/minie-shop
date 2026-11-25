@@ -812,6 +812,7 @@ export class MockProductRepository implements ProductRepository {
 
     const byId = new Map(this.products.map((product) => [product.id, product]));
     const configured = this.recommendationsBySlug[params.slug] ?? {};
+    const currency = params.currency ?? 'BRL';
     const response: ProductRecommendationsResponseDTO = {};
 
     for (const type of requestedTypes) {
@@ -825,7 +826,7 @@ export class MockProductRepository implements ProductRepository {
         if (!candidate || !candidate.inStock || candidate.id === sourceProduct.id) {
           continue;
         }
-        cards.push(toProductCard(candidate));
+        cards.push(toProductCard(priceProductForCurrency(candidate, currency)));
       }
 
       response[type] = cards;
@@ -882,6 +883,7 @@ export class MockProductRepository implements ProductRepository {
       );
     }
 
+    const currency = params.currency ?? 'BRL';
     const inputSet = new Set(uniqueInputIds.map((id) => id.toLowerCase()));
     const byId = new Map(
       this.products.map((product) => [product.id.toLowerCase(), product]),
@@ -904,7 +906,7 @@ export class MockProductRepository implements ProductRepository {
           continue;
         }
         seenResultIds.add(lowerCandidate);
-        items.push(toProductCard(candidate));
+        items.push(toProductCard(priceProductForCurrency(candidate, currency)));
         if (items.length >= limit) {
           return { items };
         }

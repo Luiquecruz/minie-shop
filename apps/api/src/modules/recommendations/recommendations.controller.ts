@@ -5,6 +5,7 @@ import {
   productRecommendationsResponseSchema,
   productSlugParamSchema,
   recommendationTypeSchema,
+  supportedCurrencySchema,
   type ProductCardDTO,
   type ProductRecommendationsResponseDTO,
   type RecommendationType,
@@ -37,6 +38,11 @@ const booleanFlagSchema = z
   .transform((v) => v === 'true');
 
 const uuidSchema = z.string().uuid('Each productId must be a valid UUID');
+
+const currencyQuerySchema = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
+  supportedCurrencySchema,
+);
 
 const productRecommendationsQuerySchema = z
   .object({
@@ -79,6 +85,7 @@ const productRecommendationsQuerySchema = z
       })
       .optional(),
     includeOutOfStock: booleanFlagSchema.optional(),
+    currency: currencyQuerySchema.optional(),
   })
   .strict();
 
@@ -129,6 +136,7 @@ const cartCrossSellQuerySchema = z
       })
       .optional(),
     includeOutOfStock: booleanFlagSchema.optional(),
+    currency: currencyQuerySchema.optional(),
   })
   .strict();
 
@@ -173,7 +181,10 @@ export class RecommendationsController {
     const allCandidateIds = Array.from(
       new Set(requestedTypes.flatMap((t) => idsByType[t])),
     );
-    const hydratedCards = await this.catalogService.getProductCardsByIdsOrdered(allCandidateIds);
+    const hydratedCards = await this.catalogService.getProductCardsByIdsOrdered(
+      allCandidateIds,
+      query.currency ?? 'BRL',
+    );
     const cardById = new Map<string, ProductCardDTO>(hydratedCards.map((c) => [c.id, c]));
 
     const response: ProductRecommendationsResponseDTO = {};
@@ -218,7 +229,10 @@ export class RecommendationsController {
       overfetchLimit,
     });
 
-    const hydratedCards = await this.catalogService.getProductCardsByIdsOrdered(candidateIds);
+    const hydratedCards = await this.catalogService.getProductCardsByIdsOrdered(
+      candidateIds,
+      query.currency ?? 'BRL',
+    );
     const filtered = includeOutOfStock
       ? hydratedCards
       : hydratedCards.filter((card) => card.inStock);

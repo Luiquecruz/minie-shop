@@ -76,11 +76,13 @@ export interface ProductRecommendationsParams {
   slug: string;
   types?: RecommendationType[];
   limit?: number;
+  currency?: SupportedCurrency;
 }
 
 export interface CrossSellParams {
   productIds: string[];
   limit?: number;
+  currency?: SupportedCurrency;
 }
 
 /**
@@ -252,6 +254,9 @@ export function buildProductRecommendationsQueryString(
 ): string {
   const search = new URLSearchParams();
 
+  if (params.currency && params.currency !== 'BRL') {
+    search.set('currency', params.currency);
+  }
   if (params.types && params.types.length > 0) {
     const uniqueTypes = Array.from(new Set(params.types));
     search.set('types', uniqueTypes.join(','));
@@ -275,6 +280,9 @@ export function buildCrossSellQueryString(params: CrossSellParams): string {
 
   search.set('productIds', uniqueIds.join(','));
 
+  if (params.currency && params.currency !== 'BRL') {
+    search.set('currency', params.currency);
+  }
   if (params.limit !== undefined) {
     search.set('limit', String(Math.trunc(params.limit)));
   }

@@ -173,6 +173,7 @@ export class HttpProductRepository implements ProductRepository {
     const query = buildProductRecommendationsQueryString({
       types: params.types,
       limit: params.limit,
+      currency: params.currency,
     });
     return this.httpClient.get<ProductRecommendationsResponseDTO>(
       `/products/${encodedSlug}/recommendations${query}`,

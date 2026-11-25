@@ -72,19 +72,28 @@ export const queryKeys = {
       slug: string,
       types: readonly RecommendationType[] = ['related', 'upsell'],
       limit?: number,
+      currency: SupportedCurrency = 'BRL',
     ) =>
       [
         ...queryKeys.recommendations.all,
         'product',
         slug,
+        currency,
         [...types].sort(),
         limit ?? null,
       ] as const,
-    crossSell: (productIds: readonly string[], limit: number = 6) =>
+    crossSell: (
+      productIds: readonly string[],
+      limit: number = 6,
+      currency: SupportedCurrency = 'BRL',
+    ) =>
       [
         ...queryKeys.recommendations.all,
         'cross-sell',
-        [...new Set(productIds.map((id) => id.toLowerCase()))].sort(),
+        currency,
+        Array.from(
+          new Set(productIds.map((id) => id.trim().toLowerCase()).filter(Boolean)),
+        ),
         limit,
       ] as const,
   },
