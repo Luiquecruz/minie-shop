@@ -86,9 +86,21 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
   const [favoriteError, setFavoriteError] = useState<Error | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [prevStatus, setPrevStatus] = useState(status);
+  const [prevResults, setPrevResults] = useState(results);
+  const [prevItemsLength, setPrevItemsLength] = useState(items.length);
+  const [prevIsLastPage, setPrevIsLastPage] = useState(isLastPage);
 
-  if (prevStatus !== status) {
+  const hasStatusChanged = prevStatus !== status;
+  const hasResultsUpdated =
+    prevResults !== results ||
+    prevItemsLength !== items.length ||
+    prevIsLastPage !== isLastPage;
+
+  if (hasStatusChanged || hasResultsUpdated) {
     setPrevStatus(status);
+    setPrevResults(results);
+    setPrevItemsLength(items.length);
+    setPrevIsLastPage(isLastPage);
     if (status === 'idle' || status === 'error') {
       setIsLoadingMore(false);
     }

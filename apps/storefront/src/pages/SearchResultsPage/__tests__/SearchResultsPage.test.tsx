@@ -176,6 +176,36 @@ describe('SearchResultsPage S08.3 & S08.4 — InstantSearch /search route', () =
     ).not.toBeInTheDocument();
   });
 
+  it('re-enables "Carregar mais" immediately after synchronous or cached showMore() completions', async () => {
+    const repository = new MockProductRepository();
+    const allItems = Array.from({ length: 72 }, (_, i) => makeSyntheticCard(i));
+
+    vi.spyOn(repository, 'searchProducts').mockImplementation((params) => {
+      const offset = params.offset ?? 0;
+      const limit = params.limit ?? 24;
+      return Promise.resolve({
+        items: allItems.slice(offset, offset + limit),
+        estimatedTotal: allItems.length,
+        mode: 'hybrid',
+      });
+    });
+
+    const user = userEvent.setup();
+    renderSearchPage(repository, ['/search?q=produto']);
+
+    expect(await screen.findByText('Produto Busca 0')).toBeInTheDocument();
+
+    const loadMoreBtn = screen.getByRole('button', { name: 'Carregar mais' });
+    expect(loadMoreBtn).toBeEnabled();
+
+    await user.click(loadMoreBtn);
+    expect(await screen.findByText('Produto Busca 47')).toBeInTheDocument();
+
+    const nextLoadMoreBtn = screen.getByRole('button', { name: 'Carregar mais' });
+    expect(nextLoadMoreBtn).toBeEnabled();
+    expect(nextLoadMoreBtn).toHaveAttribute('aria-busy', 'false');
+  });
+
   it('renders empty results state with semantic <strong> and recovers from errors via "Tentar novamente"', async () => {
     const repository = new MockProductRepository();
     const user = userEvent.setup();

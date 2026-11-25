@@ -449,10 +449,11 @@ async function measureSearchAndComboboxLazy(browser, url, apiUrl) {
     timeout: 15_000,
   });
 
-  const devBadgeText = await page
-    .locator('[data-testid="search-dev-badge"]')
-    .textContent()
-    .catch(() => null);
+  const devBadgeLocator = page.locator('[data-testid="search-dev-badge"]');
+  const devBadgeText =
+    (await devBadgeLocator.count()) > 0
+      ? await devBadgeLocator.first().textContent()
+      : null;
   const searchHitCount = await page
     .locator('#search-results-grid article.product-card')
     .count();

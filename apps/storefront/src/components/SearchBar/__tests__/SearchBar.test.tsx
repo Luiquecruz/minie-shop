@@ -209,7 +209,7 @@ describe('SearchBar S08.2 — Accessible WAI-ARIA APG Combobox', () => {
     // Empty query Enter must NOT navigate
     await user.click(input);
     await user.keyboard('{Enter}');
-    expect(screen.getByTestId('location-probe')).toHaveTextContent('/');
+    expect(screen.getByTestId('location-probe')).toHaveTextContent(/^\/$/);
 
     // Enter without active option -> /search?q=fone
     await user.type(input, 'fone');
@@ -310,7 +310,7 @@ describe('SearchBar S08.2 — Accessible WAI-ARIA APG Combobox', () => {
     await user.keyboard('{ArrowDown}');
     expect(input).toHaveAttribute('aria-activedescendant');
     fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
-    expect(screen.getByTestId('location-probe')).toHaveTextContent('/');
+    expect(screen.getByTestId('location-probe')).toHaveTextContent(/^\/$/);
   });
 
   it('clears the highlighted suggestion when input changes so Enter within debounce submits the new term', async () => {
