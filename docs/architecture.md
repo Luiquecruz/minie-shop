@@ -90,17 +90,22 @@ O storefront separa rigorosamente **estado de servidor** (TanStack React Query) 
 ```mermaid
 flowchart TD
   URL["URL SearchParams\n(?category, q, minPrice, maxPrice, inStock, sort, attr.*)"] <-->|"Zod parse/serialize\n(push / replace)"| PLP["ProductListingPage\n(useInfiniteQuery + Facets)"]
-  PLP -->|"Link /:category/:slug"| PDP["ProductDetailPage\n(useProductQuery + Galeria + Atributos)"]
-  PLP --> Cart["CartPage (/cart) & MiniCart\n(Redux Toolkit cartSlice + createSelector)"]
+  NAV["Navbar / SearchBar\n(useCombobox APG + debounce ~200ms)"] -->|"Enter sem opção / Ver todos\n?q= (Zod)"| SRP["SearchResultsPage (/search, React.lazy)\n(react-instantsearch + offset <= 200)"]
+  NAV -->|"Enter/Click na sugestão\n/:category/:slug"| PDP
+  PLP -->|"Link /:category/:slug"| PDP["ProductDetailPage\n(useProductQuery + Galeria + Lazy Recs)"]
+  PDP -->|"IntersectionObserver (200px)\ntypes=related,upsell"| RC["RecommendationCarousel\n(scroll-snap + zero-CLS)"]
+  PLP --> Cart["CartPage (/cart) & MiniCart\n(Redux cartSlice CONGELADO + Cross-Sell)"]
   PDP --> Cart
 
   PLP --> RQ["TanStack QueryClient\n(staleTime explícito, keepPreviousData,\nsem retry em 4xx)"]
+  NAV -->|"GET /search/suggest"| RQ
   PDP --> RQ
-  Cart -->|"Validação inStock"| RQ
+  SRP -->|"SearchClient customizado"| Repo
+  Cart -->|"Validação inStock + Cross-Sell"| RQ
 
   RQ --> Repo["ProductRepository (Contexto React)\nHttpProductRepository | MockProductRepository"]
   Repo --> HTTP["httpClient\n(env Zod, credentials: include,\nAbortSignal, timeout, x-chaos-* só DEV)"]
-  HTTP -->|"Parse tolerante (.strip)"| Contracts["@minieshop/contracts/catalog/client"]
+  HTTP -->|"Parse tolerante (.strip)"| Contracts["@minieshop/contracts\n(catalog/client, search/client, recommendations/client)"]
   HTTP -->|"HTTP :3001 (same-site localhost)"| API["apps/api (NestJS + Fastify)"]
   API -->|"ImageDTO (variants + placeholder)"| Img["ProductImage\n(srcset, sizes, aspect-ratio,\nfallback SVG inline por estado)"]
   Cart --> LS["localStorage versionado (v2)\n(createListenerMiddleware)"]
@@ -110,14 +115,14 @@ flowchart TD
 
 ## 4. Camadas e Fronteiras do Storefront
 
-- **Domínio (`src/domain/`):** interface `ProductRepository` e tipos derivados de `@minieshop/contracts`.
-- **Infraestrutura (`src/infrastructure/`):** `httpClient`, mapeamento de erros (`ApiError`, `NetworkError`, `ContractViolationError`), `HttpProductRepository`, `MockProductRepository` e leitura DEV-only de cabeçalhos de caos (`x-chaos-*`).
-- **Estado de Servidor (`src/query/`, `src/hooks/useProducts.ts`, `src/hooks/useFavorites.ts`):** `useInfiniteQuery` para cursor pagination, `useQuery` para categorias/facetas/PDP/favoritos e `useMutation` otimista para favoritos com rollback.
-- **Estado de Cliente (`src/store/`, `src/hooks/useCart.ts`):** Redux Toolkit `cartSlice` (imutável), `createSelector` memoizado, `cartStorage.ts` versionado (v2) com `createListenerMiddleware`, e cálculos 100% em centavos inteiros.
-- **UI e Resiliência (`src/components/`, `src/pages/`):** `ProductImage` com fallback SVG inline (ADR-0005), `CatalogFilters` acessível (`fieldset`/`legend` + `aria-live="polite"`), `formatMoney` na borda de exibição e camada base de i18n (`src/i18n/`).
+- **Domínio (`src/domain/`):** interface `ProductRepository` (catálogo, busca, sugestões e recomendações) e tipos derivados de `@minieshop/contracts`.
+- **Infraestrutura (`src/infrastructure/`):** `httpClient`, mapeamento de erros (`ApiError`, `NetworkError`, `ContractViolationError`), adaptador `createStorefrontSearchClient` (`src/infrastructure/search/instantSearchAdapter.ts`) para `react-instantsearch`, `HttpProductRepository`, `MockProductRepository` (com simulação dos três modos de busca e falhas) e leitura DEV-only de cabeçalhos de caos (`x-chaos-*`).
+- **Estado de Servidor (`src/query/`, `src/hooks/useProducts.ts`, `src/hooks/useSearch.ts`, `src/hooks/useRecommendations.ts`, `src/hooks/useFavorites.ts`):** `useInfiniteQuery` para cursor pagination, `useQuery` para categorias/facetas/PDP/sugestões/recomendações/favoritos e `useMutation` otimista para favoritos com rollback.
+- **Estado de Cliente (`src/store/`, `src/hooks/useCart.ts`, `src/hooks/useCombobox.ts`):** Redux Toolkit `cartSlice` (congelado na Fase 7), `createSelector` memoizado (incluindo `selectRecentCartProductIds` limitado a 20 IDs distintos), `cartStorage.ts` versionado (v2) com `createListenerMiddleware`, cálculos 100% em centavos inteiros e hook headless `useCombobox` (WAI-ARIA APG).
+- **UI e Resiliência (`src/components/`, `src/pages/`):** `SearchBar` com combobox APG acessível persistente no cabeçalho em toda a navegação (inclusive em `/search`, sincronizado com `?q=`), rota lazy `SearchResultsPage` (`/search`), `RecommendationCarousel` acessível com `scroll-snap` e reserva de altura zero-CLS (`useInView` na PDP e cross-sell inline sem abrir o `MiniCart` em `/cart`), `ProductImage` com fallback SVG inline (`ADR-0005`), `CatalogFilters`, `formatMoney` na borda e camada i18n (`en` + `pt-BR`).
 
 ---
 
 ## 5. Governança de Decisões (ADRs)
 
-Todas as decisões arquiteturais do projeto estão registradas de forma incremental em [`docs/adr/README.md`](./adr/README.md) (`ADR-0001` até `ADR-0017`).
+Todas as decisões arquiteturais do projeto estão registradas de forma incremental em [`docs/adr/README.md`](./adr/README.md) (`ADR-0001` até `ADR-0021`).

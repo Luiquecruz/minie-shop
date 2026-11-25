@@ -338,3 +338,13 @@ Execution Time: 0.062 ms
 ## 7. Decisões de Contrato
 
 Ver [`ADR-0008`](./adr/0008-contratos-api-publica-erros-e-status-produto.md) e [`ADR-0009`](./adr/0009-vitest-testes-integracao-api-e-banco-isolado.md) para o histórico completo das decisões desta fase.
+
+---
+
+## 8. Lacunas e Inconsistências de Contrato Observadas na Fase 7 (API Inalterada)
+
+Durante a integração da UI de busca (`S08`) e recomendações (`R05`) no storefront sem modificações no código da API (`apps/api`), foram identificadas e contornadas as seguintes lacunas nos contratos públicos atuais:
+
+1. **Ausência de `?currency=` apenas em busca:** Os schemas de query de `GET /search` e `GET /search/suggest` utilizam `.strict()` e não aceitam `currency`, retornando `ProductCardDTO` com preços fixos em `BRL` (enquanto `GET /products/:slug/recommendations` e `GET /recommendations/cross-sell` passaram a aceitar `?currency=` opcional com fallback para `BRL`). O storefront não envia `?currency=` para busca (para evitar `400 VALIDATION_ERROR`), exibe a moeda exatamente conforme retornada no `PriceBox` e confia em `useCartQuoteSync` (`POST /pricing/quote`) para reprecificar na moeda selecionada após a adição ao carrinho.
+2. **Ausência de `categorySlug` em `GET /search/suggest`:** Cada item de sugestão retorna `{ slug, name, categoryName }` sem `categorySlug`, enquanto a rota canônica da PDP no storefront é `/:category/:slug`. O componente `SearchBar` resolve o slug da categoria buscando correspondência no cache de categorias do React Query (`queryKeys.categories.all`) com fallback para `slugifyFallback(categoryName)` (ou `catalog`). A navegação permanece segura mesmo com cache frio porque a `ProductDetailPage` carrega o produto exclusivamente por `slug` (`useProductQuery(slug)`) e redireciona qualquer segmento de categoria divergente para a URL canônica `/${product.category.slug}/${product.slug}` via `<Navigate replace />`.
+3. **Ausência de limite `max` explícito no campo `q` em `searchPublicQuerySchema`:** O contrato do servidor valida apenas `.trim().min(1)` em `/search` e `/search/suggest`; o storefront aplica teto defensivo de `200` caracteres (`MAX_SEARCH_QUERY_LENGTH`) tanto na validação Zod do parâmetro `?q=` quanto nos inputs de busca.

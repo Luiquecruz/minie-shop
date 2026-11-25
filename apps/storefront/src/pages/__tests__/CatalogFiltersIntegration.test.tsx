@@ -28,6 +28,12 @@ function HistoryControls() {
       <button type="button" onClick={() => navigate(1)}>
         History Forward
       </button>
+      <button type="button" onClick={() => navigate('/?q=lento')}>
+        Navigate Slow Search
+      </button>
+      <button type="button" onClick={() => navigate('/?q=teclado')}>
+        Navigate Fast Search
+      </button>
     </div>
   );
 }
@@ -172,20 +178,14 @@ describe('Catalog URL Filters, Facets Parity, History Back/Forward & Out-of-orde
       await screen.findByText(FIXTURE_PRODUCTS_DETAIL[0].name),
     ).toBeInTheDocument();
 
-    const searchInput = screen.getByRole('searchbox', {
-      name: /Search products/i,
-    });
-
-    // Submit slow search "lento"
-    await user.clear(searchInput);
-    await user.type(searchInput, 'lento{Enter}');
+    // Trigger slow query "lento" via URL ?q=
+    await user.click(screen.getByRole('button', { name: 'Navigate Slow Search' }));
     await waitFor(() => {
       expect(screen.getByTestId('current-url')).toHaveTextContent('q=lento');
     });
 
-    // Immediately submit fast search "teclado" before "lento" finishes
-    await user.clear(searchInput);
-    await user.type(searchInput, 'teclado{Enter}');
+    // Immediately supersede with fast query "teclado" before "lento" finishes
+    await user.click(screen.getByRole('button', { name: 'Navigate Fast Search' }));
     await waitFor(() => {
       expect(screen.getByTestId('current-url')).toHaveTextContent('q=teclado');
     });
@@ -242,32 +242,37 @@ describe('Catalog URL Filters, Facets Parity, History Back/Forward & Out-of-orde
     expect(screen.getByTestId('current-url')).toHaveTextContent(/^\/$/);
     expect(screen.getByLabelText(/Min price/i)).toHaveValue(null);
     expect(screen.getByLabelText(/Max price/i)).toHaveValue(null);
-    expect(
-      screen.getByRole('searchbox', { name: /Search products/i }),
-    ).toHaveValue('');
   });
 
-  it('restores SearchBar input value on Clear -> History Back navigation', async () => {
+  it('restores direct ?q= catalog filter on Clear all -> History Back navigation', async () => {
     const repository = new MockProductRepository();
     const user = userEvent.setup();
 
     renderCatalog(repository, ['/?q=Fone']);
 
-    const searchInput = screen.getByRole('searchbox', {
-      name: /Search products/i,
-    });
-    expect(searchInput).toHaveValue('Fone');
+    expect(
+      await screen.findByText(FIXTURE_PRODUCTS_DETAIL[0].name),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(FIXTURE_PRODUCTS_DETAIL[2].name),
+    ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Clear search input/i }));
+    await user.click(screen.getByRole('button', { name: /Clear all/i }));
     await waitFor(() => {
       expect(screen.getByTestId('current-url')).toHaveTextContent(/^\/$/);
     });
-    expect(searchInput).toHaveValue('');
+    expect(
+      await screen.findByText(FIXTURE_PRODUCTS_DETAIL[2].name),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'History Back' }));
     await waitFor(() => {
       expect(screen.getByTestId('current-url')).toHaveTextContent('/?q=Fone');
     });
-    expect(searchInput).toHaveValue('Fone');
+    await waitFor(() => {
+      expect(
+        screen.queryByText(FIXTURE_PRODUCTS_DETAIL[2].name),
+      ).not.toBeInTheDocument();
+    });
   });
 });

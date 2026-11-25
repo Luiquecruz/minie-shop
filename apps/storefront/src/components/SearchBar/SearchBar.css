@@ -41,6 +41,11 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
+.search-bar__input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .search-bar__input::placeholder {
   color: var(--text-muted, #9ca3af);
 }
@@ -189,6 +194,11 @@
   box-shadow: inset 2px 0 0 var(--primary, #7c3aed);
 }
 
+.search-bar__see-all-text strong {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .search-bar__item-image {
   width: 44px;
   height: 44px;
@@ -251,6 +261,40 @@
 .search-bar__item-price {
   flex-shrink: 0;
   text-align: right;
+}
+
+.search-bar__dropdown[hidden],
+.search-bar__results[hidden] {
+  display: none;
+}
+
+.search-bar__item--see-all {
+  margin-top: 4px;
+  border-top: 1px solid var(--border-subtle, #f3f4f6);
+  border-radius: 0 0 12px 12px;
+  color: var(--primary, #7c3aed);
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.search-bar__see-all-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.search-bar__see-all-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-bar__status-text {
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b7280);
+  text-align: center;
+  padding: 8px 0;
 }
 
 /* --------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 ---
 trigger: glob
-globs: "src/**/*.ts, src/**/*.tsx, src/**/*.css, *.ts, *.json"
-description: "Code style, TypeScript/TSX conventions, CSS design tokens, dark mode, accessibility, and Oxlint standards."
+globs: "apps/**/*.ts, apps/**/*.tsx, apps/**/*.js, apps/**/*.mjs, apps/**/*.css, packages/**/*.ts, *.json"
+description: "Code style, formatting/spacing, TypeScript/TSX conventions, CSS design tokens, dark mode, accessibility, and Oxlint standards."
 ---
 
 # Code Style & UI Conventions
@@ -28,5 +28,6 @@ description: "Code style, TypeScript/TSX conventions, CSS design tokens, dark mo
 - **Zero Emojis in UI:** Never place Unicode emojis in JSX/TSX, labels, badges, empty states, or notifications. Use inline vector `<svg>` icons (`aria-hidden="true"` when decorative) or typography.
 - **Semantic HTML & ARIA:** Use semantic landmarks (`<header>`, `<main>`, `<nav>`, `<footer>`, `<article>`), native `<button type="button">` for actions, and appropriate ARIA roles/attributes (`role="dialog"`, `aria-modal="true"`, `role="combobox"`, `role="listbox"`, `role="tablist"`, `role="alert"`, `aria-label`, `aria-expanded`).
 
-## 5. Linting & Typecheck Compliance
-- All edits must pass `npm run typecheck` (`tsc --noEmit`) with **0 errors** and `npm run lint` (`oxlint` with `react`, `oxc`, and `typescript` plugins configured in `.oxlintrc.json`) with **0 warnings and 0 errors**.
+## 5. Linting, Formatting & Typecheck Compliance
+- **Formatting & Empty Braces:** Follow `.editorconfig` (2-space indent, LF, trailing whitespace trimmed, final newline) and `packages/config/prettier.json`; write `{}` without internal spaces (`() => {}`, never `() => { }`).
+- All edits must pass `pnpm typecheck` (`tsc --noEmit`) with **0 errors** and `pnpm lint` (`eslint` / `oxlint`) with **0 warnings and 0 errors**.

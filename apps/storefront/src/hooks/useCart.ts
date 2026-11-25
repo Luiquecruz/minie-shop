@@ -50,6 +50,7 @@ import {
   selectCartSubtotal,
   selectCartTotal,
   selectIsCartOpen,
+  selectRecentCartProductIds,
 } from '../store/selectors/cartSelectors';
 
 export interface CartActions {
@@ -175,6 +176,10 @@ export function useCartPageMeta(): { totalUnits: number; hasItems: boolean } {
 
 export function useCartItemIds(): string[] {
   return useAppSelector(selectCartItemIds, shallowEqual);
+}
+
+export function useRecentCartProductIds(): string[] {
+  return useAppSelector(selectRecentCartProductIds, shallowEqual);
 }
 
 export function useCartItemState(id: string): {

@@ -58,7 +58,7 @@ export function Navbar() {
           <span className="navbar__tag">V1.0</span>
         </Link>
 
-        {/* Global Catalog Search Bar synced with URL ?q= (Hybrid /search & autocomplete in Phase 7) */}
+        {/* Global Autocomplete Combobox persistent across all routes */}
         <div className="navbar__search">
           <SearchBar />
         </div>

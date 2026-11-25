@@ -2,7 +2,6 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 import { and, asc, count, desc, eq, gt, inArray, sql, type SQL } from 'drizzle-orm';
 import {
   searchIndexDocumentSchema,
-  supportedCurrencySchema,
   type CategoryDTO,
   type CategoryRefDTO,
   type FacetAttributeDTO,
@@ -850,11 +849,15 @@ export class CatalogService {
     return rows.map((row) => row.id);
   }
 
-  async getProductCardsByIdsOrdered(productIds: string[]): Promise<ProductCardDTO[]> {
+  async getProductCardsByIdsOrdered(
+    productIds: string[],
+    currency: SupportedCurrency = 'BRL',
+  ): Promise<ProductCardDTO[]> {
     if (productIds.length === 0) {
       return [];
     }
 
+    const effectivePriceExpr = await this.resolveEffectivePriceExpr(currency);
     const uniqueIds = Array.from(new Set(productIds));
     const [rows, allCategories, attrDefs, imagesByProductId] = await Promise.all([
       this.databaseService.db
@@ -863,8 +866,7 @@ export class CatalogService {
           slug: products.slug,
           name: products.name,
           categoryId: products.categoryId,
-          effectivePrice: effectivePriceSql,
-          currency: products.currency,
+          effectivePrice: effectivePriceExpr,
           inStock: products.inStock,
           attributes: products.attributes,
         })
@@ -886,7 +888,7 @@ export class CatalogService {
         name: row.name,
         price: {
           amount: Number(row.effectivePrice),
-          currency: supportedCurrencySchema.catch('BRL').parse(row.currency),
+          currency,
         },
         inStock: row.inStock,
         image: productImgs[0] ?? null,

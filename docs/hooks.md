@@ -8,7 +8,12 @@ Tracks all custom React hooks in `src/hooks/`.
 
 | Hook | Path | Primary Responsibility | Dependencies |
 | :--- | :--- | :--- | :--- |
-| `useCart` | `src/hooks/useCart.ts` | Global & granular Redux cart hooks (`useCart`, `useCartBadge`, `useCartActions`, `useCartItemIds`, `useCartItemState`, `useCartPromoState`, `useCartShippingState`, `useCartOrderNoteState`, `useCartSummaryState`) | `store/hooks`, `cartSlice`, `cartSelectors` |
+| `useCart` | `src/hooks/useCart.ts` | Global & granular Redux cart hooks (`useCart`, `useCartBadge`, `useCartActions`, `useCartItemIds`, `useRecentCartProductIds`, `useCartItemState`, `useCartPromoState`, `useCartShippingState`, `useCartOrderNoteState`, `useCartSummaryState`) | `store/hooks`, `cartSlice`, `cartSelectors` |
+| `useCombobox` | `src/hooks/useCombobox.ts` | Proprietary headless WAI-ARIA APG combobox state, keyboard navigation (`ArrowDown`/`Up`/`Home`/`End`/`Escape`), and `aria-activedescendant` props | React `useState`, `useRef`, `useId`, `useEffect` |
+| `useInView` | `src/hooks/useInView.ts` | Latched `IntersectionObserver` hook (`rootMargin: '200px 0px'`) for viewport-triggered lazy loading | Browser `IntersectionObserver` |
+| `useSearchSuggestQuery` | `src/hooks/useSearch.ts` | Header autocomplete suggestions (`GET /search/suggest`, min 2 trimmed chars, max 8, 30s `staleTime`, `keepPreviousData`, `AbortSignal`) | `@tanstack/react-query`, `queryKeys`, `ProductRepository` |
+| `useProductRecommendationsQuery` | `src/hooks/useRecommendations.ts` | Single-request PDP recommendations (`related`, `upsell`, 5-min `staleTime`, `keepPreviousData`) | `@tanstack/react-query`, `queryKeys`, `ProductRepository` |
+| `useCartCrossSellQuery` | `src/hooks/useRecommendations.ts` | Cart cross-sell recommendations for up to 20 recent product IDs (`keepPreviousData`, 5-min `staleTime`) | `@tanstack/react-query`, `queryKeys`, `ProductRepository` |
 | `useCartQuoteSync` | `src/hooks/useCartQuoteSync.ts` | Lazy + 5-min TTL server cart repricing (`POST /pricing/quote`) with snapshot & monotonicity guards | `@tanstack/react-query`, `queryKeys`, `useCartActions`, `useCurrency` |
 | `useCurrency` | `src/hooks/useCurrency.ts` | Currency state (`BRL`/`USD`/`EUR`), locale-aware `Intl.NumberFormat` formatting (zero client FX) | `store/hooks`, `currencySlice`, `useI18n`, `utils/money` |
 | `useI18n` | `src/i18n/index.ts` | Reactive storefront i18n (`en` \| `pt-BR`), `<html lang>` sync & `minieshop_locale` persistence | `I18nProvider`, `i18nContext` |

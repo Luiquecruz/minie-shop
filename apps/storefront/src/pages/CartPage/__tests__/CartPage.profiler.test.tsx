@@ -188,6 +188,7 @@ describe('AFTER Migration: CartPage with Redux Toolkit + createSelector + React.
         FIXTURE_PRODUCTS_DETAIL[0].slug,
         expect.any(AbortSignal),
       );
+      expect(screen.queryByLabelText('Validating stock')).not.toBeInTheDocument();
     });
     const item1QtyCounts = { ...counts };
 
@@ -198,7 +199,8 @@ describe('AFTER Migration: CartPage with Redux Toolkit + createSelector + React.
     expect(item1QtyCounts.CartHeader).toBe(1);
     expect(item1QtyCounts.CartOrderSummary).toBe(1);
     expect(item1QtyCounts.CartItem1).toBeGreaterThanOrEqual(1);
-    expect(item1QtyCounts.CartItem1).toBeLessThanOrEqual(3);
+    // Click -> debounce settle -> stock query fetching -> stock query settled = up to 4 renders
+    expect(item1QtyCounts.CartItem1).toBeLessThanOrEqual(4);
   });
 
   it('allows clearing quantity draft and committing on Enter/blur, plus coupons, removal, and clear cart', async () => {

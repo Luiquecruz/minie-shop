@@ -9,5 +9,7 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     clearMocks: true,
     restoreMocks: true,
+    // Avoid jsdom worker contention causing timer-based React Profiler assertions to flake under 16 parallel suites.
+    maxWorkers: 4,
   },
 });

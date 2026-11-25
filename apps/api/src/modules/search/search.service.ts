@@ -45,31 +45,54 @@ export class SearchService {
     this.queryVectorCache.clear();
   }
 
-  private async getQueryVector(q: string, timeoutMs: number): Promise<number[]> {
+  private async getQueryVector(
+    q: string,
+    timeoutMs: number,
+    signal?: AbortSignal,
+  ): Promise<number[]> {
     const cacheKey = `${this.embeddingProvider.modelName}:${q.trim().toLowerCase()}`;
     const cached = this.queryVectorCache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
-    const vector = await this.embeddingProvider.embedQuery(q, { timeoutMs });
+    const vector = await this.embeddingProvider.embedQuery(q, { timeoutMs, signal });
     this.queryVectorCache.set(cacheKey, vector);
     return vector;
   }
 
   async search(
     params: SearchRequestParams,
-    context: { requestId: string; logger?: SearchLogger },
+    context: { requestId: string; logger?: SearchLogger; signal?: AbortSignal },
   ): Promise<SearchResponseDTO> {
     const env = loadEnv();
+
+    if (context.signal?.aborted) {
+      return {
+        items: [],
+        estimatedTotal: 0,
+        mode: 'keyword',
+      };
+    }
 
     if (this.circuitBreaker.canExecute()) {
       let queryVector: number[] | undefined;
 
       if (params.mode === 'hybrid') {
         try {
-          queryVector = await this.getQueryVector(params.q, env.EMBEDDINGS_QUERY_TIMEOUT_MS);
+          queryVector = await this.getQueryVector(
+            params.q,
+            env.EMBEDDINGS_QUERY_TIMEOUT_MS,
+            context.signal,
+          );
         } catch (error) {
+          if (context.signal?.aborted) {
+            return {
+              items: [],
+              estimatedTotal: 0,
+              mode: 'keyword',
+            };
+          }
           context.logger?.warn(
             {
               requestId: context.requestId,
@@ -79,6 +102,14 @@ export class SearchService {
             'Query embedding failed or timed out; degrading search to keyword mode',
           );
         }
+      }
+
+      if (context.signal?.aborted) {
+        return {
+          items: [],
+          estimatedTotal: 0,
+          mode: 'keyword',
+        };
       }
 
       try {

@@ -1,5 +1,6 @@
 import {
   MAX_PRICING_QUOTE_PRODUCT_IDS,
+  type CartCrossSellResponseDTO,
   type CategoriesResponseDTO,
   type FacetsDTO,
   type FavoriteCreatedResponseDTO,
@@ -8,9 +9,22 @@ import {
   type PricingQuoteResponseDTO,
   type ProductDetailDTO,
   type ProductListResponseDTO,
+  type ProductRecommendationsResponseDTO,
   type ProductSort,
+  type RecommendationType,
+  type SearchRequestedMode,
+  type SearchResponseDTO,
+  type SearchSuggestResponseDTO,
   type SupportedCurrency,
 } from '@minieshop/contracts';
+
+export const DEFAULT_SEARCH_LIMIT = 12;
+export const SEARCH_PAGE_SIZE = 24;
+export const MAX_SEARCH_LIMIT = 60;
+export const MAX_SEARCH_OFFSET = 200;
+export const MAX_SUGGEST_LIMIT = 8;
+export const MAX_RECOMMENDATION_LIMIT = 12;
+export const MAX_CROSS_SELL_PRODUCT_IDS = 20;
 
 export interface NumericAttributeRangeFilter {
   min?: number;
@@ -42,8 +56,38 @@ export interface ListProductsParams extends CatalogFilterParams {
 
 export type FacetsParams = CatalogFilterParams;
 
+export interface SearchProductsParams {
+  q: string;
+  limit?: number;
+  offset?: number;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  mode?: SearchRequestedMode;
+}
+
+export interface SuggestProductsParams {
+  q: string;
+  limit?: number;
+}
+
+export interface ProductRecommendationsParams {
+  slug: string;
+  types?: RecommendationType[];
+  limit?: number;
+  currency?: SupportedCurrency;
+}
+
+export interface CrossSellParams {
+  productIds: string[];
+  limit?: number;
+  currency?: SupportedCurrency;
+}
+
 /**
- * Domain repository port for all public catalog, pricing & favorites operations.
+ * Domain repository port for all public catalog, pricing, search,
+ * recommendations & favorites operations.
  */
 export interface ProductRepository {
   listProducts(
@@ -67,6 +111,22 @@ export interface ProductRepository {
     signal?: AbortSignal,
   ): Promise<FavoriteCreatedResponseDTO>;
   removeFavorite(productId: string, signal?: AbortSignal): Promise<void>;
+  searchProducts(
+    params: SearchProductsParams,
+    signal?: AbortSignal,
+  ): Promise<SearchResponseDTO>;
+  suggestProducts(
+    params: SuggestProductsParams,
+    signal?: AbortSignal,
+  ): Promise<SearchSuggestResponseDTO>;
+  getProductRecommendations(
+    params: ProductRecommendationsParams,
+    signal?: AbortSignal,
+  ): Promise<ProductRecommendationsResponseDTO>;
+  getCrossSell(
+    params: CrossSellParams,
+    signal?: AbortSignal,
+  ): Promise<CartCrossSellResponseDTO>;
 }
 
 /**
@@ -138,6 +198,96 @@ export function buildCatalogQueryString(
 
   const serialized = search.toString();
   return serialized.length > 0 ? `?${serialized}` : '';
+}
+
+/**
+ * Builds canonical query string for GET /search.
+ */
+export function buildSearchQueryString(params: SearchProductsParams): string {
+  const search = new URLSearchParams();
+  search.set('q', params.q.trim());
+
+  if (params.limit !== undefined) {
+    search.set('limit', String(Math.trunc(params.limit)));
+  }
+  if (params.offset !== undefined) {
+    search.set('offset', String(Math.trunc(params.offset)));
+  }
+  if (params.category) {
+    search.set('category', params.category);
+  }
+  if (params.minPrice !== undefined) {
+    search.set('minPrice', String(Math.trunc(params.minPrice)));
+  }
+  if (params.maxPrice !== undefined) {
+    search.set('maxPrice', String(Math.trunc(params.maxPrice)));
+  }
+  if (params.inStock !== undefined) {
+    search.set('inStock', String(params.inStock));
+  }
+  if (params.mode) {
+    search.set('mode', params.mode);
+  }
+
+  return `?${search.toString()}`;
+}
+
+/**
+ * Builds canonical query string for GET /search/suggest.
+ */
+export function buildSuggestQueryString(params: SuggestProductsParams): string {
+  const search = new URLSearchParams();
+  search.set('q', params.q.trim());
+
+  if (params.limit !== undefined) {
+    search.set('limit', String(Math.trunc(params.limit)));
+  }
+
+  return `?${search.toString()}`;
+}
+
+/**
+ * Builds canonical query string for GET /products/:slug/recommendations.
+ */
+export function buildProductRecommendationsQueryString(
+  params: Omit<ProductRecommendationsParams, 'slug'>,
+): string {
+  const search = new URLSearchParams();
+
+  if (params.currency && params.currency !== 'BRL') {
+    search.set('currency', params.currency);
+  }
+  if (params.types && params.types.length > 0) {
+    const uniqueTypes = Array.from(new Set(params.types));
+    search.set('types', uniqueTypes.join(','));
+  }
+  if (params.limit !== undefined) {
+    search.set('limit', String(Math.trunc(params.limit)));
+  }
+
+  const serialized = search.toString();
+  return serialized.length > 0 ? `?${serialized}` : '';
+}
+
+/**
+ * Builds canonical query string for GET /recommendations/cross-sell.
+ */
+export function buildCrossSellQueryString(params: CrossSellParams): string {
+  const search = new URLSearchParams();
+  const uniqueIds = Array.from(
+    new Set(params.productIds.map((id) => id.trim()).filter(Boolean)),
+  ).slice(0, MAX_CROSS_SELL_PRODUCT_IDS);
+
+  search.set('productIds', uniqueIds.join(','));
+
+  if (params.currency && params.currency !== 'BRL') {
+    search.set('currency', params.currency);
+  }
+  if (params.limit !== undefined) {
+    search.set('limit', String(Math.trunc(params.limit)));
+  }
+
+  return `?${search.toString()}`;
 }
 
 /**

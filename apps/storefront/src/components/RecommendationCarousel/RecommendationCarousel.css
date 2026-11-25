@@ -1,0 +1,202 @@
+.rec-carousel {
+  width: 100%;
+  margin-top: 40px;
+}
+
+.rec-carousel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.rec-carousel__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-heading);
+}
+
+.rec-carousel__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.rec-carousel__nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-heading);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.rec-carousel__nav-btn:hover:not(:disabled) {
+  background: var(--chip-bg);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.rec-carousel__nav-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.rec-carousel__nav-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.rec-carousel__track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  touch-action: manipulation;
+  list-style: none;
+  margin: 0;
+  padding: 4px 2px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rec-carousel__track {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-carousel__track {
+    scroll-behavior: auto;
+  }
+}
+
+.rec-carousel__slide {
+  flex: 0 0 calc((100% - 48px) / 4);
+  min-width: 0;
+  scroll-snap-align: start;
+  display: flex;
+}
+
+.rec-carousel__slide > * {
+  width: 100%;
+}
+
+/* Zero-CLS loading skeleton matching ProductCard height (~615px at 4-up desktop) */
+.rec-skeleton-card {
+  width: 100%;
+  min-height: 600px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.rec-skeleton-card__img {
+  width: 100%;
+  height: 210px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    var(--bg-tertiary) 50%,
+    var(--bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+}
+
+.rec-skeleton-card__body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-grow: 1;
+}
+
+.rec-skeleton-line {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    var(--bg-tertiary) 50%,
+    var(--bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+}
+
+.rec-skeleton-line--short {
+  width: 45%;
+}
+
+.rec-skeleton-line--title {
+  height: 20px;
+  width: 85%;
+}
+
+.rec-skeleton-line--full {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rec-skeleton-card__img,
+  .rec-skeleton-line {
+    animation: rec-shimmer 1.5s infinite;
+  }
+}
+
+@keyframes rec-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.rec-carousel__dev-error {
+  margin-top: 20px;
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
+  background: var(--card-subtle);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 1024px) {
+  .rec-carousel__slide {
+    flex: 0 0 calc((100% - 16px) / 2.2);
+  }
+}
+
+@media (max-width: 640px) {
+  .rec-carousel {
+    margin-top: 28px;
+  }
+
+  .rec-carousel__title {
+    font-size: 1.15rem;
+  }
+
+  .rec-carousel__slide {
+    flex: 0 0 82%;
+  }
+}

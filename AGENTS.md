@@ -8,9 +8,9 @@ Project constitution, context, and operational guidelines for AI agents and deve
 
 **Progressive Minie Shop** is an incremental e-commerce web application built from scratch with React, TypeScript, and Vite to explore and apply fundamental and advanced React patterns in structured phases.
 
-- **Current Phase:** Phase 6 — Increment 2 (`SDD-0001` / `ADR-0001` Frontend Baseline): Dedicated Cart Page (`/cart`) migrated from monolithic Context + `useReducer` to pure immutable Redux Toolkit `cartSlice` reducers, memoized `createSelector` selectors, listener-based `localStorage` persistence, and Vitest + React `<Profiler>` verification.
+- **Current Phase:** Phase 7 — Storefront Search UI (`S08`: accessible APG `useCombobox` header autocomplete + lazy-loaded `react-instantsearch` `/search` route) & Recommendation Carousels (`R05`: lazy `IntersectionObserver` PDP blocks + inline Cart cross-sell over a frozen `cartSlice`).
 - **Next Planned Phase:**
-  - **Phase 6 (Inc. 3):** Checkout flow & order confirmation.
+  - **Phase 8:** Design system & styling architecture evolution.
 
 ---
 
@@ -33,13 +33,13 @@ Project constitution, context, and operational guidelines for AI agents and deve
 ## Available Scripts
 
 ```bash
-npm run dev        # Start Vite local dev server (http://localhost:5199, auto-open)
-npm test           # Run Vitest unit, selector, and React Profiler tests (vitest run)
-npm run test:watch # Run Vitest in interactive watch mode
-npm run typecheck  # Run strict TypeScript compiler checks (tsc --noEmit)
-npm run lint       # Run Oxlint checks across the codebase
-npm run build      # Typecheck and build production bundle into dist/ (tsc --noEmit && vite build)
-npm run preview    # Preview production bundle locally
+pnpm dev:storefront  # Start Vite storefront dev server on port 5199
+pnpm dev:api         # Start NestJS API dev server
+pnpm test            # Run API contract/unit tests and storefront Vitest + vitest-axe suites
+pnpm typecheck       # Run strict TypeScript compiler checks across all packages
+pnpm lint            # Run ESLint & Oxlint checks across the workspace
+pnpm build           # Build contracts, email, API, and storefront production bundle
+pnpm --filter @minieshop/storefront metrics  # Run Playwright metrics suite against live stack
 ```
 
 ---
@@ -57,7 +57,8 @@ react-minieshop/
 ├── .agent/
 │   ├── rules/                   # Domain-scoped agent rules
 │   │   ├── architecture.md      # Always-on architectural & incremental ADR/SDD rules
-│   │   ├── code-style.md        # Glob-scoped TS/TSX/CSS & UI quality conventions
+│   │   ├── formatting-and-whitespace.md # Always-on Prettier/.editorconfig & empty-brace ({}) rule
+│   │   ├── code-style.md        # Glob-scoped TS/TSX/CSS/MJS & UI quality conventions
 │   │   ├── testing.md           # Verification, typecheck, linting, build, and testing rules
 │   │   └── git-workflow.md      # Conventional Commits & pre-commit checklist
 │   └── agents/                  # Future project specialist agent definitions
@@ -105,3 +106,6 @@ react-minieshop/
    - Every SDD specification or feature increment **must** have its own dedicated Git branch (`feat/<slug>`, `fix/<slug>`, `refactor/<slug>`).
    - **Clean Branch Names (No SDD IDs):** Branch names must be clear, concise, and domain-focused (e.g., `feat/dedicated-cart-page`). Never include SDD prefixes or numbers (such as `sdd-0001`) in branch names.
    - Never start implementing a new spec on `main` or on another spec's existing branch. Check `git branch --show-current` first: continue on the spec's dedicated branch if already checked out, otherwise create/checkout a new dedicated branch before writing code.
+8. **Explicit Commit & Push Approval Gate (No Auto-Commit):**
+   - **Never commit or push changes (`git commit`, `git push`) without explicit user approval** of both the approach and the resulting changes.
+   - **Open PR Heightened Gate:** Especially when the current branch already has an open Pull Request, never commit or push fixes, refactors, or review responses autonomously—present the diagnosis/approach and local verification first, and wait for explicit approval before committing or pushing.

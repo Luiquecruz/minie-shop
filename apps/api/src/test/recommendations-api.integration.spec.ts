@@ -301,14 +301,33 @@ describe('R04 — Recommendations HTTP Endpoints (PDP & Cart Cross-Sell)', () =>
       'cross-single-high',
     ]);
 
-    // 3. Validation errors -> 400 VALIDATION_ERROR
+    // 3. Support optional currency query param on both recommendation endpoints (and reject invalid currency)
+    const resPdpUsd = await app.inject({
+      method: 'GET',
+      url: `/products/${pCart1.slug}/recommendations?types=cross_sell&currency=usd`,
+    });
+    expect(resPdpUsd.statusCode).toBe(200);
+    const pdpUsdBody = productRecommendationsResponseSchema.parse(resPdpUsd.json());
+    expect(pdpUsdBody.cross_sell?.[0]?.price.currency).toBe('USD');
+
+    const resCrossUsd = await app.inject({
+      method: 'GET',
+      url: `/recommendations/cross-sell?productIds=${pCart1.id}&currency=USD`,
+    });
+    expect(resCrossUsd.statusCode).toBe(200);
+    const crossUsdBody = cartCrossSellResponseSchema.parse(resCrossUsd.json());
+    expect(crossUsdBody.items[0]?.price.currency).toBe('USD');
+
+    // 4. Validation errors -> 400 VALIDATION_ERROR
     const badUrls = [
       '/recommendations/cross-sell',
       '/recommendations/cross-sell?productIds=not-a-uuid',
       `/recommendations/cross-sell?productIds=${Array.from({ length: 21 }, () => randomUUID()).join(',')}`,
       `/recommendations/cross-sell?productIds=${pCart1.id}&limit=13`,
+      `/recommendations/cross-sell?productIds=${pCart1.id}&currency=BTC`,
       `/products/${pCart1.slug}/recommendations?types=unknown_type`,
       `/products/${pCart1.slug}/recommendations?limit=0`,
+      `/products/${pCart1.slug}/recommendations?currency=BTC`,
     ];
 
     for (const url of badUrls) {

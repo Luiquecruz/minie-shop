@@ -11,6 +11,60 @@ export const enMessages = {
   'search.ariaLabel': 'Search products',
   'search.clearAria': 'Clear search input',
   'search.submitAria': 'Submit search',
+  'search.seeAllResults': 'See all results for',
+  'search.noSuggestions': 'No suggestions',
+  'search.suggestionsError': 'Could not load suggestions',
+  'search.suggestionsLoading': 'Loading suggestions...',
+  'search.suggestionsAvailableSingular': '1 suggestion available',
+  'search.suggestionsAvailable': '{count} suggestions available',
+  'search.suggestionsListboxAria': 'Search suggestions',
+
+  // Search Results Page
+  'searchPage.metaTitle': 'Search Products | Minie Shop',
+  'searchPage.metaTitleWithQuery': 'Search: {query} | Minie Shop',
+  'searchPage.metaDescription':
+    'Search the Minie Shop catalog with hybrid semantic and keyword matching.',
+  'searchPage.badge': 'Catalog Search',
+  'searchPage.heading': 'Search Products',
+  'searchPage.resultsHeading': 'Search results',
+  'searchPage.inputLabel': 'Search products',
+  'searchPage.inputPlaceholder': 'What are you looking for?',
+  'searchPage.submitButton': 'Search',
+  'searchPage.resultsSingular': '1 result for {query}',
+  'searchPage.resultsPlural': '{count} results for {query}',
+  'searchPage.noResultsLive': 'No results',
+  'searchPage.showingOf': 'Showing {loaded} of {total} results for',
+  'searchPage.updating': 'Updating results...',
+  'searchPage.loadingResults': 'Loading search results',
+  'searchPage.emptyPromptTitle': 'Type to search the catalog',
+  'searchPage.emptyPromptText':
+    'Search by product name, category, or describe how you plan to use it.',
+  'searchPage.emptyResultsTitle': 'No results for',
+  'searchPage.emptyResultsTip':
+    'Check spelling, try shorter keywords, or browse the full catalog.',
+  'searchPage.backToCatalog': 'Browse catalog',
+  'searchPage.loadMore': 'Load more',
+  'searchPage.loadingMore': 'Loading more...',
+  'searchPage.offsetLimitReached':
+    'Refine your search to see more specific results.',
+  'searchPage.errorTitle': 'Could not complete your search',
+  'searchPage.errorFallback':
+    'Search is temporarily unavailable. Please try again.',
+  'searchPage.retry': 'Try Again',
+  'searchPage.loadingRoute': 'Loading search...',
+  'searchPage.devBadge': 'DEV • mode: {mode} • {ms} ms',
+
+  // Recommendations & Carousel
+  'recommendations.relatedTitle': 'You may also like',
+  'recommendations.upsellTitle': 'Alternatives to consider',
+  'recommendations.crossSellTitle': 'Pair with your order',
+  'recommendations.previousAria': 'Previous products in {title}',
+  'recommendations.nextAria': 'Next products in {title}',
+  'recommendations.previousLabel': 'Previous',
+  'recommendations.nextLabel': 'Next',
+  'recommendations.carouselRoleDescription': 'carousel',
+  'recommendations.loadingAria': 'Loading {title}',
+  'recommendations.devErrorBadge': 'DEV • Failed to load recommendations ({code})',
 
   // Pricing
   'price.currentPriceAria': 'Current price {price}',
