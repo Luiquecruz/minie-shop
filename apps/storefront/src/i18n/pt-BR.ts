@@ -64,6 +64,7 @@ export const ptBRMessages: Record<MessageKey, string> = {
   'recommendations.nextAria': 'Próximos produtos em {title}',
   'recommendations.previousLabel': 'Anterior',
   'recommendations.nextLabel': 'Próximo',
+  'recommendations.carouselRoleDescription': 'carrossel',
   'recommendations.loadingAria': 'Carregando {title}',
   'recommendations.devErrorBadge': 'DEV • Erro ao carregar recomendações ({code})',
 

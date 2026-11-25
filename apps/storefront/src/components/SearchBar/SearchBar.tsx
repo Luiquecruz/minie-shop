@@ -81,6 +81,7 @@ export function SearchBar({ placeholder }: SearchBarProps) {
   const trimmedInput = inputValue.trim();
   const debouncedQuery = useDebounce(trimmedInput, 200);
   const meetsMinChars = trimmedInput.length >= MIN_SUGGEST_QUERY_LENGTH;
+  const isWaitingDebounce = meetsMinChars && debouncedQuery !== trimmedInput;
 
   const suggestQuery = useSearchSuggestQuery(
     debouncedQuery,
@@ -88,8 +89,11 @@ export function SearchBar({ placeholder }: SearchBarProps) {
   );
 
   const suggestions = useMemo(
-    () => (meetsMinChars && !suggestQuery.isError ? (suggestQuery.data?.suggestions ?? []) : []),
-    [meetsMinChars, suggestQuery.isError, suggestQuery.data],
+    () =>
+      meetsMinChars && !isWaitingDebounce && !suggestQuery.isError
+        ? (suggestQuery.data?.suggestions ?? [])
+        : [],
+    [meetsMinChars, isWaitingDebounce, suggestQuery.isError, suggestQuery.data],
   );
 
   const options = useMemo<ComboboxOption[]>(() => {
@@ -146,6 +150,7 @@ export function SearchBar({ placeholder }: SearchBarProps) {
     inputId,
     listboxId,
     highlightedIndex,
+    setHighlightedIndex,
     registerOptionRef,
     handleContainerBlur,
     getInputProps,
@@ -161,6 +166,7 @@ export function SearchBar({ placeholder }: SearchBarProps) {
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const nextValue = event.target.value;
+    setHighlightedIndex(-1);
     setInputValue(nextValue);
     setIsOpen(nextValue.trim().length >= MIN_SUGGEST_QUERY_LENGTH);
   };
@@ -180,12 +186,12 @@ export function SearchBar({ placeholder }: SearchBarProps) {
   };
 
   const handleClear = (): void => {
+    setHighlightedIndex(-1);
     setInputValue('');
     setIsOpen(false);
     inputRef.current?.focus();
   };
 
-  const isWaitingDebounce = meetsMinChars && debouncedQuery !== trimmedInput;
   const isFetching = suggestQuery.isFetching || isWaitingDebounce;
   const hasOptions = options.length > 0;
   const showDropdown = isOpen && meetsMinChars;

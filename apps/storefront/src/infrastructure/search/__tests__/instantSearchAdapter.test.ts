@@ -170,4 +170,23 @@ describe('createStorefrontSearchClient — InstantSearch adapter (S08.3)', () =>
     expect(secondResult.results[0].hits).toHaveLength(1);
     expect(firstResult.results[0].hits).toEqual([]);
   });
+
+  it('clamps fractional positive hitsPerPage to a minimum limit of 1 after truncation', async () => {
+    const repository = new MockProductRepository();
+    const searchSpy = vi.spyOn(repository, 'searchProducts');
+    const client = createStorefrontSearchClient(repository);
+
+    await client.search([
+      { indexName: 'products', params: { query: 'fone', page: 0, hitsPerPage: 0.5 } },
+    ]);
+
+    expect(searchSpy).toHaveBeenCalledWith(
+      {
+        q: 'fone',
+        limit: 1,
+        offset: 0,
+      },
+      expect.any(AbortSignal),
+    );
+  });
 });

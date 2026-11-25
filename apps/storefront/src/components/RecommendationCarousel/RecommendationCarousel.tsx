@@ -267,7 +267,7 @@ export function RecommendationCarousel({
     <section
       className="rec-carousel"
       aria-labelledby={headingId}
-      aria-roledescription="carousel"
+      aria-roledescription={t('recommendations.carouselRoleDescription')}
       data-testid={testId}
     >
       <div className="rec-carousel__header">
@@ -289,8 +289,11 @@ export function RecommendationCarousel({
                 lastActiveNavRef.current = 'prev';
               }}
               onBlur={(event) => {
+                if (event.currentTarget.disabled) {
+                  return;
+                }
                 const nextFocused = event.relatedTarget as Node | null;
-                if (nextFocused && nextFocused !== nextBtnRef.current) {
+                if (nextFocused !== nextBtnRef.current) {
                   lastActiveNavRef.current = null;
                 }
               }}
@@ -327,8 +330,11 @@ export function RecommendationCarousel({
                 lastActiveNavRef.current = 'next';
               }}
               onBlur={(event) => {
+                if (event.currentTarget.disabled) {
+                  return;
+                }
                 const nextFocused = event.relatedTarget as Node | null;
-                if (nextFocused && nextFocused !== prevBtnRef.current) {
+                if (nextFocused !== prevBtnRef.current) {
                   lastActiveNavRef.current = null;
                 }
               }}

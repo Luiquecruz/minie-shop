@@ -47,11 +47,15 @@ function renderSearchBar(
 }
 
 describe('SearchBar S08.2 — Accessible WAI-ARIA APG Combobox', () => {
-  it('hides header SearchBar on /search and renders it on catalog and PDP routes', () => {
+  it('hides header SearchBar on /search and /search/ and renders it on catalog and PDP routes', () => {
     const repository = new MockProductRepository();
-    const { unmount } = renderSearchBar(repository, ['/search?q=fone']);
+    const first = renderSearchBar(repository, ['/search?q=fone']);
     expect(screen.queryByRole('combobox', { name: /Buscar produtos/i })).not.toBeInTheDocument();
-    unmount();
+    first.unmount();
+
+    const trailingSlash = renderSearchBar(repository, ['/search/?q=fone']);
+    expect(screen.queryByRole('combobox', { name: /Buscar produtos/i })).not.toBeInTheDocument();
+    trailingSlash.unmount();
 
     renderSearchBar(repository, ['/audio/fone-de-ouvido-bluetooth-over-ear-pro']);
     expect(screen.getByRole('combobox', { name: /Buscar produtos/i })).toBeInTheDocument();
@@ -275,6 +279,53 @@ describe('SearchBar S08.2 — Accessible WAI-ARIA APG Combobox', () => {
     ).toBeInTheDocument();
 
     // Enter still navigates to /search?q=teclado
+    await user.keyboard('{Enter}');
+    expect(screen.getByTestId('location-probe')).toHaveTextContent(
+      '/search?q=teclado',
+    );
+  });
+
+  it('ignores keyboard navigation and Enter selection during IME composition', async () => {
+    const repository = new MockProductRepository();
+    const user = userEvent.setup();
+    renderSearchBar(repository, ['/']);
+
+    const input = screen.getByRole('combobox', { name: /Buscar produtos/i });
+    await user.type(input, 'fone');
+    await screen.findByRole('option', {
+      name: /Fone de Ouvido Bluetooth Over-Ear Pro/i,
+    });
+
+    // ArrowDown during IME composition must not highlight an option
+    fireEvent.keyDown(input, { key: 'ArrowDown', isComposing: true });
+    expect(input).not.toHaveAttribute('aria-activedescendant');
+
+    // Highlight normally, then press Enter while composing -> must not select/navigate
+    await user.keyboard('{ArrowDown}');
+    expect(input).toHaveAttribute('aria-activedescendant');
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+    expect(screen.getByTestId('location-probe')).toHaveTextContent('/');
+  });
+
+  it('clears the highlighted suggestion when input changes so Enter within debounce submits the new term', async () => {
+    const repository = new MockProductRepository();
+    const user = userEvent.setup();
+    renderSearchBar(repository, ['/']);
+
+    const input = screen.getByRole('combobox', { name: /Buscar produtos/i });
+    await user.type(input, 'fone');
+    await screen.findByRole('option', {
+      name: /Fone de Ouvido Bluetooth Over-Ear Pro/i,
+    });
+
+    // Highlight the first suggestion for 'fone'
+    await user.keyboard('{ArrowDown}');
+    expect(input).toHaveAttribute('aria-activedescendant');
+
+    // Immediately change input to 'teclado' and press Enter before the 200ms debounce settles
+    fireEvent.change(input, { target: { value: 'teclado' } });
+    expect(input).not.toHaveAttribute('aria-activedescendant');
+
     await user.keyboard('{Enter}');
     expect(screen.getByTestId('location-probe')).toHaveTextContent(
       '/search?q=teclado',

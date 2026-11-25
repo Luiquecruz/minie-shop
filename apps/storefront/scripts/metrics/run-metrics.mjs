@@ -506,15 +506,16 @@ async function measurePdpAndCartRecommendations(browser, url, apiUrl) {
 
   // Record CLS while scrolling to trigger lazy PDP recommendations
   await page.evaluate(() => {
+    const measurementStartedAt = performance.now();
     window.__phase7Cls = 0;
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        if (!entry.hadRecentInput) {
+        if (!entry.hadRecentInput && entry.startTime >= measurementStartedAt) {
           window.__phase7Cls += entry.value;
         }
       }
     });
-    observer.observe({ type: 'layout-shift', buffered: true });
+    observer.observe({ type: 'layout-shift' });
     window.__stopClsObserver = () => observer.disconnect();
   });
 

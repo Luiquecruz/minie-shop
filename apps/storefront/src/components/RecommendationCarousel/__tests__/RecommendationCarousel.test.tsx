@@ -256,6 +256,69 @@ describe('RecommendationCarousel R05.4 & R05.5', () => {
     }
   });
 
+  it('localizes aria-roledescription and clears nav focus ownership on external blur before boundary scroll', async () => {
+    const ptView = renderCarousel(
+      {
+        items: FIXTURE_PRODUCT_CARDS.slice(0, 5),
+        testId: 'rec-pt',
+      },
+      'pt-BR',
+    );
+    expect(screen.getByTestId('rec-pt')).toHaveAttribute(
+      'aria-roledescription',
+      'carrossel',
+    );
+
+    const track = ptView.container.querySelector(
+      '.rec-carousel__track',
+    ) as HTMLUListElement;
+    let currentScrollLeft = 0;
+    Object.defineProperty(track, 'scrollWidth', { configurable: true, value: 1000 });
+    Object.defineProperty(track, 'clientWidth', { configurable: true, value: 400 });
+    Object.defineProperty(track, 'scrollLeft', {
+      configurable: true,
+      get: () => currentScrollLeft,
+      set: (val: number) => {
+        currentScrollLeft = val;
+      },
+    });
+    fireEvent(window, new Event('resize'));
+
+    const prevBtn = await screen.findByRole('button', {
+      name: /Produtos anteriores em Você também pode gostar/i,
+    });
+    const nextBtn = screen.getByRole('button', {
+      name: /Próximos produtos em Você também pode gostar/i,
+    });
+
+    // Focus Next, then blur it externally (relatedTarget: null)
+    nextBtn.focus();
+    expect(nextBtn).toHaveFocus();
+    fireEvent.blur(nextBtn, { relatedTarget: null });
+    nextBtn.blur();
+
+    // Scroll track manually to the end so Next disables -> Prev must NOT steal focus
+    currentScrollLeft = 600;
+    fireEvent.scroll(track);
+
+    expect(nextBtn).toBeDisabled();
+    expect(prevBtn).toBeEnabled();
+    expect(prevBtn).not.toHaveFocus();
+    ptView.unmount();
+
+    renderCarousel(
+      {
+        items: FIXTURE_PRODUCT_CARDS.slice(0, 5),
+        testId: 'rec-en',
+      },
+      'en',
+    );
+    expect(screen.getByTestId('rec-en')).toHaveAttribute(
+      'aria-roledescription',
+      'carousel',
+    );
+  });
+
   it('passes vitest-axe with zero accessibility violations', async () => {
     const { container } = renderCarousel({
       items: FIXTURE_PRODUCT_CARDS.slice(0, 5),

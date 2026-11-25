@@ -62,6 +62,7 @@ export const enMessages = {
   'recommendations.nextAria': 'Next products in {title}',
   'recommendations.previousLabel': 'Previous',
   'recommendations.nextLabel': 'Next',
+  'recommendations.carouselRoleDescription': 'carousel',
   'recommendations.loadingAria': 'Loading {title}',
   'recommendations.devErrorBadge': 'DEV • Failed to load recommendations ({code})',
 

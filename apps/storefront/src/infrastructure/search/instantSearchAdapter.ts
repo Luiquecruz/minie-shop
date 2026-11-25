@@ -53,6 +53,13 @@ export interface StorefrontSearchClient {
   }>;
 }
 
+function normalizeHitsPerPage(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.max(1, Math.min(MAX_SEARCH_LIMIT, Math.trunc(value)));
+  }
+  return SEARCH_HITS_PER_PAGE;
+}
+
 function buildEmptyResponse(
   query: string,
   page: number,
@@ -118,13 +125,7 @@ export function createStorefrontSearchClient(
           const trimmedQuery = rawQuery
             .trim()
             .slice(0, MAX_SEARCH_QUERY_LENGTH);
-          const rawHitsPerPage =
-            typeof request.params?.hitsPerPage === 'number' &&
-            Number.isFinite(request.params.hitsPerPage) &&
-            request.params.hitsPerPage > 0
-              ? Math.trunc(request.params.hitsPerPage)
-              : SEARCH_HITS_PER_PAGE;
-          const hitsPerPage = Math.min(MAX_SEARCH_LIMIT, rawHitsPerPage);
+          const hitsPerPage = normalizeHitsPerPage(request.params?.hitsPerPage);
           const page =
             typeof request.params?.page === 'number' &&
             Number.isFinite(request.params.page) &&
@@ -147,13 +148,9 @@ export function createStorefrontSearchClient(
                 .trim()
                 .slice(0, MAX_SEARCH_QUERY_LENGTH);
 
-              const rawHitsPerPage =
-                typeof request.params?.hitsPerPage === 'number' &&
-                Number.isFinite(request.params.hitsPerPage) &&
-                request.params.hitsPerPage > 0
-                  ? Math.trunc(request.params.hitsPerPage)
-                  : SEARCH_HITS_PER_PAGE;
-              const hitsPerPage = Math.min(MAX_SEARCH_LIMIT, rawHitsPerPage);
+              const hitsPerPage = normalizeHitsPerPage(
+                request.params?.hitsPerPage,
+              );
 
               const page =
                 typeof request.params?.page === 'number' &&

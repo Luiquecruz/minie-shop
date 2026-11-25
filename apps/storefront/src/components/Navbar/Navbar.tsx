@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useMatch } from 'react-router-dom';
 import { useCartBadge } from '../../hooks/useCart';
 import { useCurrency } from '../../hooks/useCurrency';
 import {
@@ -17,8 +17,7 @@ export function Navbar() {
   const { cartCount, toggleCart } = useCartBadge();
   const { currentCurrency, setCurrency } = useCurrency();
   const { locale, setLocale, t } = useI18n();
-  const location = useLocation();
-  const isSearchResultsRoute = location.pathname === '/search';
+  const isSearchResultsRoute = useMatch('/search') !== null;
 
   const handleCurrencyChange = (
     event: React.ChangeEvent<HTMLSelectElement>,
