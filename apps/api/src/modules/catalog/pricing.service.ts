@@ -7,7 +7,7 @@ import type {
   SupportedCurrency,
 } from '@minieshop/contracts';
 import { DatabaseService } from '../../database/database.service.js';
-import { exchangeRates, products } from '../../database/schema/index.js';
+import { exchangeRates, products } from '../../database/schema/catalog.js';
 import { effectivePriceSql } from './catalog-filters.js';
 
 const DEFAULT_FALLBACK_RATES: Record<SupportedCurrency, number> = {

@@ -8,7 +8,7 @@ import {
   roles,
   staffUserRoles,
   staffUsers,
-} from '../../database/schema/index.js';
+} from '../../database/schema/identity.js';
 import { normalizeEmail } from './customer-auth.service.js';
 import { PasswordService } from './password.service.js';
 import { ALL_PERMISSIONS, DEFAULT_ROLES } from './types.js';

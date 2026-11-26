@@ -8,7 +8,7 @@ import {
 } from '@minieshop/email';
 import { loadEnv } from '../../config/env.js';
 import { DatabaseService } from '../../database/database.service.js';
-import { customers } from '../../database/schema/index.js';
+import { customers } from '../../database/schema/identity.js';
 import type { IdentityEmailKind, OutboxRecord } from '../platform/index.js';
 import { EmailTokenService } from './email-token.service.js';
 import { MAIL_TRANSPORT_TOKEN, type MailTransport } from './mail-transport.js';

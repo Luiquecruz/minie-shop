@@ -55,15 +55,19 @@ export class EmbeddingsOutboxHandler {
       throw new Error(`Embedding provider returned empty vector for product "${productId}"`);
     }
 
-    await this.catalogService.upsertProductEmbedding({
-      productId,
-      embedding,
-      model: this.embeddingProvider.modelName,
-      contentHash,
-    });
-
-    // Notify subscribed consumers (search-index, recommendations) that a fresh vector was persisted
+    // Persist embedding and enqueue downstream notification atomically so a crash
+    // can never leave a freshly written contentHash without a matching outbox event.
     await this.databaseService.db.transaction(async (tx) => {
+      await this.catalogService.upsertProductEmbedding(
+        {
+          productId,
+          embedding,
+          model: this.embeddingProvider.modelName,
+          contentHash,
+        },
+        tx,
+      );
+
       await this.outboxService.enqueue(tx, {
         eventType: 'product.embedding_updated',
         aggregateType: 'product',

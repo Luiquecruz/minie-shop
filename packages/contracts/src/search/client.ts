@@ -25,6 +25,7 @@ export const clientSearchSuggestionSchema: z.ZodType<SearchSuggestionDTO> = z
     slug: z.string().min(1),
     name: z.string().min(1),
     categoryName: z.string(),
+    categorySlug: z.string(),
   })
   .strip();
 

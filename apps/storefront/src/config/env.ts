@@ -3,7 +3,7 @@ import { z } from 'zod';
 const storefrontEnvSchema = z.object({
   VITE_API_URL: z
     .string({
-      required_error:
+      error:
         'Missing required environment variable VITE_API_URL (e.g. http://localhost:3001).',
     })
     .trim()

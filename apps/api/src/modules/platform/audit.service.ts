@@ -4,7 +4,7 @@ import type { AuditLogEntryDTO, AuditLogQuery, AuditLogResponseDTO } from '@mini
 import { validationError } from '../../common/errors.js';
 import { redactSensitiveData } from '../../common/logger.js';
 import { DatabaseService } from '../../database/database.service.js';
-import { auditLog } from '../../database/schema/index.js';
+import { auditLog } from '../../database/schema/platform.js';
 import type { DbOrTx } from './outbox.service.js';
 
 export type AuditActorType = 'system' | 'customer' | 'staff';

@@ -3,7 +3,7 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { notFoundError, validationError } from '../../common/errors.js';
 import { loadEnv } from '../../config/env.js';
 import { DatabaseService } from '../../database/database.service.js';
-import { categoryComplements, productRelations } from '../../database/schema/index.js';
+import { categoryComplements, productRelations } from '../../database/schema/recommendations.js';
 import { CatalogService } from '../catalog/index.js';
 import { OutboxService } from '../platform/index.js';
 import {

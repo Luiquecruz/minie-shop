@@ -3,6 +3,7 @@ import type {
   SearchRequestedMode,
   SearchResponseDTO,
   SearchSuggestResponseDTO,
+  SupportedCurrency,
 } from '@minieshop/contracts';
 import { loadEnv } from '../../config/env.js';
 import { CatalogService } from '../catalog/index.js';
@@ -20,6 +21,7 @@ export interface SearchRequestParams {
   maxPrice?: number;
   inStock?: boolean;
   mode: SearchRequestedMode;
+  currency?: SupportedCurrency;
 }
 
 export interface SearchLogger {
@@ -113,14 +115,30 @@ export class SearchService {
       }
 
       try {
+        const currency: SupportedCurrency = params.currency ?? 'BRL';
+        let meiliMinPrice = params.minPrice;
+        let meiliMaxPrice = params.maxPrice;
+        const hasCurrencyPriceFilter =
+          currency !== 'BRL' && (params.minPrice !== undefined || params.maxPrice !== undefined);
+
+        if (hasCurrencyPriceFilter) {
+          const rate = await this.catalogService.resolveExchangeRate(currency);
+          if (params.minPrice !== undefined) {
+            meiliMinPrice = Math.max(0, Math.floor((params.minPrice - 0.5) / rate));
+          }
+          if (params.maxPrice !== undefined) {
+            meiliMaxPrice = Math.ceil((params.maxPrice + 0.5) / rate);
+          }
+        }
+
         const useHybrid = params.mode === 'hybrid' && queryVector !== undefined;
         const hits = await this.searchPort.search({
           q: params.q,
           limit: params.limit,
           offset: params.offset,
           category: params.category,
-          minPrice: params.minPrice,
-          maxPrice: params.maxPrice,
+          minPrice: meiliMinPrice,
+          maxPrice: meiliMaxPrice,
           inStock: params.inStock,
           ...(useHybrid
             ? {
@@ -134,11 +152,27 @@ export class SearchService {
         });
 
         this.circuitBreaker.recordSuccess();
-        const items = await this.catalogService.getProductCardsByIdsOrdered(hits.ids);
+        const hydratedItems = await this.catalogService.getProductCardsByIdsOrdered(
+          hits.ids,
+          currency,
+        );
+        const items = hasCurrencyPriceFilter
+          ? hydratedItems.filter((item) => {
+              if (params.minPrice !== undefined && item.price.amount < params.minPrice) {
+                return false;
+              }
+              if (params.maxPrice !== undefined && item.price.amount > params.maxPrice) {
+                return false;
+              }
+              return true;
+            })
+          : hydratedItems;
 
         return {
           items,
-          estimatedTotal: Math.max(items.length, hits.estimatedTotal),
+          estimatedTotal: hasCurrencyPriceFilter
+            ? Math.max(items.length, hits.estimatedTotal - (hydratedItems.length - items.length))
+            : Math.max(items.length, hits.estimatedTotal),
           mode: useHybrid ? 'hybrid' : 'keyword',
         };
       } catch (error) {
@@ -172,6 +206,7 @@ export class SearchService {
       minPrice: params.minPrice,
       maxPrice: params.maxPrice,
       inStock: params.inStock,
+      currency: params.currency ?? 'BRL',
     });
 
     return {

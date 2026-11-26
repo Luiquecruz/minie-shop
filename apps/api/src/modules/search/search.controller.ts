@@ -4,6 +4,8 @@ import {
   searchRequestedModeSchema,
   searchResponseSchema,
   searchSuggestResponseSchema,
+  supportedCurrencySchema,
+  type SupportedCurrency,
 } from '@minieshop/contracts';
 import { z } from 'zod';
 import { sendWithPublicCache } from '../../common/http-cache.js';
@@ -14,6 +16,11 @@ const nonNegIntString = z
   .string()
   .regex(/^\d+$/, 'Must be a non-negative integer')
   .transform((v) => Number(v));
+
+const currencyQuerySchema = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
+  supportedCurrencySchema,
+);
 
 const searchQuerySchema = z
   .object({
@@ -32,6 +39,7 @@ const searchQuerySchema = z
       .transform((v) => v === 'true')
       .optional(),
     mode: searchRequestedModeSchema.optional(),
+    currency: currencyQuerySchema.optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -41,7 +49,7 @@ const searchQuerySchema = z
       data.minPrice > data.maxPrice
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['minPrice'],
         message: 'minPrice must be less than or equal to maxPrice',
       });
@@ -88,6 +96,7 @@ export class SearchController {
           maxPrice: parsed.maxPrice,
           inStock: parsed.inStock,
           mode: parsed.mode ?? 'hybrid',
+          currency: (parsed.currency ?? 'BRL') as SupportedCurrency,
         },
         { requestId, logger: request.log, signal: abortController.signal },
       );

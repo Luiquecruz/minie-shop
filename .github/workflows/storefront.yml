@@ -59,9 +59,13 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint, typecheck, test and build storefront via Turbo
+      - name: Lint, typecheck, test, package-check and build storefront via Turbo
         run: |
           pnpm exec turbo run lint --filter=@minieshop/storefront...
           pnpm exec turbo run typecheck --filter=@minieshop/storefront...
           pnpm exec turbo run test --filter=@minieshop/storefront...
           pnpm exec turbo run build --filter=@minieshop/storefront...
+          pnpm --filter @minieshop/contracts lint:pkg
+
+      - name: Dependency audit gate (blocking on high/critical)
+        run: pnpm audit --audit-level=high

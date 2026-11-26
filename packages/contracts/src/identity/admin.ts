@@ -116,12 +116,12 @@ export const auditLogEntryDtoSchema = z
     action: z.string(),
     entityType: z.string(),
     entityId: z.string(),
-    before: z.record(z.unknown()).nullable(),
-    after: z.record(z.unknown()).nullable(),
+    before: z.record(z.string(), z.unknown()).nullable(),
+    after: z.record(z.string(), z.unknown()).nullable(),
     ipAddress: z.string().nullable(),
     userAgent: z.string().nullable(),
     requestId: z.string().nullable(),
-    metadata: z.record(z.unknown()),
+    metadata: z.record(z.string(), z.unknown()),
     createdAt: z.string().datetime(),
   })
   .strict();

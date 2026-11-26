@@ -57,7 +57,7 @@ const productRecommendationsQuerySchema = z
           .filter((s) => s.length > 0);
         if (parts.length === 0) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: 'types must contain at least one valid recommendation type',
           });
           return z.NEVER;
@@ -67,7 +67,7 @@ const productRecommendationsQuerySchema = z
           const parsed = recommendationTypeSchema.safeParse(part);
           if (!parsed.success) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: 'custom',
               message: `Invalid recommendation type "${part}". Allowed: related, upsell, cross_sell`,
             });
             return z.NEVER;
@@ -102,14 +102,14 @@ const cartCrossSellQuerySchema = z
           .filter((s) => s.length > 0);
         if (parts.length === 0) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: 'productIds must contain at least one UUID',
           });
           return z.NEVER;
         }
         if (parts.length > MAX_CART_PRODUCT_IDS) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: `productIds accepts at most ${MAX_CART_PRODUCT_IDS} IDs`,
           });
           return z.NEVER;
@@ -119,7 +119,7 @@ const cartCrossSellQuerySchema = z
           const parsed = uuidSchema.safeParse(id);
           if (!parsed.success) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: 'custom',
               message: `Invalid UUID "${id}" in productIds`,
             });
             return z.NEVER;

@@ -11,7 +11,7 @@ import {
   type ErrorCode,
   type ErrorDetail,
 } from '@minieshop/contracts';
-import { ZodError, type ZodIssue } from 'zod';
+import { ZodError, type z } from 'zod';
 import { AppHttpError, zodErrorToDetails } from './errors.js';
 
 function isZodError(value: unknown): value is ZodError {
@@ -25,9 +25,9 @@ function isZodError(value: unknown): value is ZodError {
   );
 }
 
-function extractZodDetails(error: { issues: ZodIssue[] }): ErrorDetail[] {
+function extractZodDetails(error: { issues: ReadonlyArray<z.core.$ZodIssue> }): ErrorDetail[] {
   return error.issues.map((issue) => ({
-    path: issue.path.length > 0 ? issue.path.join('.') : '_root',
+    path: issue.path.length > 0 ? issue.path.map(String).join('.') : '_root',
     message: issue.message,
   }));
 }
@@ -81,10 +81,25 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           void reply.header(headerName, headerValue);
         }
       }
+      const isServerError = exception.statusCode >= 500;
+      if (isServerError) {
+        request.log.error(
+          {
+            err: exception,
+            code: exception.code,
+            internalMessage: exception.internalMessage ?? exception.message,
+            requestId,
+          },
+          'Internal HTTP 5xx AppHttpError',
+        );
+      }
       const payload = buildErrorResponse({
         code: exception.code,
-        message: exception.message,
-        details: exception.details,
+        message:
+          isServerError && exception.code === 'INTERNAL_ERROR'
+            ? 'Internal server error'
+            : exception.message,
+        details: isServerError ? undefined : exception.details,
         requestId,
       });
       void reply.code(exception.statusCode).send(payload);

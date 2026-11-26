@@ -1,4 +1,4 @@
-import type { SearchIndexDocument } from '@minieshop/contracts';
+import type { SearchIndexDocument } from '../catalog/index.js';
 
 export const SEARCH_PORT = Symbol('SEARCH_PORT');
 
@@ -31,6 +31,7 @@ export interface SearchSuggestHit {
   slug: string;
   name: string;
   categoryName: string;
+  categorySlug: string;
 }
 
 export interface ReindexResult {

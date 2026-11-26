@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 import type {
   AdminCustomerListItemDTO,
   AdminCustomerListQuery,
@@ -23,7 +23,7 @@ import {
   roles,
   staffUserRoles,
   staffUsers,
-} from '../../database/schema/index.js';
+} from '../../database/schema/identity.js';
 import { AuditService, type AuditContext } from '../platform/index.js';
 import { normalizeEmail } from './customer-auth.service.js';
 import { PasswordService } from './password.service.js';
@@ -393,7 +393,7 @@ export class StaffAdminService {
           .from(staffUserRoles)
           .innerJoin(roles, eq(staffUserRoles.roleId, roles.id))
           .innerJoin(staffUsers, eq(staffUserRoles.staffUserId, staffUsers.id))
-          .where(eq(roles.code, 'admin'));
+          .where(and(eq(roles.code, 'admin'), eq(staffUsers.isActive, true)));
 
         const activeAdminIds = new Set(adminRows.map((r) => r.staffUserId));
         if (activeAdminIds.size <= 1 && activeAdminIds.has(target.id)) {
@@ -401,13 +401,14 @@ export class StaffAdminService {
         }
       }
 
-      // Also guard against removing staff:manage from the sole holder (including self)
+      // Also guard against removing staff:manage from the sole active holder (including self)
       const staffManageHolders = await tx
         .select({ staffUserId: staffUserRoles.staffUserId })
         .from(staffUserRoles)
+        .innerJoin(staffUsers, eq(staffUserRoles.staffUserId, staffUsers.id))
         .innerJoin(rolePermissions, eq(rolePermissions.roleId, staffUserRoles.roleId))
         .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-        .where(eq(permissions.code, 'staff:manage'));
+        .where(and(eq(permissions.code, 'staff:manage'), eq(staffUsers.isActive, true)));
 
       const targetNewPerms = await tx
         .select({ code: permissions.code })

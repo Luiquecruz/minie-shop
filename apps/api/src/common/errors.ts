@@ -6,6 +6,7 @@ export class AppHttpError extends Error {
   public readonly code: ErrorCode;
   public readonly details?: ErrorDetail[];
   public readonly headers?: Record<string, string>;
+  public readonly internalMessage?: string;
 
   constructor(params: {
     statusCode: number;
@@ -13,6 +14,7 @@ export class AppHttpError extends Error {
     message: string;
     details?: ErrorDetail[];
     headers?: Record<string, string>;
+    internalMessage?: string;
   }) {
     super(params.message);
     this.name = 'AppHttpError';
@@ -20,6 +22,7 @@ export class AppHttpError extends Error {
     this.code = params.code;
     this.details = params.details;
     this.headers = params.headers;
+    this.internalMessage = params.internalMessage;
   }
 }
 

@@ -1,5 +1,5 @@
 import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
-import { products } from '../../database/schema/index.js';
+import { products } from '../../database/schema/catalog.js';
 import type { ParsedCatalogFilters } from './catalog-query.js';
 
 export const effectivePriceSql = sql<number>`COALESCE(${products.specialPriceCents}, ${products.regularPriceCents})`;

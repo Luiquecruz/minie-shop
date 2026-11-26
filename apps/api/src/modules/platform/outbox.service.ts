@@ -1,9 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, inArray, lt, sql } from 'drizzle-orm';
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { DatabaseService } from '../../database/database.service.js';
-import * as schema from '../../database/schema/index.js';
-import { outbox } from '../../database/schema/index.js';
+import { DatabaseService, type DatabaseClient } from '../../database/database.service.js';
+import { outbox } from '../../database/schema/platform.js';
 import {
   OUTBOX_SUBSCRIPTIONS,
   type OutboxConsumer,
@@ -12,7 +10,7 @@ import {
   type OutboxStatus,
 } from './outbox-events.js';
 
-export type DbOrTx = Pick<NodePgDatabase<typeof schema>, 'insert' | 'select' | 'update' | 'delete' | 'execute'>;
+export type DbOrTx = Pick<DatabaseClient, 'insert' | 'select' | 'update' | 'delete' | 'execute'>;
 
 export interface OutboxStatsRow {
   status: string;

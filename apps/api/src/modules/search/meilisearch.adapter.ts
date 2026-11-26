@@ -22,6 +22,7 @@ interface MeiliSearchResponse {
     slug?: string;
     name?: string;
     categoryNames?: string;
+    categoryPath?: string[];
   }>;
   estimatedTotalHits?: number;
 }
@@ -174,7 +175,7 @@ export class MeilisearchAdapter implements SearchPort {
         body: JSON.stringify({
           q,
           limit,
-          attributesToRetrieve: ['slug', 'name', 'categoryNames'],
+          attributesToRetrieve: ['slug', 'name', 'categoryNames', 'categoryPath'],
         }),
         timeoutMs,
       },
@@ -186,7 +187,7 @@ export class MeilisearchAdapter implements SearchPort {
 
     return (data.hits ?? [])
       .filter(
-        (hit): hit is { slug: string; name: string; categoryNames?: string } =>
+        (hit): hit is { slug: string; name: string; categoryNames?: string; categoryPath?: string[] } =>
           typeof hit.slug === 'string' && typeof hit.name === 'string',
       )
       .map((hit) => {
@@ -194,10 +195,14 @@ export class MeilisearchAdapter implements SearchPort {
           .split('>')
           .map((s) => s.trim())
           .filter(Boolean);
+        const pathParts = Array.isArray(hit.categoryPath)
+          ? hit.categoryPath.filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+          : [];
         return {
           slug: hit.slug,
           name: hit.name,
           categoryName: parts[parts.length - 1] ?? '',
+          categorySlug: pathParts[pathParts.length - 1] ?? '',
         };
       });
   }

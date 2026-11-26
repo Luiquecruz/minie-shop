@@ -45,3 +45,4 @@ This directory maintains an **incremental, append-only log** of architectural de
 | [ADR-0020](./0020-combobox-autocomplete-apg-proprio.md) | Combobox de Autocomplete no Cabeçalho — Implementação Própria WAI-ARIA APG vs Downshift | Fase 7 (`S08.2`) | Accepted | 2026-11-24 |
 | [ADR-0021](./0021-carregamento-preguicoso-recomendacoes-pdp.md) | Carregamento Preguiçoso dos Blocos de Recomendação na PDP | Fase 7 (`R05.2`, `R05.4`) | Accepted | 2026-11-24 |
 | [ADR-0022](./0022-upgrade-embeddings-model-to-embeddinggemma-2.md) | Upgrade Local Embedding Model from `embeddinggemma` (v1) to `embeddinggemma-2` | Alignment (`chore/docs-and-docker-alignment`) | Accepted | 2026-11-26 |
+| [ADR-0023](./0023-monorepo-package-boundaries-stack-typescript-and-contracts.md) | Monorepo Package Boundaries, Stack-Pinned TypeScript, and Publish-Ready Contracts | Pre-Phase 8 (`chore/monorepo-security-and-api-hardening`) | Accepted | 2026-11-26 |

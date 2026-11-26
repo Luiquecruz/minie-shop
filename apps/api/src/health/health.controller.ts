@@ -6,6 +6,7 @@ import {
   type HealthStatus,
   type ReadinessStatus,
 } from '@minieshop/contracts';
+import { parseOutput } from '../common/parse-response.js';
 import { DatabaseService } from '../database/database.service.js';
 
 @Controller()
@@ -17,7 +18,7 @@ export class HealthController {
 
   @Get('health')
   getHealth(): HealthStatus {
-    return healthStatusSchema.parse({
+    return parseOutput(healthStatusSchema, {
       status: 'ok',
       timestamp: new Date().toISOString(),
     });
@@ -26,7 +27,7 @@ export class HealthController {
   @Get('ready')
   async getReady(@Res() reply: FastifyReply): Promise<void> {
     const isUp = await this.databaseService.checkConnection();
-    const payload: ReadinessStatus = readinessStatusSchema.parse({
+    const payload: ReadinessStatus = parseOutput(readinessStatusSchema, {
       status: isUp ? 'ready' : 'not_ready',
       database: isUp ? 'up' : 'down',
       timestamp: new Date().toISOString(),
