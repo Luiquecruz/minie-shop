@@ -1,6 +1,6 @@
 # ADR-0011 — Pipeline Único de Embeddings com pgvector e Embedder `userProvided` *(spec ADR-006)*
 
-- **Status:** Accepted
+- **Status:** Partially Superseded by [ADR-0022](./0022-upgrade-embeddings-model-to-embeddinggemma-2.md) *(model upgraded from `embeddinggemma` to `embeddinggemma-2`; pipeline architecture unchanged)*
 - **Date:** 2026-11-22
 - **Phase:** Backend Fase 3 (`S01`, atualizado ao final da `S06`)
 

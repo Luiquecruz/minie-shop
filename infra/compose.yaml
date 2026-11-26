@@ -1,5 +1,11 @@
 name: minieshop
 
+x-api-image: &api-image
+  image: minieshop-api:dev
+  build:
+    context: ..
+    dockerfile: apps/api/Dockerfile
+
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -54,6 +60,8 @@ services:
     depends_on:
       storage:
         condition: service_healthy
+    tmpfs:
+      - /data
     environment:
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-minieshop-catalog-public}
       S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-minieshop-private}
@@ -94,9 +102,7 @@ services:
       start_period: 5s
 
   init-search:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
+    <<: *api-image
     restart: 'no'
     depends_on:
       search:
@@ -113,9 +119,7 @@ services:
     command: ['pnpm', 'search:init']
 
   migrate:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
+    <<: *api-image
     restart: 'no'
     depends_on:
       postgres:
@@ -136,10 +140,8 @@ services:
     command: ['pnpm', 'db:migrate']
 
   seed:
+    <<: *api-image
     profiles: ['seed']
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
     restart: 'no'
     depends_on:
       postgres:
@@ -179,9 +181,7 @@ services:
       start_period: 5s
 
   api:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
+    <<: *api-image
     restart: unless-stopped
     depends_on:
       postgres:
@@ -225,7 +225,7 @@ services:
       MEILI_EMBEDDER_NAME: ${MEILI_EMBEDDER_NAME:-semantic}
       EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-ollama}
       EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL:-http://embeddings:11434}
-      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-embeddinggemma}
+      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-embeddinggemma-2}
       EMBEDDINGS_DIMENSIONS: ${EMBEDDINGS_DIMENSIONS:-768}
       SEARCH_SEMANTIC_RATIO: ${SEARCH_SEMANTIC_RATIO:-0.5}
     volumes:
@@ -249,9 +249,7 @@ services:
           path: ../packages/contracts/src
 
   worker:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
+    <<: *api-image
     restart: unless-stopped
     depends_on:
       postgres:
@@ -289,7 +287,7 @@ services:
       OUTBOX_RETENTION_DAYS: ${OUTBOX_RETENTION_DAYS:-7}
       EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-ollama}
       EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL:-http://embeddings:11434}
-      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-embeddinggemma}
+      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-embeddinggemma-2}
       EMBEDDINGS_DIMENSIONS: ${EMBEDDINGS_DIMENSIONS:-768}
     volumes:
       - meili_keys:/run/meili-keys:ro
@@ -302,6 +300,7 @@ services:
       start_period: 10s
 
   storefront:
+    image: minieshop-storefront:dev
     build:
       context: ..
       dockerfile: apps/storefront/Dockerfile
@@ -361,7 +360,7 @@ services:
         condition: service_healthy
     environment:
       OLLAMA_HOST: http://embeddings:11434
-      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-embeddinggemma}
+      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-embeddinggemma-2}
     entrypoint: ['/bin/sh', '-ec']
     command:
       - |

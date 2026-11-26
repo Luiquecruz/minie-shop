@@ -135,6 +135,7 @@ async function main(): Promise<void> {
     const results = [];
     results.push(await evaluateModel('bge-m3', 1024, prepared, baseUrl));
     results.push(await evaluateModel('embeddinggemma', 768, prepared, baseUrl));
+    results.push(await evaluateModel('embeddinggemma-2', 768, prepared, baseUrl));
 
     console.log(JSON.stringify(results, null, 2));
   } finally {

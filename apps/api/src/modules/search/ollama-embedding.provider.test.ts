@@ -18,7 +18,7 @@ describe('OllamaEmbeddingProvider', () => {
 
     const provider = new OllamaEmbeddingProvider({
       baseUrl: 'http://embeddings.local:11434',
-      modelName: 'embeddinggemma',
+      modelName: 'embeddinggemma-2',
       dimensions: 4,
       maxRetries: 2,
     });
@@ -46,7 +46,7 @@ describe('OllamaEmbeddingProvider', () => {
 
     const provider = new OllamaEmbeddingProvider({
       baseUrl: 'http://embeddings.local:11434',
-      modelName: 'embeddinggemma',
+      modelName: 'embeddinggemma-2',
       dimensions: 4,
       maxRetries: 2,
     });
@@ -75,7 +75,7 @@ describe('OllamaEmbeddingProvider', () => {
         throw new Error('Transient error 1');
       }
       return new Response(
-        JSON.stringify({ model: 'embeddinggemma', embeddings: [[0.1, 0.2, 0.3, 0.4]] }),
+        JSON.stringify({ model: 'embeddinggemma-2', embeddings: [[0.1, 0.2, 0.3, 0.4]] }),
         {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -85,7 +85,7 @@ describe('OllamaEmbeddingProvider', () => {
 
     const provider = new OllamaEmbeddingProvider({
       baseUrl: 'http://embeddings.local:11434',
-      modelName: 'embeddinggemma',
+      modelName: 'embeddinggemma-2',
       dimensions: 4,
       maxRetries: 2,
     });

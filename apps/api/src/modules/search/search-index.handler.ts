@@ -35,7 +35,9 @@ export class SearchIndexOutboxHandler {
       ...doc,
       _vectors: {
         [env.MEILI_EMBEDDER_NAME]:
-          emb && emb.embedding.length === env.EMBEDDINGS_DIMENSIONS
+          emb &&
+          emb.model === env.EMBEDDINGS_MODEL &&
+          emb.embedding.length === env.EMBEDDINGS_DIMENSIONS
             ? {
                 embeddings: emb.embedding,
                 regenerate: false,
