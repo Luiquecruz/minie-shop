@@ -1,95 +1,40 @@
-# Infraestrutura Local — Progressive Minie Shop Backend
+# Local Infrastructure — Progressive Minie Shop
 
-Ambiente local containerizado com Docker Compose (testado no **OrbStack** / macOS) para a Fase 1 do backend, sem alterar o SPA React nem o `package.json` da raiz.
+Containerized local stack defined in [`infra/compose.yaml`](./compose.yaml) (included by the root [`compose.yaml`](../compose.yaml)) and operated via [`infra/Makefile`](./Makefile) or root `docker compose` commands.
 
-> **Nota de Monorepo:** os pacotes do backend (`apps/api`, `packages/contracts`, `packages/config`) usam `package.json` e `pnpm-lock.yaml` isolados via `link:`; a unificação em workspace `pnpm` na raiz acontecerá na **T20**.
-
----
-
-## Quick Start
-
-```bash
-# 1. (Opcional) Copie o arquivo de ambiente caso queira customizar variáveis
-cp infra/.env.example infra/.env
-
-# 2. Suba todos os serviços (build, Postgres, SeaweedFS, init-buckets, migrate e API)
-make -C infra up
-
-# 3. Verifique saúde da API e prontidão do banco
-curl http://localhost:3001/health
-curl http://localhost:3001/ready
-
-# 4. Hot reload em desenvolvimento (Docker Compose Watch)
-make -C infra watch
-
-# 5. Logs em tempo real
-make -C infra logs
-
-# 6. Recriar o ambiente do zero (apaga volumes, recria buckets e roda migrations)
-make -C infra reset
-
-# 7. Derrubar os containers (mantendo volumes)
-make -C infra down
-```
+For the complete step-by-step startup guide and a detailed breakdown of every image, container lifecycle, and volume, see the root [`README.md`](../README.md).
 
 ---
 
-## Diagrama dos Serviços
+## Environment File Precedence
 
-```mermaid
-flowchart LR
-  subgraph Docker["Docker Compose (minieshop-backend)"]
-    PG["postgres (pgvector:pg17 :5432)"]
-    ST["storage (SeaweedFS :8333 / :9333 / :8888)"]
-    IB["init-buckets (one-shot)"]
-    MG["migrate (one-shot)"]
-    API["api (NestJS + Fastify :3001)"]
-
-    ST -->|service_healthy| IB
-    PG -->|service_healthy| MG
-    PG -->|service_healthy| API
-    MG -->|service_completed_successfully| API
-    IB -->|service_completed_successfully| API
-  end
-```
+- **Direct root `docker compose ...` commands:** Read the repository root `.env` (there is no automatic fallback to `.env.example`), so copy the template first:
+  ```bash
+  cp .env.example .env
+  ```
+- **`make -C infra <target>` shortcuts:** Follow the fallback order in [`infra/Makefile`](./Makefile): root `.env` → legacy `infra/.env` (if present) → root `.env.example`. Always prefer root `.env` as the single source of truth.
 
 ---
 
-## Portas e Endpoints
+## Makefile Shortcuts (`make -C infra <target>`)
 
-| Serviço | Porta Host | Endpoint / Função |
-| :--- | :---: | :--- |
-| `api` | `3001` | `GET /health` (liveness), `GET /ready` (readiness / `SELECT 1`) |
-| `postgres` | `5432` | PostgreSQL 17 com `pgvector` |
-| `storage` (S3) | `8333` | Gateway S3-compatível (endpoint público para o navegador e URLs assinadas) |
-| `storage` (Master) | `9333` | Status do cluster (`/cluster/status`) e UI |
-| `storage` (Filer) | `8888` | Interface do Filer SeaweedFS |
-| `search` (Meilisearch) | `127.0.0.1:7700` | Motor de busca (apenas localhost para depuração; navegador nunca fala direto) |
-| `mailpit` (SMTP / UI) | `127.0.0.1:1025` / `127.0.0.1:8025` | Captura local de e-mails transacionais (SMTP + Web UI/API em `http://127.0.0.1:8025`) |
-
-## Chaves de Privilégio Mínimo (Meilisearch)
-
-O serviço one-shot `init-search` cria/atualiza o índice `products` (com sinônimos PT-BR e `localizedAttributes: ['por']`) e provisiona duas chaves escopadas no volume compartilhado `meili_keys` (`/run/meili-keys`, montado `:ro` nos consumidores):
-
-- `search.key` — usada pela `api` (`MEILI_API_KEY_FILE=/run/meili-keys/search.key`), com permissão apenas `search` no índice `products`.
-- `worker.key` — usada pelo `worker`, com permissões apenas de escrita/leitura de documentos e tarefas no índice `products`.
-- `MEILI_MASTER_KEY` fica restrita a `init-search` e comandos operacionais (`pnpm search:reindex`).
-
-## Embeddings Locais (Profile opcional `ai`)
-
-O `make -C infra up` padrão **não** sobe o Ollama (a API opera normalmente em modo `keyword` com fallback automático). Para habilitar embeddings locais e busca híbrida:
-
-```bash
-make -C infra up-ai
-```
-
-> **Nota para macOS / OrbStack:** containers Linux no macOS executam inferência **somente em CPU** (sem acesso à GPU Apple Silicon/Metal). Para obter latência de GPU nativa no macOS, instale o Ollama diretamente no host e configure `EMBEDDINGS_BASE_URL=http://host.docker.internal:11434` em `infra/.env`.
+| Target | Command Executed | Purpose |
+| :--- | :--- | :--- |
+| `up` | `docker compose up -d --build` | Starts the standard stack (Postgres, SeaweedFS, Meilisearch, Mailpit, init jobs, API, Worker, Storefront). |
+| `up-ai` | `docker compose --profile ai up -d --build` | Starts the standard stack plus containerized Ollama (`embeddings` + `init-embeddings`). |
+| `watch` | `docker compose watch` | Starts the stack with live source sync for `apps/api/src` and `apps/storefront/src`. |
+| `seed` | `docker compose --profile seed run --rm --build seed` | Idempotently seeds categories, products, WebP images, pricing, recommendations, and dev admin user. |
+| `ps` / `logs` / `down` | Standard Compose inspection / stop | Checks health, tails logs, or stops containers while keeping persistent volumes. |
+| `test` | `pnpm --filter @minieshop/api test && pnpm --filter @minieshop/api test:integration` | Runs API unit tests and Vitest Postgres + Meilisearch integration specs. |
+| `reset` | `down -v` → `up` → `seed` → `outbox:wait-drain` | Full clean rebuild of all volumes, migrations, seed data, search index, and rule recommendations. |
+| `reset-ai` | Same as `reset` with `--profile ai` | Full clean rebuild including `embeddinggemma-2` vectors, hybrid search index, and vector recommendations. |
 
 ---
 
-## Troubleshooting
+## Key Operational Notes
 
-- **Conflito de portas (`5432`, `3001`, `8333`):** ajuste `POSTGRES_PORT`, `API_PORT` ou `S3_PORT` em `infra/.env`.
-- **Estado corrompido ou schema antigo:** execute `make -C infra reset` para apagar os volumes nomeados (`postgres_data`, `seaweedfs_data`) e recriar tudo do zero.
-- **Healthcheck do SeaweedFS:** o gateway S3 (`:8333`) trata caminhos arbitrários como nomes de bucket, por isso o healthcheck valida o Master (`:9333/cluster/status`) e o Filer (`:8888/`), enquanto `init-buckets` valida o `weed shell` e cria os buckets público e privado antes da `api` subir.
-- **Endpoints interno vs. público do S3:** dentro dos containers use `S3_ENDPOINT=http://storage:8333`; para URLs entregues ao navegador ou URLs assinadas use `S3_PUBLIC_ENDPOINT=http://localhost:8333`.
+- **Shared backend image (`minieshop-api:dev`):** `api`, `worker`, `migrate`, `init-search`, and `seed` share a single image via the `x-api-image` anchor in `infra/compose.yaml` to avoid building five separate copies of `apps/api/Dockerfile`.
+- **Zero anonymous volume leaks:** `init-buckets` mounts `tmpfs: [/data]` so SeaweedFS's upstream `VOLUME /data` instruction never creates orphaned anonymous volumes.
+- **Least-privilege Meilisearch keys:** `init-search` writes `search.key` (read-only search) and `worker.key` (document indexing) to `minieshop_meili_keys`, mounted `:ro` in `api` and `worker`. `MEILI_MASTER_KEY` is never passed to `api` or `worker`.
+- **Dual S3 endpoints:** Containers upload/read through internal `S3_ENDPOINT=http://storage:8333`, while public image URLs emitted to browsers use `S3_PUBLIC_ENDPOINT=http://localhost:8333`.
+- **macOS / OrbStack GPU note:** Linux containers on macOS run Ollama on CPU only. For Apple Silicon Metal acceleration, run Ollama natively on the host and set `EMBEDDINGS_BASE_URL=http://host.docker.internal:11434` in root `.env`.

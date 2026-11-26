@@ -24,6 +24,7 @@ async function runReindex(): Promise<void> {
   const embedderDimensions =
     embedderDimsRaw && /^\d+$/.test(embedderDimsRaw) ? Number(embedderDimsRaw) : undefined;
   const embedderName = process.env.MEILI_EMBEDDER_NAME ?? 'semantic';
+  const expectedModel = process.env.EMBEDDINGS_MODEL ?? 'embeddinggemma-2';
 
   async function* batchGenerator(): AsyncIterable<IndexableDocumentWithVectors[]> {
     let afterId: string | undefined;
@@ -44,7 +45,7 @@ async function runReindex(): Promise<void> {
             ...doc,
             _vectors: {
               [embedderName]:
-                emb && emb.embedding.length === embedderDimensions
+                emb && emb.model === expectedModel && emb.embedding.length === embedderDimensions
                   ? {
                       embeddings: emb.embedding,
                       regenerate: false,

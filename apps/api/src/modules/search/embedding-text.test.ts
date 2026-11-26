@@ -46,6 +46,11 @@ describe('S06 — Pure Embedding Text Builder & Content Hash', () => {
       templateVersion: EMBEDDING_TEMPLATE_VERSION,
       text,
     });
+    const h2v2 = computeEmbeddingContentHash({
+      model: 'embeddinggemma-2',
+      templateVersion: EMBEDDING_TEMPLATE_VERSION,
+      text,
+    });
     const h3 = computeEmbeddingContentHash({
       model: 'bge-m3',
       templateVersion: 'v2',
@@ -58,11 +63,12 @@ describe('S06 — Pure Embedding Text Builder & Content Hash', () => {
     });
 
     assert.notEqual(h1, h2);
+    assert.notEqual(h2, h2v2);
     assert.notEqual(h1, h3);
     assert.notEqual(h1, h4);
   });
 
-  it('applies asymmetric prefixes for embeddinggemma and plain text for bge-m3', () => {
+  it('applies asymmetric prefixes for embeddinggemma (v1/v2) and plain text for bge-m3', () => {
     assert.equal(formatEmbeddingQueryForModel('bge-m3', 'presente para café'), 'presente para café');
     assert.equal(
       formatEmbeddingDocumentForModel('bge-m3', 'Prensa', 'Cafeteira inox'),
@@ -74,6 +80,14 @@ describe('S06 — Pure Embedding Text Builder & Content Hash', () => {
     );
     assert.equal(
       formatEmbeddingDocumentForModel('embeddinggemma', 'Prensa', 'Cafeteira inox'),
+      'title: Prensa | text: Cafeteira inox',
+    );
+    assert.equal(
+      formatEmbeddingQueryForModel('embeddinggemma-2', 'presente para café'),
+      'task: search result | query: presente para café',
+    );
+    assert.equal(
+      formatEmbeddingDocumentForModel('embeddinggemma-2', 'Prensa', 'Cafeteira inox'),
       'title: Prensa | text: Cafeteira inox',
     );
   });

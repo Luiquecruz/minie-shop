@@ -64,6 +64,7 @@ react-minieshop/
 │   └── agents/                  # Future project specialist agent definitions
 ├── docs/
 │   ├── README.md                # Incremental documentation hub & maintenance guide
+│   ├── design-patterns.md       # Living catalog of frontend, backend & contract design patterns
 │   ├── architecture.md          # System architecture, routing & data-flow overview
 │   ├── features.md              # Implemented features catalog
 │   ├── components.md            # Layouts, pages, and reusable UI components
@@ -101,6 +102,7 @@ react-minieshop/
 6. **Incremental Architecture & Documentation Protocol:**
    - New features or significant refactors should be preceded by an SDD specification in `docs/sdd/`.
    - New architectural choices (dependencies, state boundaries, test frameworks, routing shifts) must be recorded as an incremental ADR in `docs/adr/`.
+   - Any design pattern introduced, refactored, or retired (frontend, backend, or contracts) **must** update `docs/design-patterns.md` in the same change set.
    - Any addition or change to features, components, hooks, store slices, services, or utils must update the corresponding file in `docs/` and keep this `AGENTS.md` current.
 7. **Mandatory Branch-per-Spec Rule:**
    - Every SDD specification or feature increment **must** have its own dedicated Git branch (`feat/<slug>`, `fix/<slug>`, `refactor/<slug>`).

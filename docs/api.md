@@ -199,7 +199,7 @@ O navegador **nunca** fala diretamente com o Meilisearch. Toda busca passa pela 
 2. `mode: "keyword"` — Meilisearch apenas lexical (quando `mode=keyword` foi pedido ou o modelo de embeddings falhou/excedeu timeout).
 3. `mode: "postgres"` — fallback para busca textual do PostgreSQL (quando o Meilisearch está indisponível ou o circuit breaker está aberto).
 
-> **Atenção operacional:** alterar `EMBEDDINGS_DIMENSIONS` (atualmente `768`, `embeddinggemma`) exige atualizar a migration de `catalog.product_embeddings`, reexecutar `pnpm search:init`, `pnpm embeddings:reindex` e `pnpm search:reindex`.
+> **Atenção operacional:** alterar `EMBEDDINGS_DIMENSIONS` (atualmente `768`, `embeddinggemma-2`) exige atualizar a migration de `catalog.product_embeddings`, reexecutar `pnpm search:init`, `pnpm embeddings:reindex` e `pnpm search:reindex`.
 
 Parâmetros de `GET /search`:
 - `q` *(obrigatório)* — termo ou frase de busca.
