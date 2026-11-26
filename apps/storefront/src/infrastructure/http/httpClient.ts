@@ -1,9 +1,9 @@
 import { clientApiErrorResponseSchema } from '@minieshop/contracts/catalog/client';
-import type { ZodIssue } from 'zod';
 import { getStorefrontEnv } from '../../config/env';
 import { getDevChaosHeaders } from './chaos';
 import {
   ApiError,
+  type ContractIssue,
   ContractViolationError,
   NetworkError,
   isAbortError,
@@ -16,7 +16,7 @@ export interface SafeParseSchema<T> {
     data: unknown,
   ):
     | { success: true; data: T }
-    | { success: false; error: { issues: ZodIssue[] } };
+    | { success: false; error: { issues: ContractIssue[] } };
 }
 
 export interface HttpClientOptions {

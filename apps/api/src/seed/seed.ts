@@ -16,6 +16,7 @@ import {
   stockItems,
   storeSettings,
 } from '../database/schema/index.js';
+import { CatalogService } from '../modules/catalog/index.js';
 import { MediaService, S3StorageAdapter } from '../modules/media/index.js';
 import { PasswordService, RbacSeedService } from '../modules/identity/index.js';
 import { OutboxService } from '../modules/platform/index.js';
@@ -92,6 +93,7 @@ export async function runSeed(options?: {
   const databaseService = options?.databaseService ?? new DatabaseService();
   const storageAdapter = new S3StorageAdapter();
   const mediaService = options?.mediaService ?? new MediaService(databaseService, storageAdapter);
+  const catalogService = new CatalogService(databaseService, mediaService);
   const fixtureDir = options?.fixtureDir ?? resolve(process.cwd(), 'seed');
 
   const rawFixture = await readFile(resolve(fixtureDir, 'catalog-fixture.json'), 'utf8');
@@ -269,12 +271,17 @@ export async function runSeed(options?: {
         .set({ inStock: hasAvailableStock, updatedAt: new Date() })
         .where(eq(products.id, productRow.id));
 
-      // Upload image via MediaService if present; leave products without image empty for fallback
+      // Upload image via MediaService and link ownership in CatalogService (ADR-0006)
       if (item.imageFile) {
         const imageBuffer = await readFile(resolve(fixtureDir, 'images', item.imageFile));
         const mediaResult = await mediaService.register({
           productId: productRow.id,
           buffer: imageBuffer,
+        });
+
+        await catalogService.linkProductImage({
+          productId: productRow.id,
+          mediaAssetId: mediaResult.assetId,
           altText: item.name,
           isPrimary: true,
           position: 0,

@@ -7,7 +7,7 @@ import {
   unauthenticatedError,
 } from '../../common/errors.js';
 import { DatabaseService } from '../../database/database.service.js';
-import { customers } from '../../database/schema/index.js';
+import { customers } from '../../database/schema/identity.js';
 import { CatalogService } from '../catalog/index.js';
 import { OutboxService } from '../platform/index.js';
 import { EmailTokenService } from './email-token.service.js';

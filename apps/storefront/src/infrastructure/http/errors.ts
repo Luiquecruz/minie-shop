@@ -1,5 +1,7 @@
 import type { ErrorCode, ErrorDetail } from '@minieshop/contracts';
-import type { ZodIssue } from 'zod';
+import type { z } from 'zod';
+
+export type ContractIssue = z.core.$ZodIssue;
 
 /**
  * Standardized HTTP API error parsed from `{ error: { code, message, details?, requestId } }`.
@@ -53,9 +55,9 @@ export class NetworkError extends Error {
  */
 export class ContractViolationError extends Error {
   readonly endpoint: string;
-  readonly issues: ZodIssue[];
+  readonly issues: ContractIssue[];
 
-  constructor(endpoint: string, issues: ZodIssue[]) {
+  constructor(endpoint: string, issues: ContractIssue[]) {
     super(`API response contract violation at ${endpoint}.`);
     this.name = 'ContractViolationError';
     this.endpoint = endpoint;

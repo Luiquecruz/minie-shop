@@ -13,7 +13,7 @@ import {
   sessions,
   staffUserRoles,
   staffUsers,
-} from '../../database/schema/index.js';
+} from '../../database/schema/identity.js';
 import type { DbOrTx } from '../platform/index.js';
 import type { CustomerPrincipal, PermissionCode, StaffPrincipal, SubjectType } from './types.js';
 

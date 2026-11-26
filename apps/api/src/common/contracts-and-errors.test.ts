@@ -217,11 +217,13 @@ describe('T11 — Public Contracts (.strict() leak guard) & Standardized Errors'
       assert.equal(res.body.includes('Sensitive DB stack trace'), false);
     });
 
-    it('fails with 500 when a mapper leaks an extra field caught by parseOutput (.strict)', async () => {
+    it('fails with 500 when a mapper leaks an extra field caught by parseOutput (.strict) without exposing internal details', async () => {
       const res = await app.inject({ method: 'GET', url: '/test-errors/leak' });
       assert.equal(res.statusCode, 500);
       const body = apiErrorResponseSchema.parse(res.json());
       assert.equal(body.error.code, 'INTERNAL_ERROR');
+      assert.equal(body.error.message, 'Internal server error');
+      assert.equal(res.body.includes('internalSecretColumn'), false);
     });
 
     it('allows SPA origin and x-chaos-* headers on CORS preflight', async () => {

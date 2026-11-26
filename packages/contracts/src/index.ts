@@ -76,13 +76,11 @@ export {
 } from './catalog/public.js';
 
 export {
-  searchIndexDocumentSchema,
   searchModeSchema,
   searchRequestedModeSchema,
   searchResponseSchema,
   searchSuggestionSchema,
   searchSuggestResponseSchema,
-  type SearchIndexDocument,
   type SearchMode,
   type SearchRequestedMode,
   type SearchResponseDTO,

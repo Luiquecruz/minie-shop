@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { SearchIndexDocument } from '@minieshop/contracts';
+import type { SearchIndexDocument } from '../catalog/index.js';
 
 export const EMBEDDING_TEMPLATE_VERSION = 'v1';
 

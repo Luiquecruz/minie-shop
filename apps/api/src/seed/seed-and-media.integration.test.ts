@@ -15,6 +15,7 @@ import {
   productVariants,
   stockItems,
 } from '../database/schema/index.js';
+import { CatalogService } from '../modules/catalog/index.js';
 import {
   MediaService,
   MediaValidationError,
@@ -39,12 +40,14 @@ describe('Phase 1 Integration — Seed & MediaService (real Postgres + SeaweedFS
   let databaseService: DatabaseService;
   let storageAdapter: S3StorageAdapter;
   let mediaService: MediaService;
+  let catalogService: CatalogService;
   let fixture: CatalogFixture;
 
   before(async () => {
     databaseService = new DatabaseService();
     storageAdapter = new S3StorageAdapter();
     mediaService = new MediaService(databaseService, storageAdapter);
+    catalogService = new CatalogService(databaseService, mediaService);
 
     const raw = await readFile(resolve(process.cwd(), 'seed/catalog-fixture.json'), 'utf8');
     fixture = JSON.parse(raw) as CatalogFixture;
@@ -165,6 +168,11 @@ describe('Phase 1 Integration — Seed & MediaService (real Postgres + SeaweedFS
     const first = await mediaService.register({
       productId: sampleProduct.id,
       buffer: pngBuffer,
+    });
+
+    await catalogService.linkProductImage({
+      productId: sampleProduct.id,
+      mediaAssetId: first.assetId,
       altText: 'Integration test image',
     });
 
@@ -193,7 +201,6 @@ describe('Phase 1 Integration — Seed & MediaService (real Postgres + SeaweedFS
     const second = await mediaService.register({
       productId: sampleProduct.id,
       buffer: pngBuffer,
-      altText: 'Integration test image duplicate',
     });
 
     assert.equal(second.deduplicated, true);

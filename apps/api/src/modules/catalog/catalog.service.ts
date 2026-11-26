@@ -1,7 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { and, asc, count, desc, eq, gt, inArray, sql, type SQL } from 'drizzle-orm';
 import {
-  searchIndexDocumentSchema,
   type CategoryDTO,
   type CategoryRefDTO,
   type FacetAttributeDTO,
@@ -12,7 +11,6 @@ import {
   type ProductCardDTO,
   type ProductDetailDTO,
   type ProductListResponseDTO,
-  type SearchIndexDocument,
   type SupportedCurrency,
 } from '@minieshop/contracts';
 import { notFoundError, validationError } from '../../common/errors.js';
@@ -24,9 +22,13 @@ import {
   productEmbeddings,
   productImages,
   products,
-} from '../../database/schema/index.js';
+} from '../../database/schema/catalog.js';
 import { MediaService } from '../media/index.js';
 import { OutboxService, type DbOrTx } from '../platform/index.js';
+import {
+  searchIndexDocumentSchema,
+  type SearchIndexDocument,
+} from './search-index-document.js';
 import {
   buildProductFilterConditions,
   buildSearchRankSql,
@@ -64,6 +66,14 @@ export class CatalogService {
     @Inject(PricingService)
     private readonly pricingService?: PricingService,
   ) { }
+
+  async resolveExchangeRate(currency: SupportedCurrency): Promise<number> {
+    if (currency === 'BRL') {
+      return 1;
+    }
+    const pricing = this.pricingService ?? new PricingService(this.databaseService);
+    return pricing.resolveExchangeRate(currency);
+  }
 
   private async resolveEffectivePriceExpr(currency: SupportedCurrency): Promise<SQL<number>> {
     if (currency === 'BRL') {
@@ -915,7 +925,9 @@ export class CatalogService {
     minPrice?: number;
     maxPrice?: number;
     inStock?: boolean;
+    currency?: SupportedCurrency;
   }): Promise<{ items: ProductCardDTO[]; estimatedTotal: number }> {
+    const currency: SupportedCurrency = params.currency ?? 'BRL';
     const allCategories = await this.getAllCategories();
     let categoryIds: string[] | null | undefined;
     if (params.category !== undefined) {
@@ -925,9 +937,11 @@ export class CatalogService {
       }
     }
 
+    const effectivePriceExpr = await this.resolveEffectivePriceExpr(currency);
+
     const conditions = buildProductFilterConditions({
       filters: {
-        currency: 'BRL',
+        currency,
         category: params.category,
         minPrice: params.minPrice,
         maxPrice: params.maxPrice,
@@ -937,6 +951,7 @@ export class CatalogService {
         numericAttributes: [],
       },
       categoryIds,
+      effectivePriceExpr,
     });
 
     const whereClause = combineConditions(conditions);
@@ -954,7 +969,7 @@ export class CatalogService {
     ]);
 
     const ids = idRows.map((row) => row.id);
-    const items = await this.getProductCardsByIdsOrdered(ids);
+    const items = await this.getProductCardsByIdsOrdered(ids, currency);
 
     return {
       items,
@@ -965,14 +980,14 @@ export class CatalogService {
   async suggestProductsPostgresFallback(
     q: string,
     limit: number,
-  ): Promise<Array<{ slug: string; name: string; categoryName: string }>> {
+  ): Promise<Array<{ slug: string; name: string; categoryName: string; categorySlug: string }>> {
     const trimmed = q.trim();
     if (trimmed.length === 0) {
       return [];
     }
 
     const allCategories = await this.getAllCategories();
-    const categoryNameById = new Map(allCategories.map((c) => [c.id, c.name]));
+    const categoryById = new Map(allCategories.map((c) => [c.id, c]));
     const likePattern = `%${trimmed}%`;
 
     const rows = await this.databaseService.db
@@ -991,11 +1006,15 @@ export class CatalogService {
       .orderBy(asc(products.name))
       .limit(limit);
 
-    return rows.map((row) => ({
-      slug: row.slug,
-      name: row.name,
-      categoryName: categoryNameById.get(row.categoryId) ?? '',
-    }));
+    return rows.map((row) => {
+      const category = categoryById.get(row.categoryId);
+      return {
+        slug: row.slug,
+        name: row.name,
+        categoryName: category?.name ?? '',
+        categorySlug: category?.slug ?? '',
+      };
+    });
   }
 
   // --- Transactional Catalog Write Use Cases emitting Outbox events (S05) ---
@@ -1209,13 +1228,16 @@ export class CatalogService {
     return result;
   }
 
-  async upsertProductEmbedding(input: {
-    productId: string;
-    embedding: number[];
-    model: string;
-    contentHash: string;
-  }): Promise<void> {
-    await this.databaseService.db
+  async upsertProductEmbedding(
+    input: {
+      productId: string;
+      embedding: number[];
+      model: string;
+      contentHash: string;
+    },
+    dbOrTx: DbOrTx = this.databaseService.db,
+  ): Promise<void> {
+    await dbOrTx
       .insert(productEmbeddings)
       .values({
         productId: input.productId,
@@ -1233,6 +1255,53 @@ export class CatalogService {
           updatedAt: new Date(),
         },
       });
+  }
+
+  /**
+   * Public catalog-owned write boundary for attaching a processed `media.media_assets`
+   * record to `catalog.product_images` (ADR-0006 schema ownership).
+   */
+  async linkProductImage(params: {
+    productId: string;
+    mediaAssetId: string;
+    altText: string;
+    isPrimary?: boolean;
+    position?: number;
+  }): Promise<void> {
+    const existingLink = await this.databaseService.db
+      .select({ id: productImages.id })
+      .from(productImages)
+      .where(
+        and(
+          eq(productImages.productId, params.productId),
+          eq(productImages.mediaAssetId, params.mediaAssetId),
+        ),
+      )
+      .limit(1);
+
+    if (existingLink.length > 0) {
+      return;
+    }
+
+    const existingCountResult = await this.databaseService.db
+      .select({ total: count() })
+      .from(productImages)
+      .where(eq(productImages.productId, params.productId));
+
+    const existingCount = Number(existingCountResult[0]?.total ?? 0);
+    const position = params.position ?? existingCount;
+    const isPrimary = params.isPrimary ?? existingCount === 0;
+
+    await this.databaseService.db
+      .insert(productImages)
+      .values({
+        productId: params.productId,
+        mediaAssetId: params.mediaAssetId,
+        altText: params.altText,
+        position,
+        isPrimary,
+      })
+      .onConflictDoNothing();
   }
 
   async deleteProductEmbedding(productId: string): Promise<void> {

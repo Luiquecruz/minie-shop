@@ -5,7 +5,7 @@ import { CLOCK_TOKEN, SystemClock, type Clock } from '../../common/clock.js';
 import { AppHttpError } from '../../common/errors.js';
 import { loadEnv } from '../../config/env.js';
 import { DatabaseService } from '../../database/database.service.js';
-import { emailTokens } from '../../database/schema/index.js';
+import { emailTokens } from '../../database/schema/identity.js';
 import type { DbOrTx } from '../platform/index.js';
 
 export type EmailTokenPurpose = 'verify_email' | 'reset_password';

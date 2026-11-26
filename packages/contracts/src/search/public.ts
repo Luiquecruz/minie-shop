@@ -1,24 +1,6 @@
 import { z } from 'zod';
 import { productCardDtoSchema } from '../catalog/public.js';
 
-export const searchIndexDocumentSchema = z
-  .object({
-    id: z.string().uuid(),
-    slug: z.string().min(1),
-    name: z.string().min(1),
-    description: z.string(),
-    brand: z.string().optional(),
-    categoryPath: z.array(z.string().min(1)),
-    categoryNames: z.string(),
-    attributesText: z.string(),
-    price: z.number().int().nonnegative(),
-    inStock: z.boolean(),
-    createdAt: z.number().int().nonnegative(),
-  })
-  .strict();
-
-export type SearchIndexDocument = z.infer<typeof searchIndexDocumentSchema>;
-
 export const searchModeSchema = z.enum(['hybrid', 'keyword', 'postgres']);
 
 export type SearchMode = z.infer<typeof searchModeSchema>;
@@ -42,6 +24,7 @@ export const searchSuggestionSchema = z
     slug: z.string().min(1),
     name: z.string().min(1),
     categoryName: z.string(),
+    categorySlug: z.string(),
   })
   .strict();
 

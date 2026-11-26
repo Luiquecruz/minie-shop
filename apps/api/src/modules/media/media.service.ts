@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { ImageVariantDTO } from '@minieshop/contracts';
-import sharp from 'sharp';
+import sharp, { type Metadata } from 'sharp';
 import { DatabaseService } from '../../database/database.service.js';
-import { mediaAssets, productImages, type MediaVariantsMap } from '../../database/schema/index.js';
+import { mediaAssets, type MediaVariantsMap } from '../../database/schema/media.js';
 import { MediaValidationError } from './media.errors.js';
 import { PUBLIC_IMMUTABLE_CACHE_CONTROL, S3StorageAdapter } from './s3-storage.adapter.js';
 
@@ -26,9 +26,6 @@ const VARIANT_SPECS = [
 export interface RegisterMediaInput {
   productId: string;
   buffer: Buffer;
-  altText?: string;
-  isPrimary?: boolean;
-  position?: number;
 }
 
 export interface RegisterMediaResult {
@@ -124,7 +121,7 @@ export class MediaService {
       );
     }
 
-    let metadata: sharp.Metadata;
+    let metadata: Metadata;
     try {
       metadata = await sharp(input.buffer).metadata();
     } catch {
@@ -149,14 +146,6 @@ export class MediaService {
 
     const existingAsset = existing[0];
     if (existingAsset && existingAsset.status === 'ready') {
-      await this.linkProductImage({
-        productId: input.productId,
-        mediaAssetId: existingAsset.id,
-        altText: input.altText ?? '',
-        isPrimary: input.isPrimary,
-        position: input.position,
-      });
-
       return {
         assetId: existingAsset.id,
         storageKey: existingAsset.storageKey,
@@ -248,14 +237,6 @@ export class MediaService {
         throw new Error('Failed to mark media_assets row as ready');
       }
 
-      await this.linkProductImage({
-        productId: input.productId,
-        mediaAssetId: updated.id,
-        altText: input.altText ?? '',
-        isPrimary: input.isPrimary,
-        position: input.position,
-      });
-
       return {
         assetId: updated.id,
         storageKey: updated.storageKey,
@@ -276,48 +257,5 @@ export class MediaService {
         `Media upload/processing failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
-  }
-
-  private async linkProductImage(params: {
-    productId: string;
-    mediaAssetId: string;
-    altText: string;
-    isPrimary?: boolean;
-    position?: number;
-  }): Promise<void> {
-    const existingLink = await this.databaseService.db
-      .select({ id: productImages.id })
-      .from(productImages)
-      .where(
-        and(
-          eq(productImages.productId, params.productId),
-          eq(productImages.mediaAssetId, params.mediaAssetId),
-        ),
-      )
-      .limit(1);
-
-    if (existingLink.length > 0) {
-      return;
-    }
-
-    const existingCountResult = await this.databaseService.db
-      .select({ total: count() })
-      .from(productImages)
-      .where(eq(productImages.productId, params.productId));
-
-    const existingCount = Number(existingCountResult[0]?.total ?? 0);
-    const position = params.position ?? existingCount;
-    const isPrimary = params.isPrimary ?? existingCount === 0;
-
-    await this.databaseService.db
-      .insert(productImages)
-      .values({
-        productId: params.productId,
-        mediaAssetId: params.mediaAssetId,
-        altText: params.altText,
-        position,
-        isPrimary,
-      })
-      .onConflictDoNothing();
   }
 }

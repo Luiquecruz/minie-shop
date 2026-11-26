@@ -280,9 +280,33 @@ describe('S07 — Hybrid Search, Suggest, Hydration & 3-Layer Degradation (real 
     const suggestBody = searchSuggestResponseSchema.parse(suggestRes.json());
     expect(suggestBody.mode).toBe('keyword');
     expect(suggestBody.suggestions).toEqual([
-      { slug: 'oculos-aviator', name: 'Óculos de Sol Aviator', categoryName: 'Acessórios' },
+      {
+        slug: 'oculos-aviator',
+        name: 'Óculos de Sol Aviator',
+        categoryName: 'Acessórios',
+        categorySlug: 'acessorios',
+      },
     ]);
     expect(fakeProvider.callCount).toBe(0);
+
+    // Multi-currency GET /search?currency=USD returns USD prices and applies price bounds in USD
+    const usdRes = await app.inject({
+      method: 'GET',
+      url: '/search?q=ocul&currency=USD&maxPrice=3500&mode=keyword',
+    });
+    expect(usdRes.statusCode).toBe(200);
+    const usdBody = searchResponseSchema.parse(usdRes.json());
+    expect(usdBody.items.length).toBeGreaterThanOrEqual(1);
+    expect(usdBody.items[0]?.price.currency).toBe('USD');
+    expect(usdBody.items[0]?.price.amount).toBeLessThanOrEqual(3500);
+
+    const usdExcludedRes = await app.inject({
+      method: 'GET',
+      url: '/search?q=ocul&currency=USD&maxPrice=3000&mode=keyword',
+    });
+    expect(usdExcludedRes.statusCode).toBe(200);
+    const usdExcludedBody = searchResponseSchema.parse(usdExcludedRes.json());
+    expect(usdExcludedBody.items).toHaveLength(0);
 
     // Parameter validation -> 400 VALIDATION_ERROR
     for (const badUrl of [
@@ -290,6 +314,7 @@ describe('S07 — Hybrid Search, Suggest, Hydration & 3-Layer Degradation (real 
       '/search?q=fone&limit=61',
       '/search?q=fone&offset=201',
       '/search?q=fone&mode=postgres',
+      '/search?q=fone&currency=JPY',
       '/search?q=fone&unknown=1',
       '/search/suggest',
       '/search/suggest?q=fone&limit=9',

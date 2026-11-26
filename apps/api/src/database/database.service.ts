@@ -5,10 +5,13 @@ import { Pool } from 'pg';
 import { loadEnv } from '../config/env.js';
 import * as schema from './schema/index.js';
 
+export type DatabaseSchema = typeof schema;
+export type DatabaseClient = NodePgDatabase<DatabaseSchema>;
+
 @Injectable()
 export class DatabaseService implements OnModuleDestroy {
   private readonly pool: Pool;
-  public readonly db: NodePgDatabase<typeof schema>;
+  public readonly db: DatabaseClient;
 
   constructor() {
     const env = loadEnv();

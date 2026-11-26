@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "files": ["dist"],
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -18,9 +20,17 @@
       "types": "./dist/catalog/client.d.ts",
       "import": "./dist/catalog/client.js"
     },
+    "./search/public": {
+      "types": "./dist/search/public.d.ts",
+      "import": "./dist/search/public.js"
+    },
     "./search/client": {
       "types": "./dist/search/client.d.ts",
       "import": "./dist/search/client.js"
+    },
+    "./recommendations/public": {
+      "types": "./dist/recommendations/public.d.ts",
+      "import": "./dist/recommendations/public.js"
     },
     "./recommendations/client": {
       "types": "./dist/recommendations/client.d.ts",
@@ -30,26 +40,35 @@
       "types": "./dist/identity/public.d.ts",
       "import": "./dist/identity/public.js"
     },
+    "./identity/client": {
+      "types": "./dist/identity/client.d.ts",
+      "import": "./dist/identity/client.js"
+    },
     "./identity/admin": {
       "types": "./dist/identity/admin.d.ts",
       "import": "./dist/identity/admin.js"
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src/",
+    "lint:pkg": "publint --strict",
+    "test": "tsx --test src/**/*.test.ts",
     "format:check": "prettier --check \"src/**/*.ts\" --config ../config/prettier.json"
   },
   "dependencies": {
-    "zod": "^3.24.2"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@minieshop/config": "workspace:*",
+    "@types/node": "^22.13.10",
     "eslint": "^9.22.0",
     "prettier": "^3.5.3",
-    "typescript": "^5.8.2",
+    "publint": "0.3.25",
+    "tsx": "^4.19.3",
+    "typescript": "5.9.3",
     "typescript-eslint": "^8.26.1"
   }
 }

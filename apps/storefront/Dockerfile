@@ -18,7 +18,7 @@ COPY --from=pruner /repo/pnpm-workspace.yaml ./pnpm-workspace.yaml
 RUN pnpm install --frozen-lockfile
 
 COPY --from=pruner /repo/out/full/ .
-RUN pnpm --filter @minieshop/contracts build
+RUN pnpm exec turbo run build --filter=@minieshop/storefront^...
 
 WORKDIR /workspace/apps/storefront
 

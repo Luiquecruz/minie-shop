@@ -33,9 +33,20 @@ export default createBaseConfig({
             capture: ['module'],
           },
           {
+            type: 'db-schema-index',
+            pattern: 'src/database/schema/index.ts',
+            mode: 'full',
+          },
+          {
+            type: 'db-schema',
+            pattern: 'src/database/schema/*.ts',
+            mode: 'full',
+            capture: ['schema'],
+          },
+          {
             type: 'app-shell',
             pattern:
-              'src/{app.module.ts,app.factory.ts,main.ts,index.ts,common/**,config/**,database/**,health/**,cli/**,seed/**,test/**,worker/**}',
+              'src/{app.module.ts,app.factory.ts,main.ts,index.ts,common/**,config/**,database/database.module.ts,database/database.service.ts,database/migrate.ts,health/**,cli/**,seed/**,test/**,worker/**}',
             mode: 'full',
           },
         ],
@@ -48,12 +59,21 @@ export default createBaseConfig({
             rules: [
               {
                 from: ['app-shell'],
-                allow: ['app-shell', 'module-public'],
+                allow: ['app-shell', 'module-public', 'db-schema-index', 'db-schema'],
+              },
+              {
+                from: ['db-schema-index'],
+                allow: ['db-schema'],
+              },
+              {
+                from: ['db-schema'],
+                allow: ['db-schema'],
               },
               {
                 from: ['module-public'],
                 allow: [
                   'app-shell',
+                  ['db-schema', { schema: '${from.module}' }],
                   ['module-internal', { module: '${from.module}' }],
                   ['module-public', { module: '!${from.module}' }],
                 ],
@@ -62,6 +82,7 @@ export default createBaseConfig({
                 from: ['module-internal'],
                 allow: [
                   'app-shell',
+                  ['db-schema', { schema: '${from.module}' }],
                   ['module-internal', { module: '${from.module}' }],
                   ['module-public', { module: '!${from.module}' }],
                 ],

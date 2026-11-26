@@ -766,6 +766,7 @@ export class MockProductRepository implements ProductRepository {
         slug: product.slug,
         name: product.name,
         categoryName: product.category.name,
+        categorySlug: product.category.slug,
       }));
 
     return {

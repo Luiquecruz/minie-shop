@@ -10,7 +10,7 @@ import type {
 } from '@minieshop/contracts';
 import { notFoundError, unauthenticatedError, validationError } from '../../common/errors.js';
 import { DatabaseService } from '../../database/database.service.js';
-import { customerAddresses, customers } from '../../database/schema/index.js';
+import { customerAddresses, customers } from '../../database/schema/identity.js';
 import { toCustomerProfileDto } from './customer-auth.service.js';
 
 export const MAX_ADDRESSES_PER_CUSTOMER = 10;

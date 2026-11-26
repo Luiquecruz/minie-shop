@@ -5,6 +5,7 @@ x-api-image: &api-image
   build:
     context: ..
     dockerfile: apps/api/Dockerfile
+    target: development
 
 services:
   postgres:

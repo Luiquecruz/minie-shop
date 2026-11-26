@@ -4,6 +4,7 @@ import { basename, resolve } from 'node:path';
 import { eq } from 'drizzle-orm';
 import { DatabaseService } from '../database/database.service.js';
 import { products } from '../database/schema/index.js';
+import { CatalogService } from '../modules/catalog/index.js';
 import { MediaService, S3StorageAdapter } from '../modules/media/index.js';
 
 interface ParsedArgs {
@@ -47,6 +48,7 @@ async function run(): Promise<void> {
   const databaseService = new DatabaseService();
   const storageAdapter = new S3StorageAdapter();
   const mediaService = new MediaService(databaseService, storageAdapter);
+  const catalogService = new CatalogService(databaseService, mediaService);
 
   try {
     const [product] = await databaseService.db
@@ -65,6 +67,11 @@ async function run(): Promise<void> {
       const result = await mediaService.register({
         productId: product.id,
         buffer,
+      });
+
+      await catalogService.linkProductImage({
+        productId: product.id,
+        mediaAssetId: result.assetId,
         altText: product.name,
       });
 
