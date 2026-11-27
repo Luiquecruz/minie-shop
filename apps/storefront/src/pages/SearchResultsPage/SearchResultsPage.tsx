@@ -19,9 +19,9 @@ import {
   type StorefrontSearchHit,
 } from '../../hooks/useSearch';
 import { useI18n } from '../../i18n';
+import { cn } from '../../utils/cn';
 import { parseSearchUrlQuery } from '../../utils/searchUrlParams';
 import ProductCard from '../../components/ProductCard/ProductCard';
-import './SearchResultsPage.css';
 
 interface RawSearchTelemetryUserData {
   mode?: unknown;
@@ -107,7 +107,6 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
 
   const lastSyncedUrlQueryRef = useRef<string>(urlQuery);
 
-  // Sync URL navigation (global SearchBar submits, shared links, Back/Forward) into InstantSearch
   useEffect(() => {
     if (urlQuery === lastSyncedUrlQueryRef.current) {
       return;
@@ -116,7 +115,6 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
     refine(urlQuery);
   }, [urlQuery, refine]);
 
-  // Auto-dismiss favorite rollback notice
   useEffect(() => {
     if (!favoriteError) return;
     const timer = setTimeout(() => setFavoriteError(null), 4000);
@@ -130,8 +128,6 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
 
   const handleRetry = (): void => {
     if (urlQuery && urlQuery !== query.trim()) {
-      // InstantSearch's index widget rolls helper.state back to lastValidSearchParameters
-      // when a request fails; re-refine with the active URL query to retry it.
       refine(urlQuery);
       return;
     }
@@ -188,7 +184,7 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
     : t('searchPage.metaTitle');
 
   return (
-    <div className="search-page">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-8 sm:px-6 lg:py-10">
       <Helmet>
         <title>{metaTitle}</title>
         <meta name="description" content={t('searchPage.metaDescription')} />
@@ -196,7 +192,7 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
 
       {/* Screen-reader live region announcing settled result count */}
       <div
-        className="visually-hidden"
+        className="sr-only"
         aria-live="polite"
         aria-atomic="true"
         data-testid="search-results-live"
@@ -205,11 +201,14 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
       </div>
 
       {favoriteError && (
-        <div className="plp-toast plp-toast--error" role="alert">
-          <span>{favoriteError.message}</span>
+        <div
+          className="fixed bottom-6 right-6 z-[var(--z-toast)] flex max-w-md items-center gap-3 rounded-xl border border-danger-border bg-surface px-4 py-3 text-sm font-medium text-danger shadow-card-lg animate-fade-in"
+          role="alert"
+        >
+          <span className="flex-1">{favoriteError.message}</span>
           <button
             type="button"
-            className="plp-toast__close"
+            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-fg-muted hover:bg-surface-chip hover:text-fg-heading"
             onClick={() => setFavoriteError(null)}
             aria-label={t('plp.dismissNotification')}
           >
@@ -232,25 +231,32 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
         </div>
       )}
 
-      <header className="search-page__header">
-        <span className="plp-header__badge">{t('searchPage.badge')}</span>
-        <h1 className="search-page__title">{t('searchPage.heading')}</h1>
+      <header className="flex flex-col gap-2">
+        <span className="inline-flex w-fit items-center rounded-full border border-brand-border bg-brand-subtle px-3 py-1 text-xs font-bold uppercase tracking-wider text-brand">
+          {t('searchPage.badge')}
+        </span>
+        <h1 className="m-0 text-2xl font-extrabold tracking-tight text-fg-heading sm:text-3xl">
+          {t('searchPage.heading')}
+        </h1>
       </header>
 
       {hasActiveQuery && (
-        <div className="search-page__toolbar">
-          <div className="search-page__summary">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 shadow-card-sm">
+          <div className="flex flex-wrap items-center gap-2.5">
             {showResultsGrid && (
-              <span className="search-page__count">
+              <span className="search-page__count text-sm font-medium text-fg">
                 {t('searchPage.showingOf', {
                   loaded: items.length,
                   total: estimatedTotal,
                 })}{' '}
-                <strong>{activeQuery}</strong>
+                <strong className="font-bold text-fg-heading">{activeQuery}</strong>
               </span>
             )}
             {isFetching && !isLoadingMore && (
-              <span className="plp-sync-pill" role="status">
+              <span
+                className="plp-sync-pill inline-flex items-center rounded-full border border-brand-border bg-brand-subtle px-2.5 py-0.5 text-xs font-semibold text-brand"
+                role="status"
+              >
                 {t('searchPage.updating')}
               </span>
             )}
@@ -258,7 +264,7 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
 
           {import.meta.env.DEV && telemetry && telemetry.query === activeQuery && (
             <span
-              className="search-page__dev-badge"
+              className="rounded-lg border border-border bg-surface-subtle px-2.5 py-1 font-mono text-xs font-medium text-fg-muted"
               data-testid="search-dev-badge"
             >
               {t('searchPage.devBadge', {
@@ -271,23 +277,32 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
       )}
 
       {!hasActiveQuery && (
-        <section className="plp-empty search-page__prompt">
-          <h2 className="plp-empty__title">{t('searchPage.emptyPromptTitle')}</h2>
-          <p className="plp-empty__text">{t('searchPage.emptyPromptText')}</p>
+        <section className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-surface px-6 py-16 text-center shadow-card-sm">
+          <h2 className="m-0 text-lg font-bold text-fg-heading">
+            {t('searchPage.emptyPromptTitle')}
+          </h2>
+          <p className="max-w-md text-sm text-fg-muted">
+            {t('searchPage.emptyPromptText')}
+          </p>
         </section>
       )}
 
       {isErrorState && (
-        <div className="plp-empty" role="alert">
-          <p className="plp-empty__title">{t('searchPage.errorTitle')}</p>
-          <p className="plp-empty__text">
+        <div
+          className="flex flex-col items-center gap-3 rounded-2xl border border-danger-border bg-surface px-6 py-12 text-center shadow-card-sm"
+          role="alert"
+        >
+          <p className="text-lg font-bold text-fg-heading">
+            {t('searchPage.errorTitle')}
+          </p>
+          <p className="max-w-md text-sm text-fg-muted">
             {error instanceof Error
               ? error.message
               : t('searchPage.errorFallback')}
           </p>
           <button
             type="button"
-            className="plp-empty__reset-btn"
+            className="mt-2 inline-flex cursor-pointer items-center justify-center rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-card-sm transition-colors hover:bg-brand-hover"
             onClick={handleRetry}
           >
             {t('searchPage.retry')}
@@ -297,18 +312,21 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
 
       {showInitialSkeleton && (
         <div
-          className="plp-grid"
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           aria-busy="true"
           aria-label={t('searchPage.loadingResults')}
         >
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="skeleton-card">
-              <div className="skeleton-card__img" />
-              <div className="skeleton-card__body">
-                <div className="skeleton-line skeleton-line--short" />
-                <div className="skeleton-line skeleton-line--title" />
-                <div className="skeleton-line skeleton-line--full" />
-                <div className="skeleton-line skeleton-line--short" />
+            <div
+              key={index}
+              className="skeleton-card overflow-hidden rounded-2xl border border-border bg-surface"
+            >
+              <div className="skeleton-shimmer aspect-[4/3] w-full" />
+              <div className="flex flex-col gap-3 p-4">
+                <div className="skeleton-shimmer h-3.5 w-1/3 rounded-md" />
+                <div className="skeleton-shimmer h-5 w-4/5 rounded-md" />
+                <div className="skeleton-shimmer h-4 w-full rounded-md" />
+                <div className="skeleton-shimmer h-4 w-2/5 rounded-md" />
               </div>
             </div>
           ))}
@@ -317,11 +335,12 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
 
       {showResultsGrid && (
         <>
-          <h2 className="visually-hidden">{t('searchPage.resultsHeading')}</h2>
+          <h2 className="sr-only">{t('searchPage.resultsHeading')}</h2>
           <div
-            className={`plp-grid ${
-              isFetching && !isLoadingMore ? 'plp-grid--fetching' : ''
-            }`}
+            className={cn(
+              'grid grid-cols-1 gap-5 transition-opacity duration-200 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+              isFetching && !isLoadingMore && 'opacity-65',
+            )}
             id="search-results-grid"
           >
             {items.map((hit) => (
@@ -335,10 +354,10 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
           </div>
 
           {canShowLoadMore && (
-            <div className="plp-load-more">
+            <div className="flex justify-center pt-2">
               <button
                 type="button"
-                className="plp-load-more__btn"
+                className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-border bg-surface px-6 py-3 text-sm font-bold text-fg-heading shadow-card-sm transition-colors hover:border-brand-border hover:bg-surface-chip focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={handleShowMore}
                 disabled={isLoadingMore || isFetching}
                 aria-busy={isLoadingMore || isFetching}
@@ -351,7 +370,10 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
           )}
 
           {isOffsetLimitReached && (
-            <p className="search-page__limit-notice" role="status">
+            <p
+              className="rounded-xl border border-border bg-surface-subtle px-4 py-3 text-center text-sm font-medium text-fg-muted"
+              role="status"
+            >
               {t('searchPage.offsetLimitReached')}
             </p>
           )}
@@ -359,12 +381,18 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
       )}
 
       {showEmptyResults && (
-        <section className="plp-empty">
-          <h2 className="plp-empty__title">
-            {t('searchPage.emptyResultsTitle')} <strong>{activeQuery}</strong>
+        <section className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface px-6 py-14 text-center shadow-card-sm">
+          <h2 className="m-0 text-lg font-bold text-fg-heading">
+            {t('searchPage.emptyResultsTitle')}{' '}
+            <strong className="text-brand">{activeQuery}</strong>
           </h2>
-          <p className="plp-empty__text">{t('searchPage.emptyResultsTip')}</p>
-          <Link to="/" className="plp-empty__reset-btn search-page__catalog-link">
+          <p className="max-w-md text-sm text-fg-muted">
+            {t('searchPage.emptyResultsTip')}
+          </p>
+          <Link
+            to="/"
+            className="mt-2 inline-flex items-center justify-center rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-card-sm transition-colors hover:bg-brand-hover"
+          >
             {t('searchPage.backToCatalog')}
           </Link>
         </section>

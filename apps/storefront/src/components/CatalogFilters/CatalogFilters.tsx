@@ -6,11 +6,11 @@ import type {
 } from '@minieshop/contracts';
 import { useI18n } from '../../i18n';
 import { useCurrency } from '../../hooks/useCurrency';
+import { cn } from '../../utils/cn';
 import {
   hasActiveCatalogFilters,
   type CatalogUrlState,
 } from '../../utils/catalogUrlParams';
-import './CatalogFilters.css';
 
 export interface CatalogFiltersProps {
   categories: CategoryDTO[];
@@ -75,7 +75,6 @@ function NumericAttributeFacet({
     onCommitRef.current = onCommit;
   }, [onCommit]);
 
-  // Cancel any pending debounce whenever external URL state changes, Clear all runs, or on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current !== null) {
@@ -120,16 +119,16 @@ function NumericAttributeFacet({
   };
 
   return (
-    <fieldset className="catalog-filters__group">
-      <legend className="catalog-filters__legend">
+    <fieldset className="m-0 border-0 border-t border-border-subtle p-0 pt-4">
+      <legend className="mb-2.5 text-xs font-bold uppercase tracking-wider text-fg-heading">
         {facet.label}
         {facet.unit ? ` (${facet.unit})` : ''}
       </legend>
-      <div className="catalog-filters__range-row">
-        <div className="catalog-filters__field">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
           <label
             htmlFor={`${idPrefix}-min`}
-            className="catalog-filters__field-label"
+            className="text-xs font-medium text-fg-muted"
           >
             {t('filters.minValue')}
           </label>
@@ -146,13 +145,13 @@ function NumericAttributeFacet({
               setMinText(nextMinText);
               scheduleCommit(nextMinText, maxText);
             }}
-            className="catalog-filters__input"
+            className="w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-sm text-fg-heading placeholder:text-fg-muted focus:border-brand focus:outline-none"
           />
         </div>
-        <div className="catalog-filters__field">
+        <div className="flex flex-col gap-1">
           <label
             htmlFor={`${idPrefix}-max`}
-            className="catalog-filters__field-label"
+            className="text-xs font-medium text-fg-muted"
           >
             {t('filters.maxValue')}
           </label>
@@ -169,7 +168,7 @@ function NumericAttributeFacet({
               setMaxText(nextMaxText);
               scheduleCommit(minText, nextMaxText);
             }}
-            className="catalog-filters__input"
+            className="w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-sm text-fg-heading placeholder:text-fg-muted focus:border-brand focus:outline-none"
           />
         </div>
       </div>
@@ -217,7 +216,6 @@ export function CatalogFilters({
     onUpdateRef.current = onUpdate;
   }, [onUpdate]);
 
-  // Cancel any pending price debounce whenever external URL state changes, Clear all runs, currency changes, or on unmount
   useEffect(() => {
     return () => {
       if (priceTimerRef.current !== null) {
@@ -336,18 +334,23 @@ export function CatalogFilters({
   const activeFilters = hasActiveCatalogFilters(state);
 
   return (
-    <aside className="catalog-filters" aria-label={t('filters.heading')}>
+    <aside
+      className="h-fit rounded-2xl border border-border bg-surface p-4 shadow-card-sm lg:sticky lg:top-20 lg:p-5"
+      aria-label={t('filters.heading')}
+    >
       <form
-        className="catalog-filters__form"
+        className="flex flex-col gap-4"
         aria-label={t('filters.formAria')}
         onSubmit={(e) => e.preventDefault()}
       >
-        <div className="catalog-filters__header">
-          <h2 className="catalog-filters__title">{t('filters.heading')}</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="m-0 text-base font-extrabold text-fg-heading">
+            {t('filters.heading')}
+          </h2>
           {activeFilters && (
             <button
               type="button"
-              className="catalog-filters__clear-btn"
+              className="cursor-pointer rounded-lg border border-brand-border bg-brand-subtle px-2.5 py-1 text-xs font-semibold text-brand transition-colors hover:bg-brand-subtle-hover focus-visible:outline-2 focus-visible:outline-brand"
               onClick={handleClearAllClick}
             >
               {t('filters.clearAll')}
@@ -356,17 +359,20 @@ export function CatalogFilters({
         </div>
 
         {/* Category Tree */}
-        <fieldset className="catalog-filters__group">
-          <legend className="catalog-filters__legend">
+        <fieldset className="m-0 border-0 border-t border-border-subtle p-0 pt-4">
+          <legend className="mb-2.5 text-xs font-bold uppercase tracking-wider text-fg-heading">
             {t('filters.categoriesLegend')}
           </legend>
-          <ul className="catalog-filters__cat-list">
+          <ul className="m-0 flex list-none flex-col gap-1 p-0">
             <li>
               <button
                 type="button"
-                className={`catalog-filters__cat-btn ${
-                  !state.category ? 'catalog-filters__cat-btn--active' : ''
-                }`}
+                className={cn(
+                  'flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-brand',
+                  !state.category
+                    ? 'bg-brand-subtle font-semibold text-brand'
+                    : 'font-medium text-fg hover:bg-surface-chip hover:text-fg-heading',
+                )}
                 aria-pressed={!state.category}
                 onClick={() => handleCategorySelect(undefined)}
               >
@@ -379,21 +385,26 @@ export function CatalogFilters({
                 : cat.productCount;
               const isRootActive = state.category === cat.slug;
               return (
-                <li key={cat.id} className="catalog-filters__cat-node">
+                <li key={cat.id} className="flex flex-col gap-1">
                   <button
                     type="button"
-                    className={`catalog-filters__cat-btn ${
-                      isRootActive ? 'catalog-filters__cat-btn--active' : ''
-                    }`}
+                    className={cn(
+                      'flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-brand',
+                      isRootActive
+                        ? 'bg-brand-subtle font-semibold text-brand'
+                        : 'font-medium text-fg hover:bg-surface-chip hover:text-fg-heading',
+                    )}
                     aria-pressed={isRootActive}
                     onClick={() => handleCategorySelect(cat.slug)}
                   >
                     <span>{cat.name}</span>
-                    <span className="catalog-filters__count">{rootCount}</span>
+                    <span className="rounded-full bg-surface-chip px-2 py-0.5 text-xs font-semibold tabular-nums text-fg-muted">
+                      {rootCount}
+                    </span>
                   </button>
 
                   {cat.children.length > 0 && (
-                    <ul className="catalog-filters__subcat-list">
+                    <ul className="m-0 flex list-none flex-col gap-1 pl-3">
                       {cat.children.map((child) => {
                         const childCount = facets
                           ? (facetCategoryCountBySlug.get(child.slug) ?? 0)
@@ -403,16 +414,17 @@ export function CatalogFilters({
                           <li key={child.id}>
                             <button
                               type="button"
-                              className={`catalog-filters__cat-btn catalog-filters__cat-btn--child ${
+                              className={cn(
+                                'flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors focus-visible:outline-2 focus-visible:outline-brand',
                                 isChildActive
-                                  ? 'catalog-filters__cat-btn--active'
-                                  : ''
-                              }`}
+                                  ? 'bg-brand-subtle font-semibold text-brand'
+                                  : 'font-medium text-fg hover:bg-surface-chip hover:text-fg-heading',
+                              )}
                               aria-pressed={isChildActive}
                               onClick={() => handleCategorySelect(child.slug)}
                             >
                               <span>{child.name}</span>
-                              <span className="catalog-filters__count">
+                              <span className="rounded-full bg-surface-chip px-2 py-0.5 text-[11px] font-semibold tabular-nums text-fg-muted">
                                 {childCount}
                               </span>
                             </button>
@@ -428,41 +440,44 @@ export function CatalogFilters({
         </fieldset>
 
         {/* Availability */}
-        <fieldset className="catalog-filters__group">
-          <legend className="catalog-filters__legend">
+        <fieldset className="m-0 border-0 border-t border-border-subtle p-0 pt-4">
+          <legend className="mb-2.5 text-xs font-bold uppercase tracking-wider text-fg-heading">
             {t('filters.availabilityLegend')}
           </legend>
-          <label htmlFor={inStockId} className="catalog-filters__checkbox-row">
+          <label
+            htmlFor={inStockId}
+            className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1 text-sm text-fg transition-colors hover:bg-surface-chip"
+          >
             <input
               id={inStockId}
               type="checkbox"
               checked={state.inStock === true}
               onChange={(e) => handleInStockToggle(e.target.checked)}
-              className="catalog-filters__checkbox"
+              className="h-4 w-4 cursor-pointer rounded accent-brand"
             />
             <span>{t('filters.inStockOnly')}</span>
           </label>
         </fieldset>
 
         {/* Price Range */}
-        <fieldset className="catalog-filters__group">
-          <legend className="catalog-filters__legend">
+        <fieldset className="m-0 border-0 border-t border-border-subtle p-0 pt-4">
+          <legend className="mb-2.5 text-xs font-bold uppercase tracking-wider text-fg-heading">
             {t('filters.priceLegend')}
           </legend>
           {facets?.price.min !== null &&
             facets?.price.max !== null &&
             facets?.price.min !== undefined &&
             facets?.price.max !== undefined && (
-              <p className="catalog-filters__hint">
+              <p className="mb-2.5 text-xs font-medium tabular-nums text-fg-muted">
                 {formatPrice(facets.price.min, currentCurrency)} –{' '}
                 {formatPrice(facets.price.max, currentCurrency)}
               </p>
             )}
-          <div className="catalog-filters__range-row">
-            <div className="catalog-filters__field">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
               <label
                 htmlFor={minPriceId}
-                className="catalog-filters__field-label"
+                className="text-xs font-medium text-fg-muted"
               >
                 {t('filters.minPriceLabel', { currency: currentCurrency })}
               </label>
@@ -483,14 +498,14 @@ export function CatalogFilters({
                   setMinPriceText(nextMinText);
                   schedulePriceCommit(nextMinText, maxPriceText);
                 }}
-                className="catalog-filters__input"
+                className="w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-sm text-fg-heading placeholder:text-fg-muted focus:border-brand focus:outline-none"
               />
             </div>
 
-            <div className="catalog-filters__field">
+            <div className="flex flex-col gap-1">
               <label
                 htmlFor={maxPriceId}
-                className="catalog-filters__field-label"
+                className="text-xs font-medium text-fg-muted"
               >
                 {t('filters.maxPriceLabel', { currency: currentCurrency })}
               </label>
@@ -511,7 +526,7 @@ export function CatalogFilters({
                   setMaxPriceText(nextMaxText);
                   schedulePriceCommit(minPriceText, nextMaxText);
                 }}
-                className="catalog-filters__input"
+                className="w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-sm text-fg-heading placeholder:text-fg-muted focus:border-brand focus:outline-none"
               />
             </div>
           </div>
@@ -560,11 +575,14 @@ export function CatalogFilters({
           const activeValues = state.attributes?.[attrFacet.code] ?? [];
 
           return (
-            <fieldset key={attrFacet.code} className="catalog-filters__group">
-              <legend className="catalog-filters__legend">
+            <fieldset
+              key={attrFacet.code}
+              className="m-0 border-0 border-t border-border-subtle p-0 pt-4"
+            >
+              <legend className="mb-2.5 text-xs font-bold uppercase tracking-wider text-fg-heading">
                 {attrFacet.label}
               </legend>
-              <div className="catalog-filters__options">
+              <div className="flex flex-col gap-1">
                 {options.map((opt) => {
                   const checkboxId = `facet-${attrFacet.code}-${opt.value}`;
                   const checked = activeValues.includes(opt.value);
@@ -580,7 +598,7 @@ export function CatalogFilters({
                     <label
                       key={opt.value}
                       htmlFor={checkboxId}
-                      className="catalog-filters__checkbox-row"
+                      className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-sm text-fg transition-colors hover:bg-surface-chip"
                     >
                       <input
                         id={checkboxId}
@@ -593,12 +611,10 @@ export function CatalogFilters({
                             e.target.checked,
                           )
                         }
-                        className="catalog-filters__checkbox"
+                        className="h-4 w-4 cursor-pointer rounded accent-brand"
                       />
-                      <span className="catalog-filters__option-text">
-                        {displayLabel}
-                      </span>
-                      <span className="catalog-filters__count">
+                      <span className="flex-1 truncate">{displayLabel}</span>
+                      <span className="rounded-full bg-surface-chip px-2 py-0.5 text-xs font-semibold tabular-nums text-fg-muted">
                         {opt.count}
                       </span>
                     </label>

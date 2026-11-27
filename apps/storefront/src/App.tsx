@@ -9,7 +9,6 @@ import CartPage from './pages/CartPage/CartPage';
 import NotFoundPage from './pages/NotFoundPage/NotFoundPage';
 import { useI18n } from './i18n';
 import { resolveLegacyProductPath } from './routes/legacyProductRedirects';
-import './App.css';
 
 const loadSearchResultsPage = () =>
   import('./pages/SearchResultsPage/SearchResultsPage');
@@ -20,15 +19,9 @@ function SearchRouteFallback() {
   const { t } = useI18n();
   return (
     <div
-      className="search-route-fallback"
+      className="mx-auto my-12 max-w-[1280px] px-4 text-sm text-fg-muted sm:px-6"
       role="status"
       aria-live="polite"
-      style={{
-        maxWidth: 'var(--container-max-width, 1280px)',
-        margin: '48px auto',
-        padding: '0 var(--container-padding, 24px)',
-        color: 'var(--text-muted, #6b7280)',
-      }}
     >
       {t('searchPage.loadingRoute')}
     </div>

@@ -57,7 +57,7 @@ export const CartCrossSellSection = memo(function CartCrossSellSection() {
 
   return (
     <div
-      className="cart-cross-sell"
+      className="mt-12 border-t border-border pt-10"
       data-testid="cart-cross-sell-section"
     >
       <RecommendationCarousel

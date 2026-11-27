@@ -11,7 +11,6 @@ import CartShippingSelector from './components/CartShippingSelector';
 import CartOrderNote from './components/CartOrderNote';
 import CartOrderSummary from './components/CartOrderSummary';
 import CartCrossSellSection from './components/CartCrossSellSection';
-import './CartPage.css';
 
 const CartPageTitle = memo(function CartPageTitle() {
   const { totalUnits } = useCartPageMeta();
@@ -45,19 +44,22 @@ export function CartPage() {
   } = useCartQuoteSync(hasItems);
 
   return (
-    <div className="cart-page">
+    <div className="mx-auto w-full max-w-[1280px] px-4 py-8 sm:px-6 lg:py-10">
       <CartPageTitle />
       <CartHeader />
 
       {!hasItems ? (
         <section
-          className="cart-empty"
+          className="flex flex-col items-center gap-3 rounded-3xl border border-border bg-surface px-6 py-16 text-center shadow-card-sm"
           aria-label={t('cart.emptySectionAria')}
         >
-          <div className="cart-empty__icon" aria-hidden="true">
+          <div
+            className="flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-chip text-fg-muted"
+            aria-hidden="true"
+          >
             <svg
-              width="52"
-              height="52"
+              width="40"
+              height="40"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
@@ -70,21 +72,29 @@ export function CartPage() {
               />
             </svg>
           </div>
-          <h2 className="cart-empty__title">{t('cart.emptyTitle')}</h2>
-          <p className="cart-empty__desc">{t('cart.emptyDesc')}</p>
-          <Link to="/" className="cart-btn cart-btn--primary cart-empty__cta">
+          <h2 className="m-0 text-xl font-bold text-fg-heading">
+            {t('cart.emptyTitle')}
+          </h2>
+          <p className="max-w-md text-sm text-fg-muted">{t('cart.emptyDesc')}</p>
+          <Link
+            to="/"
+            className="mt-2 inline-flex items-center justify-center rounded-xl bg-brand px-6 py-3 text-sm font-bold text-white no-underline shadow-card-sm transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
             {t('cart.exploreCatalog')}
           </Link>
         </section>
       ) : (
-        <div className="cart-layout">
-          <div className="cart-main">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="flex min-w-0 flex-col gap-6">
             {quoteError && (
-              <div className="cart-alert cart-alert--warning cart-quote-alert" role="alert">
+              <div
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warning-border bg-warning-bg px-4 py-3 text-sm font-medium text-warning"
+                role="alert"
+              >
                 <span>{quoteError}</span>
                 <button
                   type="button"
-                  className="cart-quote-alert__retry"
+                  className="cursor-pointer rounded-lg border border-warning-border bg-surface px-3 py-1.5 text-xs font-bold text-warning hover:opacity-90"
                   onClick={retryQuote}
                 >
                   {t('cart.retry')}
@@ -92,11 +102,8 @@ export function CartPage() {
               </div>
             )}
 
-            <section
-              className="cart-items-section"
-              aria-label={t('cart.itemsSectionAria')}
-            >
-              <ul className="cart-items-list">
+            <section aria-label={t('cart.itemsSectionAria')}>
+              <ul className="m-0 flex list-none flex-col gap-4 p-0">
                 {itemIds.map((id) => (
                   <CartItemRow
                     key={id}
@@ -107,7 +114,7 @@ export function CartPage() {
               </ul>
             </section>
 
-            <div className="cart-config-grid">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <CartPromoBox />
               <CartShippingSelector
                 isPriceLoading={isTotalsLoading}
@@ -118,7 +125,7 @@ export function CartPage() {
             <CartOrderNote />
           </div>
 
-          <div className="cart-sidebar">
+          <div className="w-full">
             <CartOrderSummary
               isTotalsLoading={isTotalsLoading}
               hasCurrencyMismatch={hasCurrencyMismatch}

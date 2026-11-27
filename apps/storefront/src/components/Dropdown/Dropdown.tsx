@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import './Dropdown.css';
+import { cn } from '../../utils/cn';
 
 export interface DropdownOption<T extends string | number = string> {
   value: T;
@@ -16,6 +16,12 @@ export interface DropdownProps<T extends string | number = string> {
   className?: string;
   ariaLabel?: string;
 }
+
+const TRIGGER_SIZE_CLASSES: Record<NonNullable<DropdownProps['size']>, string> = {
+  sm: 'px-2.5 py-1.5 text-xs rounded-lg',
+  md: 'px-3 py-2 text-sm rounded-xl',
+  lg: 'px-4 py-2.5 text-base rounded-xl',
+};
 
 /**
  * Accessible custom Dropdown (WAI-ARIA APG listbox button pattern) supporting
@@ -42,10 +48,9 @@ export function Dropdown<T extends string | number = string>({
   const selectedIndex = options.findIndex((opt) => opt.value === value);
   const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : undefined;
   const isMenuOpen = isOpen && options.length > 0;
-  const effectiveFocusedIndex =
-    !isMenuOpen
-      ? -1
-      : Math.min(Math.max(focusedIndex, 0), options.length - 1);
+  const effectiveFocusedIndex = !isMenuOpen
+    ? -1
+    : Math.min(Math.max(focusedIndex, 0), options.length - 1);
 
   const focusOptionAt = useCallback((index: number): void => {
     setFocusedIndex(index);
@@ -70,7 +75,6 @@ export function Dropdown<T extends string | number = string>({
     }
   }, []);
 
-  // Reconcile DOM focus when the menu opens or when the options list changes dynamically.
   useEffect(() => {
     optionRefs.current.length = options.length;
     if (!isOpen) return;
@@ -83,7 +87,6 @@ export function Dropdown<T extends string | number = string>({
     }
   }, [isOpen, effectiveFocusedIndex, options.length]);
 
-  // Close the menu when clicking outside.
   useEffect(() => {
     const handleClickOutside = (event: PointerEvent): void => {
       if (
@@ -178,14 +181,16 @@ export function Dropdown<T extends string | number = string>({
   return (
     <div
       ref={containerRef}
-      className={`custom-dropdown custom-dropdown--${size} custom-dropdown--align-${align} ${
-        isMenuOpen ? 'custom-dropdown--open' : ''
-      } ${className}`.trim()}
+      className={cn('relative inline-block select-none text-left', className)}
     >
       <button
         ref={triggerRef}
         type="button"
-        className="custom-dropdown__trigger"
+        className={cn(
+          'inline-flex cursor-pointer items-center justify-between gap-2 border border-border bg-surface font-semibold text-fg-heading shadow-card-sm transition-colors hover:bg-surface-chip focus-visible:border-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+          TRIGGER_SIZE_CLASSES[size],
+          isMenuOpen && 'border-brand ring-2 ring-brand-subtle',
+        )}
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
         aria-haspopup="listbox"
@@ -193,11 +198,14 @@ export function Dropdown<T extends string | number = string>({
         aria-controls={isMenuOpen ? listboxId : undefined}
         aria-label={ariaLabel}
       >
-        <span className="custom-dropdown__label">
+        <span className="flex items-center gap-1.5 whitespace-nowrap">
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <svg
-          className="custom-dropdown__chevron"
+          className={cn(
+            'h-4 w-4 shrink-0 text-fg-muted transition-transform duration-200',
+            isMenuOpen && 'rotate-180 text-brand',
+          )}
           fill="none"
           stroke="currentColor"
           strokeWidth="2.2"
@@ -215,7 +223,10 @@ export function Dropdown<T extends string | number = string>({
       {isMenuOpen && (
         <div
           id={listboxId}
-          className="custom-dropdown__menu"
+          className={cn(
+            'absolute top-[calc(100%+6px)] z-[var(--z-dropdown)] flex max-h-72 min-w-full w-max max-w-72 flex-col gap-0.5 overflow-y-auto rounded-xl border border-border bg-surface p-1.5 shadow-card-lg animate-fade-in',
+            align === 'left' ? 'left-0 right-auto' : 'right-0',
+          )}
           role="listbox"
           aria-label={ariaLabel}
         >
@@ -228,21 +239,22 @@ export function Dropdown<T extends string | number = string>({
                   optionRefs.current[index] = el;
                 }}
                 type="button"
-                className={`custom-dropdown__option ${
-                  isSelected ? 'custom-dropdown__option--selected' : ''
-                }`}
+                className={cn(
+                  'flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand',
+                  isSelected
+                    ? 'bg-brand-subtle font-semibold text-brand hover:bg-brand-subtle-hover'
+                    : 'text-fg hover:bg-surface-chip hover:text-fg-heading',
+                )}
                 role="option"
                 aria-selected={isSelected}
                 tabIndex={effectiveFocusedIndex === index ? 0 : -1}
                 onClick={() => handleSelect(option.value)}
                 onKeyDown={(event) => handleOptionKeyDown(event, index)}
               >
-                <span className="custom-dropdown__option-text">
-                  {option.label}
-                </span>
+                <span className="flex-1 whitespace-nowrap">{option.label}</span>
                 {isSelected && (
                   <svg
-                    className="custom-dropdown__check-icon"
+                    className="h-3.5 w-3.5 shrink-0 text-brand"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2.5"

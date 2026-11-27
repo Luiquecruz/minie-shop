@@ -46,13 +46,9 @@ export function PdpRecommendationsSection({
   return (
     <div
       ref={ref}
-      className="pdp-recommendations"
+      className="mt-12 flex w-full flex-col gap-10 border-t border-border pt-10"
       data-testid="pdp-recommendations-section"
-      style={
-        !isSettled
-          ? { minHeight: '690px' }
-          : undefined
-      }
+      style={!isSettled ? { minHeight: '690px' } : undefined}
     >
       <RecommendationCarousel
         title={t('recommendations.relatedTitle')}

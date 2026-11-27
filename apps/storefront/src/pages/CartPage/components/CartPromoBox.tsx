@@ -7,6 +7,7 @@ import {
   useCartPromoState,
 } from '../../../hooks/useCart';
 import { useI18n } from '../../../i18n';
+import { cn } from '../../../utils/cn';
 
 const SUGGESTED_CODES = Object.keys(PROMO_COUPONS);
 
@@ -39,15 +40,18 @@ export const CartPromoBox = memo(function CartPromoBox() {
         : couponError;
 
   return (
-    <section className="cart-panel" aria-labelledby="cart-promo-heading">
-      <div className="cart-panel__header">
-        <h2 id="cart-promo-heading" className="cart-panel__title">
+    <section
+      className="flex flex-col gap-3.5 rounded-2xl border border-border bg-surface p-5 shadow-card-sm"
+      aria-labelledby="cart-promo-heading"
+    >
+      <div className="flex items-center justify-between">
+        <h2 id="cart-promo-heading" className="m-0 text-base font-bold text-fg-heading">
           {t('cart.promoHeading')}
         </h2>
       </div>
 
-      <form className="cart-promo__form" onSubmit={handleSubmit}>
-        <label htmlFor="cart-coupon-input" className="cart-sr-only">
+      <form className="flex gap-2" onSubmit={handleSubmit}>
+        <label htmlFor="cart-coupon-input" className="sr-only">
           {t('cart.promoInputLabel')}
         </label>
         <input
@@ -56,21 +60,27 @@ export const CartPromoBox = memo(function CartPromoBox() {
           value={couponInput}
           onChange={(e) => setCouponInput(e.target.value)}
           placeholder={t('cart.promoPlaceholder')}
-          className="cart-promo__input"
+          className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-surface-input px-3 text-sm text-fg-heading placeholder:text-fg-muted focus:border-brand focus:outline-none"
         />
-        <button type="submit" className="cart-promo__apply-btn">
+        <button
+          type="submit"
+          className="h-10 shrink-0 cursor-pointer rounded-xl bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
           {t('cart.promoApply')}
         </button>
       </form>
 
-      <div className="cart-promo__chips" aria-label={t('cart.promoChipsAria')}>
+      <div className="flex flex-wrap gap-2" aria-label={t('cart.promoChipsAria')}>
         {SUGGESTED_CODES.map((code) => (
           <button
             key={code}
             type="button"
-            className={`cart-promo__chip ${
-              appliedCoupon?.code === code ? 'cart-promo__chip--active' : ''
-            }`}
+            className={cn(
+              'cursor-pointer rounded-lg border px-2.5 py-1 font-mono text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-brand',
+              appliedCoupon?.code === code
+                ? 'border-brand-border bg-brand-subtle text-brand'
+                : 'border-border bg-surface-chip text-fg-heading hover:bg-surface-chip-hover',
+            )}
             onClick={() => applyCoupon(code)}
           >
             {code}
@@ -79,18 +89,21 @@ export const CartPromoBox = memo(function CartPromoBox() {
       </div>
 
       {appliedCoupon && (
-        <div className="cart-promo__applied" role="status">
-          <div className="cart-promo__applied-info">
-            <span className="cart-promo__applied-code">
+        <div
+          className="flex items-center justify-between gap-3 rounded-xl border border-success-border bg-success-bg px-3.5 py-2.5"
+          role="status"
+        >
+          <div className="flex flex-col gap-0.5">
+            <span className="font-mono text-xs font-extrabold text-success">
               {appliedCoupon.code}
             </span>
-            <span className="cart-promo__applied-desc">
+            <span className="text-xs text-fg">
               {getCouponLabel(appliedCoupon.code, appliedCoupon.label)}
             </span>
           </div>
           <button
             type="button"
-            className="cart-promo__remove-btn"
+            className="cursor-pointer rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-fg-heading hover:bg-surface-chip"
             onClick={removeCoupon}
             aria-label={t('cart.promoRemoveAria', { code: appliedCoupon.code })}
           >
@@ -100,7 +113,10 @@ export const CartPromoBox = memo(function CartPromoBox() {
       )}
 
       {displayCouponError && (
-        <div className="cart-alert cart-alert--error" role="alert">
+        <div
+          className="flex items-center gap-2 rounded-xl border border-danger-border bg-danger-bg px-3 py-2 text-xs font-medium text-danger"
+          role="alert"
+        >
           <svg
             width="14"
             height="14"

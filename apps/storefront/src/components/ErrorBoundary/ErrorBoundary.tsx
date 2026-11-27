@@ -70,19 +70,19 @@ class ErrorBoundaryInner extends Component<
 
       return (
         <section
-          className="error-boundary-fallback"
+          className="mx-auto my-16 max-w-xl rounded-2xl border border-border bg-surface p-8 text-center shadow-card-sm"
           role="alert"
           aria-live="assertive"
         >
-          <h2 className="error-boundary-fallback__title">
+          <h2 className="mb-2 text-xl font-bold text-fg-heading">
             {this.props.defaultTitle}
           </h2>
-          <p className="error-boundary-fallback__desc">
+          <p className="mb-5 text-sm text-fg-muted">
             {this.props.defaultDescription}
           </p>
           <button
             type="button"
-            className="error-boundary-fallback__retry"
+            className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             onClick={this.handleReset}
           >
             {this.props.defaultRetryLabel}

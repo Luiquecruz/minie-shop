@@ -12,35 +12,39 @@ export const CartHeader = memo(function CartHeader() {
   const { t } = useI18n();
 
   return (
-    <header className="cart-header">
-      <div className="cart-header__top">
-        <nav className="cart-breadcrumb" aria-label={t('cart.breadcrumbAria')}>
-          <Link to="/" className="cart-breadcrumb__link">
-            {t('cart.breadcrumbCatalog')}
-          </Link>
-          <span className="cart-breadcrumb__sep" aria-hidden="true">
-            /
-          </span>
-          <span className="cart-breadcrumb__current" aria-current="page">
-            {t('cart.title')}
-          </span>
-        </nav>
-      </div>
+    <header className="mb-8 flex flex-col gap-3">
+      <nav
+        className="flex flex-wrap items-center gap-2 text-xs font-medium text-fg-muted sm:text-sm"
+        aria-label={t('cart.breadcrumbAria')}
+      >
+        <Link
+          to="/"
+          className="text-fg-muted no-underline transition-colors hover:text-brand"
+        >
+          {t('cart.breadcrumbCatalog')}
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span className="font-semibold text-fg-heading" aria-current="page">
+          {t('cart.title')}
+        </span>
+      </nav>
 
-      <div className="cart-header__main">
-        <div className="cart-header__title-group">
-          <h1 className="cart-header__title">{t('cart.title')}</h1>
-          <span className="cart-header__count-pill">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="m-0 text-2xl font-extrabold tracking-tight text-fg-heading sm:text-3xl">
+            {t('cart.title')}
+          </h1>
+          <span className="inline-flex items-center rounded-full border border-brand-border bg-brand-subtle px-3 py-1 text-xs font-bold text-brand">
             {totalUnits}{' '}
             {totalUnits === 1 ? t('cart.unitSingular') : t('cart.unitPlural')}
           </span>
         </div>
 
-        <div className="cart-header__actions">
+        <div>
           {hasItems && (
             <button
               type="button"
-              className="cart-header__clear-btn"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-danger-border bg-danger-bg px-3.5 py-2 text-xs font-semibold text-danger transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               onClick={clearCart}
             >
               <svg
