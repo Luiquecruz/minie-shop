@@ -6,12 +6,12 @@ import { useCartActions } from '../../hooks/useCart';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useProductQuery } from '../../hooks/useProducts';
 import { useI18n } from '../../i18n';
+import { cn } from '../../utils/cn';
 import AttributeIcon from '../../components/AttributeIcon/AttributeIcon';
 import PriceBox from '../../components/PriceBox/PriceBox';
 import ProductImage from '../../components/ProductImage/ProductImage';
 import NotFoundPage from '../NotFoundPage/NotFoundPage';
 import PdpRecommendationsSection from './components/PdpRecommendationsSection';
-import './ProductDetailPage.css';
 
 type DetailTab = 'description' | 'specs';
 
@@ -71,17 +71,17 @@ export function ProductDetailPage() {
 
   if (productQuery.isPending) {
     return (
-      <div className="pdp-container">
-        <div className="pdp-skeleton">
-          <div className="pdp-skeleton__gallery">
-            <div className="pdp-skeleton__box pdp-skeleton__box--tall" />
-            <div className="pdp-skeleton__box pdp-skeleton__box--medium" />
+      <div className="mx-auto w-full max-w-[1280px] px-4 py-8 sm:px-6 lg:py-10">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.15fr_1fr] lg:gap-12">
+          <div className="flex flex-col gap-4">
+            <div className="skeleton-shimmer aspect-[4/3] w-full rounded-2xl" />
+            <div className="skeleton-shimmer h-40 w-full rounded-2xl" />
           </div>
-          <div className="pdp-skeleton__details">
-            <div className="pdp-skeleton__line pdp-skeleton__line--sm" />
-            <div className="pdp-skeleton__line pdp-skeleton__line--lg" />
-            <div className="pdp-skeleton__line pdp-skeleton__line--md" />
-            <div className="pdp-skeleton__line pdp-skeleton__line--xl" />
+          <div className="flex flex-col gap-4">
+            <div className="skeleton-shimmer h-5 w-1/3 rounded-lg" />
+            <div className="skeleton-shimmer h-10 w-4/5 rounded-lg" />
+            <div className="skeleton-shimmer h-8 w-1/2 rounded-lg" />
+            <div className="skeleton-shimmer h-28 w-full rounded-2xl" />
           </div>
         </div>
       </div>
@@ -101,13 +101,16 @@ export function ProductDetailPage() {
         : t('pdp.errorFallback');
 
     return (
-      <div className="pdp-container pdp-error-state" role="alert">
+      <div
+        className="mx-auto flex min-h-[55vh] w-full max-w-[1280px] items-center justify-center px-4 py-12 sm:px-6"
+        role="alert"
+      >
         <Helmet>
           <title>{`${t('pdp.errorTitle')} | Minie Shop`}</title>
           <meta name="description" content={t('pdp.errorFallback')} />
         </Helmet>
-        <div className="pdp-error-content">
-          <div className="pdp-error-icon">
+        <div className="flex max-w-md flex-col items-center gap-4 rounded-2xl border border-danger-border bg-surface p-8 text-center shadow-card-sm">
+          <div className="text-danger">
             <svg
               width="48"
               height="48"
@@ -124,12 +127,14 @@ export function ProductDetailPage() {
               />
             </svg>
           </div>
-          <h2>{t('pdp.errorTitle')}</h2>
-          <p>{errorMessage}</p>
-          <div className="pdp-error-actions">
+          <h2 className="m-0 text-xl font-bold text-fg-heading">
+            {t('pdp.errorTitle')}
+          </h2>
+          <p className="text-sm text-fg-muted">{errorMessage}</p>
+          <div className="flex flex-wrap justify-center gap-3 pt-1">
             <button
               type="button"
-              className="pdp-btn pdp-btn--primary"
+              className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-card-sm transition-colors hover:bg-brand-hover disabled:opacity-50"
               onClick={() => {
                 void productQuery.refetch();
               }}
@@ -139,7 +144,7 @@ export function ProductDetailPage() {
             </button>
             <button
               type="button"
-              className="pdp-btn pdp-btn--secondary"
+              className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-subtle px-5 py-2.5 text-sm font-semibold text-fg-heading transition-colors hover:bg-surface-chip"
               onClick={() => navigate('/')}
             >
               {t('pdp.backToCatalog')}
@@ -215,7 +220,7 @@ export function ProductDetailPage() {
   };
 
   return (
-    <div className="pdp-wrapper">
+    <div className="pb-28">
       <Helmet>
         <title>{`${name} | Minie Shop`}</title>
         <meta
@@ -228,7 +233,10 @@ export function ProductDetailPage() {
 
       {/* Floating alert notifications */}
       {addedNotice && (
-        <div className="pdp-toast" role="alert">
+        <div
+          className="fixed right-6 top-20 z-[var(--z-toast)] flex max-w-md items-center gap-2.5 rounded-xl border border-success-border bg-surface px-4 py-3 text-sm font-semibold text-success shadow-card-lg animate-fade-in"
+          role="alert"
+        >
           <svg
             width="20"
             height="20"
@@ -249,7 +257,10 @@ export function ProductDetailPage() {
       )}
 
       {favoriteError && (
-        <div className="pdp-toast pdp-toast--error" role="alert">
+        <div
+          className="fixed right-6 top-20 z-[var(--z-toast)] flex max-w-md items-center gap-2.5 rounded-xl border border-danger-border bg-surface px-4 py-3 text-sm font-semibold text-danger shadow-card-lg animate-fade-in"
+          role="alert"
+        >
           <svg
             width="20"
             height="20"
@@ -269,42 +280,44 @@ export function ProductDetailPage() {
         </div>
       )}
 
-      <div className="pdp-container">
+      <div className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 lg:py-8">
         {/* API Breadcrumbs */}
-        <nav className="pdp-breadcrumb" aria-label={t('pdp.breadcrumbAria')}>
-          <Link to="/" className="pdp-breadcrumb__link">
+        <nav
+          className="mb-6 flex flex-wrap items-center gap-2 text-xs font-medium text-fg-muted sm:text-sm"
+          aria-label={t('pdp.breadcrumbAria')}
+        >
+          <Link
+            to="/"
+            className="text-fg-muted no-underline transition-colors hover:text-brand"
+          >
             {t('pdp.breadcrumbCatalog')}
           </Link>
           {breadcrumbs.map((crumb) => (
             <Fragment key={crumb.slug}>
-              <span className="pdp-breadcrumb__separator" aria-hidden="true">
-                /
-              </span>
+              <span aria-hidden="true">/</span>
               <Link
                 to={`/?category=${encodeURIComponent(crumb.slug)}`}
-                className="pdp-breadcrumb__link"
+                className="text-fg-muted no-underline transition-colors hover:text-brand"
               >
                 {crumb.name}
               </Link>
             </Fragment>
           ))}
-          <span className="pdp-breadcrumb__separator" aria-hidden="true">
-            /
-          </span>
-          <span className="pdp-breadcrumb__current" aria-current="page">
+          <span aria-hidden="true">/</span>
+          <span className="font-semibold text-fg-heading" aria-current="page">
             {name}
           </span>
         </nav>
 
         {/* Main Product Layout: Left Gallery + Right Details */}
-        <div className="pdp-grid">
-          <section className="pdp-gallery" aria-label={t('pdp.galleryAria')}>
-            <div className="pdp-gallery__masonry">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1.15fr_1fr] lg:gap-12">
+          <section className="flex flex-col gap-3" aria-label={t('pdp.galleryAria')}>
+            <div className="scrollbar-none flex snap-x snap-mandatory gap-4 overflow-x-auto lg:grid lg:grid-cols-1 lg:overflow-visible">
               {images.length > 0 ? (
                 images.map((img, index) => (
                   <div
                     key={img.id}
-                    className="pdp-gallery__item"
+                    className="relative w-full shrink-0 snap-center overflow-hidden rounded-2xl border border-border bg-surface shadow-card-sm"
                     data-index={index}
                   >
                     <ProductImage
@@ -313,29 +326,33 @@ export function ProductDetailPage() {
                       aspectRatio="4 / 3"
                       sizes="(max-width: 900px) 100vw, 50vw"
                       priority={index === 0}
-                      className="pdp-gallery__image"
                     />
                     {images.length > 1 && (
-                      <span className="pdp-gallery__badge">
+                      <span className="absolute bottom-3 right-3 rounded-full border border-border bg-surface/90 px-2.5 py-0.5 text-xs font-bold tabular-nums text-fg-heading backdrop-blur-sm">
                         {index + 1} / {images.length}
                       </span>
                     )}
                   </div>
                 ))
               ) : (
-                <div className="pdp-gallery__item" data-index={0}>
+                <div
+                  className="relative w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-card-sm"
+                  data-index={0}
+                >
                   <ProductImage
                     image={null}
                     productName={name}
                     aspectRatio="4 / 3"
                     priority
-                    className="pdp-gallery__image"
                   />
                 </div>
               )}
             </div>
             {images.length > 1 && (
-              <div className="pdp-gallery__swipe-hint" aria-hidden="true">
+              <div
+                className="flex items-center justify-center gap-1.5 text-xs font-medium text-fg-muted lg:hidden"
+                aria-hidden="true"
+              >
                 <span>{t('pdp.swipeHint')}</span>
                 <svg
                   width="16"
@@ -355,15 +372,23 @@ export function ProductDetailPage() {
             )}
           </section>
 
-          <section className="pdp-info" aria-label={t('pdp.detailsAria')}>
-            <div className="pdp-info__header">
-              <div className="pdp-info__header-top">
-                <span className="pdp-info__category">{category.name}</span>
+          <section
+            className="flex flex-col gap-6 lg:sticky lg:top-20"
+            aria-label={t('pdp.detailsAria')}
+          >
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center rounded-full border border-brand-border bg-brand-subtle px-3 py-1 text-xs font-bold uppercase tracking-wider text-brand">
+                  {category.name}
+                </span>
                 <button
                   type="button"
-                  className={`pdp-favorite-btn ${
-                    favorited ? 'pdp-favorite-btn--active' : ''
-                  }`}
+                  className={cn(
+                    'inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+                    favorited
+                      ? 'border-danger-border bg-danger-bg text-danger'
+                      : 'border-border bg-surface text-fg-heading hover:border-danger-border hover:text-danger',
+                  )}
                   onClick={() => toggleFavorite(id)}
                   aria-pressed={favorited}
                   aria-label={
@@ -391,32 +416,33 @@ export function ProductDetailPage() {
                 </button>
               </div>
 
-              <h1 className="pdp-info__title">{name}</h1>
+              <h1 className="pdp-info__title m-0 text-2xl font-extrabold leading-tight tracking-tight text-fg-heading sm:text-3xl">
+                {name}
+              </h1>
 
-              <div className="pdp-info__meta">
-                <div className="pdp-info__stock">
-                  {inStock ? (
-                    <span className="pdp-stock-badge pdp-stock-badge--available">
-                      <span className="pdp-stock-dot" />
-                      {t('pdp.inStock')}
-                    </span>
-                  ) : (
-                    <span className="pdp-stock-badge pdp-stock-badge--out">
-                      <span className="pdp-stock-dot" />
-                      {t('pdp.outOfStock')}
-                    </span>
-                  )}
-                </div>
+              <div>
+                {inStock ? (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-success-border bg-success-bg px-3 py-1 text-xs font-bold text-success">
+                    <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
+                    {t('pdp.inStock')}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-danger-border bg-danger-bg px-3 py-1 text-xs font-bold text-danger">
+                    <span className="h-2 w-2 rounded-full bg-danger" aria-hidden="true" />
+                    {t('pdp.outOfStock')}
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="pdp-info__pricebox">
+            <div className="rounded-2xl border border-border bg-surface p-5 shadow-card-sm">
               <PriceBox price={price} size="lg" />
             </div>
 
-            <div className="pdp-assurance">
-              <div className="pdp-assurance__item">
+            <div className="grid grid-cols-1 gap-2.5 rounded-2xl border border-border bg-surface-subtle p-4 sm:grid-cols-3">
+              <div className="flex items-center gap-2 text-xs font-medium text-fg">
                 <svg
+                  className="shrink-0 text-brand"
                   width="20"
                   height="20"
                   fill="none"
@@ -433,8 +459,9 @@ export function ProductDetailPage() {
                 </svg>
                 <span>{t('pdp.assuranceShipping')}</span>
               </div>
-              <div className="pdp-assurance__item">
+              <div className="flex items-center gap-2 text-xs font-medium text-fg">
                 <svg
+                  className="shrink-0 text-brand"
                   width="20"
                   height="20"
                   fill="none"
@@ -451,8 +478,9 @@ export function ProductDetailPage() {
                 </svg>
                 <span>{t('pdp.assuranceWarranty')}</span>
               </div>
-              <div className="pdp-assurance__item">
+              <div className="flex items-center gap-2 text-xs font-medium text-fg">
                 <svg
+                  className="shrink-0 text-brand"
                   width="20"
                   height="20"
                   fill="none"
@@ -471,10 +499,10 @@ export function ProductDetailPage() {
               </div>
             </div>
 
-            <div className="pdp-actions-inline">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                className="pdp-btn pdp-btn--secondary"
+                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-surface px-5 py-3 text-sm font-bold text-fg-heading shadow-card-sm transition-colors hover:border-brand-border hover:bg-surface-chip focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={handleAddToCart}
                 disabled={!inStock}
               >
@@ -497,7 +525,7 @@ export function ProductDetailPage() {
               </button>
               <button
                 type="button"
-                className="pdp-btn pdp-btn--primary"
+                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-bold text-white shadow-card-sm transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={handleBuyNow}
                 disabled={!inStock}
               >
@@ -521,9 +549,9 @@ export function ProductDetailPage() {
             </div>
 
             {/* Content Tabs */}
-            <div className="pdp-tabs">
+            <div className="rounded-2xl border border-border bg-surface shadow-card-sm">
               <div
-                className="pdp-tabs__nav"
+                className="flex border-b border-border px-2 pt-2"
                 role="tablist"
                 aria-label={t('pdp.tabsAria')}
               >
@@ -539,9 +567,12 @@ export function ProductDetailPage() {
                     aria-controls={`panel-${tab.id}`}
                     aria-selected={activeTab === tab.id}
                     tabIndex={activeTab === tab.id ? 0 : -1}
-                    className={`pdp-tabs__tab ${
-                      activeTab === tab.id ? 'pdp-tabs__tab--active' : ''
-                    }`}
+                    className={cn(
+                      'relative -mb-px cursor-pointer border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand',
+                      activeTab === tab.id
+                        ? 'border-brand text-brand'
+                        : 'border-transparent text-fg-muted hover:text-fg-heading',
+                    )}
                     onClick={() =>
                       setTabSelection({ productSlug: slug, tab: tab.id })
                     }
@@ -552,25 +583,28 @@ export function ProductDetailPage() {
                 ))}
               </div>
 
-              <div className="pdp-tabs__content">
+              <div className="p-5">
                 {activeTab === 'description' && (
                   <div
                     id="panel-description"
                     role="tabpanel"
                     aria-labelledby="tab-description"
                     tabIndex={0}
-                    className="pdp-tab-panel"
+                    className="flex flex-col gap-5 focus-visible:outline-2 focus-visible:outline-brand"
                   >
-                    <p className="pdp-description-text">{description}</p>
+                    <p className="text-sm leading-relaxed text-fg">{description}</p>
                     {attributes.length > 0 && (
-                      <dl className="pdp-specs-grid">
+                      <dl className="m-0 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                         {attributes.map((attr) => (
-                          <div key={attr.code} className="pdp-specs-item">
-                            <dt className="pdp-specs-label">
+                          <div
+                            key={attr.code}
+                            className="flex flex-col gap-1 rounded-xl border border-border-subtle bg-surface-subtle px-3.5 py-2.5"
+                          >
+                            <dt className="flex items-center gap-1.5 text-xs font-semibold text-fg-muted">
                               <AttributeIcon iconKey={attr.icon} size={15} />
                               <span>{attr.label}</span>
                             </dt>
-                            <dd className="pdp-specs-value">
+                            <dd className="m-0 text-sm font-bold text-fg-heading">
                               {formatAttributeValue(attr.value, attr.unit)}
                             </dd>
                           </div>
@@ -586,63 +620,75 @@ export function ProductDetailPage() {
                     role="tabpanel"
                     aria-labelledby="tab-specs"
                     tabIndex={0}
-                    className="pdp-tab-panel"
+                    className="focus-visible:outline-2 focus-visible:outline-brand"
                   >
                     {attributes.length > 0 ? (
-                      <dl className="pdp-specs-grid">
+                      <dl className="m-0 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                         {attributes.map((attr) => (
-                          <div key={attr.code} className="pdp-specs-item">
-                            <dt className="pdp-specs-label">
+                          <div
+                            key={attr.code}
+                            className="flex flex-col gap-1 rounded-xl border border-border-subtle bg-surface-subtle px-3.5 py-2.5"
+                          >
+                            <dt className="flex items-center gap-1.5 text-xs font-semibold text-fg-muted">
                               <AttributeIcon iconKey={attr.icon} size={15} />
                               <span>{attr.label}</span>
                             </dt>
-                            <dd className="pdp-specs-value">
+                            <dd className="m-0 text-sm font-bold text-fg-heading">
                               {formatAttributeValue(attr.value, attr.unit)}
                             </dd>
                           </div>
                         ))}
                       </dl>
                     ) : (
-                      <p className="pdp-description-text">{t('pdp.noSpecs')}</p>
+                      <p className="text-sm text-fg-muted">{t('pdp.noSpecs')}</p>
                     )}
                   </div>
                 )}
               </div>
             </div>
           </section>
-
-          <PdpRecommendationsSection key={product.slug} slug={product.slug} />
         </div>
+
+        {/* Full-width recommendation carousels cleanly below the 2-column PDP grid */}
+        <PdpRecommendationsSection key={product.slug} slug={product.slug} />
       </div>
 
       {/* Floating Bottom Action Bar */}
-      <aside className="pdp-floating-bar" aria-label={t('pdp.floatingBarAria')}>
-        <div className="pdp-floating-bar__inner">
-          <div className="pdp-floating-bar__product">
+      <aside
+        className="pdp-floating-bar fixed inset-x-0 bottom-0 z-[var(--z-floating-bar)] border-t border-border bg-surface-nav shadow-floating backdrop-blur-md"
+        aria-label={t('pdp.floatingBarAria')}
+      >
+        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div className="hidden min-w-0 items-center gap-3 md:flex">
             <ProductImage
               image={primaryImage}
               productName={name}
               aspectRatio="1 / 1"
               sizes="48px"
               decorative
-              className="pdp-floating-bar__thumb"
+              className="h-12 w-12 shrink-0 rounded-xl border border-border"
             />
-            <div className="pdp-floating-bar__meta">
-              <span className="pdp-floating-bar__title" title={name}>
+            <div className="flex min-w-0 flex-col">
+              <span
+                className="truncate text-sm font-bold text-fg-heading"
+                title={name}
+              >
                 {name}
               </span>
-              <span className="pdp-floating-bar__category">{category.name}</span>
+              <span className="truncate text-xs text-fg-muted">
+                {category.name}
+              </span>
             </div>
           </div>
 
-          <div className="pdp-floating-bar__price">
+          <div className="shrink-0">
             <PriceBox price={price} size="sm" />
           </div>
 
-          <div className="pdp-floating-bar__actions">
+          <div className="flex shrink-0 items-center gap-2.5">
             <button
               type="button"
-              className="pdp-btn pdp-btn--secondary pdp-floating-bar__btn"
+              className="pdp-btn--secondary inline-flex cursor-pointer items-center justify-center rounded-xl border border-border bg-surface px-4 py-2 text-xs font-bold text-fg-heading transition-colors hover:bg-surface-chip disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
               onClick={handleAddToCart}
               disabled={!inStock}
               aria-label={t('card.addToCartAria', { name })}
@@ -651,7 +697,7 @@ export function ProductDetailPage() {
             </button>
             <button
               type="button"
-              className="pdp-btn pdp-btn--primary pdp-floating-bar__btn"
+              className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white shadow-card-sm transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
               onClick={handleBuyNow}
               disabled={!inStock}
               aria-label={t('pdp.buyNowAria', { name })}

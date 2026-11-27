@@ -16,14 +16,17 @@ export const CartOrderNote = memo(function CartOrderNote() {
   const { t } = useI18n();
 
   return (
-    <section className="cart-panel" aria-labelledby="cart-note-heading">
-      <div className="cart-panel__header">
-        <h2 id="cart-note-heading" className="cart-panel__title">
+    <section
+      className="flex flex-col gap-2.5 rounded-2xl border border-border bg-surface p-5 shadow-card-sm"
+      aria-labelledby="cart-note-heading"
+    >
+      <div className="flex items-center justify-between">
+        <h2 id="cart-note-heading" className="m-0 text-base font-bold text-fg-heading">
           {t('cart.noteHeading')}
         </h2>
       </div>
 
-      <label htmlFor="cart-order-note" className="cart-note__hint">
+      <label htmlFor="cart-order-note" className="text-xs text-fg-muted">
         {t('cart.noteHint')}
       </label>
 
@@ -34,11 +37,11 @@ export const CartOrderNote = memo(function CartOrderNote() {
         value={orderNote}
         onChange={(e) => setOrderNote(e.target.value)}
         placeholder={t('cart.notePlaceholder')}
-        className="cart-note__textarea"
+        className="w-full resize-y rounded-xl border border-border bg-surface-input p-3 text-sm text-fg-heading placeholder:text-fg-muted focus:border-brand focus:outline-none"
       />
 
-      <div className="cart-note__footer">
-        <span className="cart-note__counter">
+      <div className="flex justify-end">
+        <span className="text-xs tabular-nums text-fg-muted">
           {t('cart.noteCounter', {
             length: orderNote.length,
             max: MAX_ORDER_NOTE_LENGTH,

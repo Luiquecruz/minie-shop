@@ -3,10 +3,10 @@ import type { ProductCardDTO } from '@minieshop/contracts';
 import { useCartActions } from '../../hooks/useCart';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useI18n } from '../../i18n';
+import { cn } from '../../utils/cn';
 import AttributeIcon from '../AttributeIcon/AttributeIcon';
 import PriceBox from '../PriceBox/PriceBox';
 import ProductImage from '../ProductImage/ProductImage';
-import './ProductCard.css';
 
 export interface ProductCardProps {
   product: ProductCardDTO | null | undefined;
@@ -50,16 +50,29 @@ export function ProductCard({
   const favorited = isFavorite(id);
 
   return (
-    <article className="product-card" data-product-id={id} data-product-slug={slug}>
-      <div className="product-card__media">
+    <article
+      className="product-card group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-border hover:shadow-card-md"
+      data-product-id={id}
+      data-product-slug={slug}
+    >
+      <div className="relative overflow-hidden bg-surface-subtle">
         <Link
           to={productPath}
-          className="product-card__image-link"
+          className="block no-underline"
           aria-label={t('card.viewDetails', { name })}
         >
-          <div className="product-card__image-container">
-            <span className="product-card__category">{categorySlug}</span>
-            <span className="product-card__stock-badge">
+          <div className="relative">
+            <span className="absolute left-3 top-3 z-10 rounded-full border border-border bg-surface/90 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-fg-heading backdrop-blur-sm">
+              {categorySlug}
+            </span>
+            <span
+              className={cn(
+                'absolute bottom-3 left-3 z-10 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm',
+                inStock
+                  ? 'border-success-border bg-surface/90 text-success'
+                  : 'border-danger-border bg-surface/90 text-danger',
+              )}
+            >
               {inStock ? t('card.inStock') : t('card.outOfStock')}
             </span>
             <ProductImage
@@ -67,16 +80,19 @@ export function ProductCard({
               productName={name}
               aspectRatio="4 / 3"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
-              className="product-card__image"
+              className="transition-transform duration-300 group-hover:scale-[1.03]"
             />
           </div>
         </Link>
 
         <button
           type="button"
-          className={`product-card__favorite-btn ${
-            favorited ? 'product-card__favorite-btn--active' : ''
-          }`}
+          className={cn(
+            'product-card__favorite-btn absolute right-3 top-3 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border bg-surface/90 shadow-card-sm backdrop-blur-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+            favorited
+              ? 'border-danger-border text-danger'
+              : 'border-border text-fg-muted hover:border-danger-border hover:text-danger',
+          )}
           onClick={() => toggleFavorite(id)}
           aria-pressed={favorited}
           aria-label={
@@ -104,20 +120,26 @@ export function ProductCard({
         </button>
       </div>
 
-      <div className="product-card__content">
-        <Link to={productPath} className="product-card__title-link">
-          <h3 className="product-card__title" title={name}>
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <Link to={productPath} className="product-card__title-link no-underline">
+          <h3
+            className="product-card__title line-clamp-2 min-h-[2.6rem] text-base font-bold leading-snug text-fg-heading transition-colors group-hover:text-brand"
+            title={name}
+          >
             {name}
           </h3>
         </Link>
 
         {highlights.length > 0 && (
           <ul
-            className="product-card__highlights"
+            className="m-0 flex list-none flex-wrap gap-1.5 p-0"
             aria-label={t('card.highlightsAria')}
           >
             {highlights.slice(0, 3).map((attr) => (
-              <li key={attr.code} className="product-card__highlight-item">
+              <li
+                key={attr.code}
+                className="inline-flex items-center gap-1 rounded-lg bg-surface-chip px-2 py-1 text-xs font-medium text-fg"
+              >
                 <AttributeIcon iconKey={attr.icon} size={14} />
                 <span>
                   {attr.label}: {formatAttributeHighlight(attr.value, attr.unit)}
@@ -127,12 +149,12 @@ export function ProductCard({
           </ul>
         )}
 
-        <div className="product-card__footer">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle pt-3">
           <PriceBox price={price} size="md" />
 
           <button
             type="button"
-            className="product-card__btn"
+            className="product-card__btn inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-brand px-3.5 py-2 text-xs font-semibold text-white shadow-card-sm transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:bg-surface-chip disabled:text-fg-muted disabled:shadow-none"
             disabled={!inStock}
             onClick={() => {
               if (onAddToCart) {
@@ -144,7 +166,7 @@ export function ProductCard({
             aria-label={t('card.addToCartAria', { name })}
           >
             <svg
-              className="product-card__btn-icon"
+              className="h-4 w-4 shrink-0"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"

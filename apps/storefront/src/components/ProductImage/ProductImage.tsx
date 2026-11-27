@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import type { ImageDTO } from '@minieshop/contracts';
 import { useI18n } from '../../i18n';
-import './ProductImage.css';
+import { cn } from '../../utils/cn';
 
 export interface ProductImageProps {
   image: ImageDTO | null | undefined;
@@ -71,20 +71,21 @@ export function ProductImage({
 
   return (
     <div
-      className={`product-image ${
-        showFallback ? 'product-image--fallback' : ''
-      } ${isLoaded ? 'product-image--loaded' : ''} ${className}`.trim()}
+      className={cn(
+        'relative block w-full overflow-hidden bg-surface-subtle bg-cover bg-center',
+        className,
+      )}
       style={containerStyle}
     >
       {showFallback ? (
         <div
-          className="product-image__fallback"
+          className="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-center text-fg-muted"
           role={decorative ? undefined : 'img'}
           aria-label={decorative ? undefined : fallbackLabel}
           aria-hidden={decorative ? true : undefined}
         >
           <svg
-            className="product-image__fallback-svg"
+            className="h-10 w-10 max-h-[55%] max-w-[55%] opacity-70"
             viewBox="0 0 64 64"
             fill="none"
             stroke="currentColor"
@@ -98,7 +99,7 @@ export function ProductImage({
             <path d="M56 41l-12-12-13 13-6-6-17 16" />
           </svg>
           {!decorative && (
-            <span className="product-image__fallback-label">
+            <span className="text-xs font-medium text-fg-muted">
               {fallbackLabel}
             </span>
           )}
@@ -115,7 +116,10 @@ export function ProductImage({
           loading={priority ? 'eager' : 'lazy'}
           fetchPriority={priority ? 'high' : 'auto'}
           decoding={priority ? 'sync' : 'async'}
-          className="product-image__img"
+          className={cn(
+            'block h-full w-full object-cover transition-opacity duration-200',
+            isLoaded ? 'opacity-100' : 'opacity-90',
+          )}
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasFailed(true)}
         />

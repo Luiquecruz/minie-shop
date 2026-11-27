@@ -8,7 +8,6 @@ import {
 import type { ProductCardDTO } from '@minieshop/contracts';
 import { useI18n } from '../../i18n';
 import ProductCard from '../ProductCard/ProductCard';
-import './RecommendationCarousel.css';
 
 export interface RecommendationCarouselProps {
   title: string;
@@ -32,7 +31,7 @@ function prefersReducedMotion(): boolean {
 
 /**
  * Reusable accessible horizontal recommendation carousel (`R05.4`).
- * - Native horizontal scrolling + CSS scroll-snap (`overscroll-behavior-x: contain`).
+ * - Native horizontal scrolling + CSS scroll-snap (`overscroll-x-contain`).
  * - Prev/Next buttons disabled cleanly at track boundaries with focus redirection.
  * - Horizontal-only `onFocusCapture` scrolling so keyboard Tab stays visible without page jumps.
  * - Zero-CLS loading skeleton and silent collapse on empty results or production errors.
@@ -160,7 +159,6 @@ export function RecommendationCarousel({
       track.scrollLeft = targetLeft;
     }
 
-    // Immediate boundary sync ensures jsdom / instant scroll environments reflect disabled states.
     if (behavior === 'auto' || typeof track.scrollTo !== 'function') {
       track.scrollLeft = targetLeft;
       syncBoundaryState();
@@ -211,7 +209,7 @@ export function RecommendationCarousel({
     }
     return (
       <div
-        className="rec-carousel__dev-error"
+        className="inline-flex items-center rounded-lg border border-warning-border bg-warning-bg px-3 py-1.5 font-mono text-xs font-semibold text-warning"
         data-testid={testId ? `${testId}-dev-error` : 'recs-dev-error'}
       >
         {t('recommendations.devErrorBadge', {
@@ -224,34 +222,34 @@ export function RecommendationCarousel({
   if (isLoading && items.length === 0) {
     return (
       <section
-        className="rec-carousel rec-carousel--loading"
+        className="rec-carousel flex w-full flex-col gap-4"
         aria-labelledby={headingId}
         aria-busy="true"
         data-testid={testId}
       >
-        <div className="rec-carousel__header">
-          <h2 id={headingId} className="rec-carousel__title">
+        <div className="flex items-center justify-between gap-4">
+          <h2 id={headingId} className="m-0 text-xl font-extrabold tracking-tight text-fg-heading">
             {title}
           </h2>
         </div>
 
         <div
-          className="rec-carousel__track rec-carousel__track--skeleton"
+          className="rec-carousel__track scrollbar-none flex gap-4 overflow-x-auto pb-2"
           aria-label={t('recommendations.loadingAria', { title })}
         >
           {Array.from({ length: skeletonCount }).map((_, index) => (
             <div
               key={index}
-              className="rec-carousel__slide"
+              className="rec-carousel__slide w-[260px] shrink-0 sm:w-[280px]"
               aria-hidden="true"
             >
-              <div className="rec-skeleton-card">
-                <div className="rec-skeleton-card__img" />
-                <div className="rec-skeleton-card__body">
-                  <div className="rec-skeleton-line rec-skeleton-line--short" />
-                  <div className="rec-skeleton-line rec-skeleton-line--title" />
-                  <div className="rec-skeleton-line rec-skeleton-line--full" />
-                  <div className="rec-skeleton-line rec-skeleton-line--short" />
+              <div className="rec-skeleton-card overflow-hidden rounded-2xl border border-border bg-surface">
+                <div className="skeleton-shimmer aspect-[4/3] w-full" />
+                <div className="flex flex-col gap-3 p-4">
+                  <div className="skeleton-shimmer h-3.5 w-1/3 rounded-md" />
+                  <div className="skeleton-shimmer h-5 w-4/5 rounded-md" />
+                  <div className="skeleton-shimmer h-4 w-full rounded-md" />
+                  <div className="skeleton-shimmer h-4 w-2/5 rounded-md" />
                 </div>
               </div>
             </div>
@@ -267,22 +265,22 @@ export function RecommendationCarousel({
 
   return (
     <section
-      className="rec-carousel"
+      className="rec-carousel flex w-full flex-col gap-4"
       aria-labelledby={headingId}
       aria-roledescription={t('recommendations.carouselRoleDescription')}
       data-testid={testId}
     >
-      <div className="rec-carousel__header">
-        <h2 id={headingId} className="rec-carousel__title">
+      <div className="flex items-center justify-between gap-4">
+        <h2 id={headingId} className="m-0 text-xl font-extrabold tracking-tight text-fg-heading">
           {title}
         </h2>
 
         {showControls && (
-          <div className="rec-carousel__controls">
+          <div className="flex items-center gap-2">
             <button
               ref={prevBtnRef}
               type="button"
-              className="rec-carousel__nav-btn"
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border bg-surface text-fg-heading shadow-card-sm transition-colors hover:border-brand-border hover:bg-surface-chip focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-40"
               onClick={() => {
                 lastActiveNavRef.current = 'prev';
                 scrollByStep(-1);
@@ -323,7 +321,7 @@ export function RecommendationCarousel({
             <button
               ref={nextBtnRef}
               type="button"
-              className="rec-carousel__nav-btn"
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border bg-surface text-fg-heading shadow-card-sm transition-colors hover:border-brand-border hover:bg-surface-chip focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-40"
               onClick={() => {
                 lastActiveNavRef.current = 'next';
                 scrollByStep(1);
@@ -366,12 +364,15 @@ export function RecommendationCarousel({
 
       <ul
         ref={trackRef}
-        className="rec-carousel__track"
+        className="rec-carousel__track scrollbar-none m-0 flex list-none snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain p-0 pb-2"
         onScroll={syncBoundaryState}
         onFocusCapture={handleTrackFocusCapture}
       >
         {items.map((product) => (
-          <li key={product.id} className="rec-carousel__slide">
+          <li
+            key={product.id}
+            className="rec-carousel__slide w-[260px] shrink-0 snap-start sm:w-[280px]"
+          >
             <ProductCard
               product={product}
               onAddToCart={onAddToCart}

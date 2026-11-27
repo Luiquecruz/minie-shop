@@ -79,9 +79,15 @@ export const CartOrderSummary = memo(function CartOrderSummary({
   };
 
   return (
-    <aside className="cart-summary" aria-labelledby="cart-summary-heading">
-      <div className="cart-panel__header">
-        <h2 id="cart-summary-heading" className="cart-summary__title">
+    <aside
+      className="flex h-fit flex-col gap-5 rounded-2xl border border-border bg-surface p-6 shadow-card-sm lg:sticky lg:top-20"
+      aria-labelledby="cart-summary-heading"
+    >
+      <div className="border-b border-border-subtle pb-3">
+        <h2
+          id="cart-summary-heading"
+          className="m-0 text-lg font-extrabold text-fg-heading"
+        >
           {t('cart.summaryHeading')}
         </h2>
       </div>
@@ -89,41 +95,45 @@ export const CartOrderSummary = memo(function CartOrderSummary({
       {shippingMethod === 'standard' &&
         !appliedCoupon?.freeShipping &&
         !hasCurrencyMismatch && (
-        <div className="cart-summary__shipping-progress">
-          <div className="cart-summary__progress-text">
-            {freeShippingRemaining > 0 ? (
-              <span>
-                {t('cart.freeShippingAddMoreBefore')}
-                <strong>{formatPrice(freeShippingRemaining)}</strong>
-                {t('cart.freeShippingAddMoreAfter')}
-              </span>
-            ) : (
-              <span>{t('cart.freeShippingUnlocked')}</span>
-            )}
-          </div>
-          <div
-            className="cart-summary__progress-track"
-            role="progressbar"
-            aria-valuenow={progressRatio}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={t('cart.freeShippingProgressAria')}
-          >
+          <div className="flex flex-col gap-2 rounded-xl border border-brand-border bg-brand-subtle p-3.5">
+            <div className="text-xs font-medium text-fg-heading">
+              {freeShippingRemaining > 0 ? (
+                <span>
+                  {t('cart.freeShippingAddMoreBefore')}
+                  <strong className="font-bold text-brand">
+                    {formatPrice(freeShippingRemaining)}
+                  </strong>
+                  {t('cart.freeShippingAddMoreAfter')}
+                </span>
+              ) : (
+                <span className="font-semibold text-success">
+                  {t('cart.freeShippingUnlocked')}
+                </span>
+              )}
+            </div>
             <div
-              className="cart-summary__progress-fill"
-              style={{ width: `${progressRatio}%` }}
-            />
+              className="h-2 w-full overflow-hidden rounded-full bg-surface-chip"
+              role="progressbar"
+              aria-valuenow={progressRatio}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={t('cart.freeShippingProgressAria')}
+            >
+              <div
+                className="h-full rounded-full bg-brand transition-[width] duration-300"
+                style={{ width: `${progressRatio}%` }}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <dl className="cart-summary__breakdown" aria-busy={isTotalsLoading}>
-        <div className="cart-summary__row">
+      <dl className="m-0 flex flex-col gap-3 text-sm" aria-busy={isTotalsLoading}>
+        <div className="flex items-center justify-between gap-2 text-fg">
           <dt>{t('cart.subtotalWithUnits', { count: totalUnits })}</dt>
-          <dd>
+          <dd className="m-0 font-semibold tabular-nums text-fg-heading">
             {isTotalsLoading ? (
               <span
-                className="cart-shimmer cart-shimmer--summary"
+                className="skeleton-shimmer inline-block h-4 w-20 rounded-md"
                 aria-label={t('cart.updatingSubtotal')}
               />
             ) : hasCurrencyMismatch ? (
@@ -135,12 +145,12 @@ export const CartOrderSummary = memo(function CartOrderSummary({
         </div>
 
         {appliedCoupon && discountAmount > 0 && (
-          <div className="cart-summary__row cart-summary__row--discount">
+          <div className="flex items-center justify-between gap-2 text-success">
             <dt>{t('cart.promoLine', { code: appliedCoupon.code })}</dt>
-            <dd>
+            <dd className="m-0 font-bold tabular-nums">
               {isTotalsLoading ? (
                 <span
-                  className="cart-shimmer cart-shimmer--summary"
+                  className="skeleton-shimmer inline-block h-4 w-20 rounded-md"
                   aria-label={t('cart.updatingDiscount')}
                 />
               ) : hasCurrencyMismatch ? (
@@ -152,22 +162,22 @@ export const CartOrderSummary = memo(function CartOrderSummary({
           </div>
         )}
 
-        <div className="cart-summary__row">
+        <div className="flex items-center justify-between gap-2 text-fg">
           <dt>
             {t('cart.shippingLine', {
               name: getShippingName(selectedShipping.id, selectedShipping.name),
             })}
           </dt>
-          <dd>
+          <dd className="m-0 font-semibold tabular-nums text-fg-heading">
             {isTotalsLoading ? (
               <span
-                className="cart-shimmer cart-shimmer--summary"
+                className="skeleton-shimmer inline-block h-4 w-20 rounded-md"
                 aria-label={t('cart.updatingShipping')}
               />
             ) : hasCurrencyMismatch ? (
               '—'
             ) : shippingCost === 0 ? (
-              <span className="cart-summary__free-tag">
+              <span className="font-bold text-success">
                 {t('cart.shippingFree')}
               </span>
             ) : (
@@ -177,18 +187,24 @@ export const CartOrderSummary = memo(function CartOrderSummary({
         </div>
 
         {orderNote.trim() && (
-          <div className="cart-summary__note-preview">
-            <dt>{t('cart.noteAttached')}</dt>
-            <dd title={orderNote}>{orderNote}</dd>
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-subtle px-3 py-2 text-xs text-fg-muted">
+            <dt className="shrink-0 font-semibold text-fg-heading">
+              {t('cart.noteAttached')}
+            </dt>
+            <dd className="m-0 truncate" title={orderNote}>
+              {orderNote}
+            </dd>
           </div>
         )}
 
-        <div className="cart-summary__row cart-summary__row--total">
-          <dt>{t('cart.estimatedTotal')}</dt>
-          <dd>
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+          <dt className="text-base font-extrabold text-fg-heading">
+            {t('cart.estimatedTotal')}
+          </dt>
+          <dd className="m-0 text-xl font-extrabold tabular-nums text-fg-heading">
             {isTotalsLoading ? (
               <span
-                className="cart-shimmer cart-shimmer--summary-total"
+                className="skeleton-shimmer inline-block h-6 w-24 rounded-md"
                 aria-label={t('cart.updatingEstimatedTotal')}
               />
             ) : hasCurrencyMismatch ? (
@@ -201,7 +217,10 @@ export const CartOrderSummary = memo(function CartOrderSummary({
       </dl>
 
       {checkoutNotice && (
-        <div className="cart-alert cart-alert--info" role="status">
+        <div
+          className="flex items-center gap-2 rounded-xl border border-info-border bg-info-bg px-3.5 py-2.5 text-xs font-medium text-info"
+          role="status"
+        >
           <svg
             width="15"
             height="15"
@@ -221,10 +240,10 @@ export const CartOrderSummary = memo(function CartOrderSummary({
         </div>
       )}
 
-      <div className="cart-summary__actions">
+      <div className="flex flex-col gap-2.5">
         <button
           type="button"
-          className="cart-btn cart-btn--primary"
+          className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-bold text-white shadow-card-sm transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
           onClick={handleCheckout}
           disabled={isTotalsLoading || hasCurrencyMismatch || quoteError !== null}
         >
@@ -246,7 +265,10 @@ export const CartOrderSummary = memo(function CartOrderSummary({
           <span>{t('cart.proceedToCheckout')}</span>
         </button>
 
-        <Link to="/" className="cart-btn cart-btn--secondary">
+        <Link
+          to="/"
+          className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-surface-subtle px-5 py-2.5 text-sm font-semibold text-fg-heading no-underline transition-colors hover:bg-surface-chip focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
           {t('cart.continueShopping')}
         </Link>
       </div>

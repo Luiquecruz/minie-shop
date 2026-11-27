@@ -15,6 +15,7 @@ import {
   useProductsQuery,
 } from '../../hooks/useProducts';
 import { useI18n } from '../../i18n';
+import { cn } from '../../utils/cn';
 import {
   parseCatalogUrlParams,
   serializeCatalogUrlParams,
@@ -23,7 +24,6 @@ import {
 import CatalogFilters from '../../components/CatalogFilters/CatalogFilters';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import Dropdown, { type DropdownOption } from '../../components/Dropdown/Dropdown';
-import './ProductListingPage.css';
 
 const PAGE_SIZE = 12;
 
@@ -129,7 +129,6 @@ export function ProductListingPage() {
     [facetsQuery.data, rootCategories, urlState.category],
   );
 
-  // Auto-dismiss favorite rollback notice after 4 seconds
   useEffect(() => {
     if (!favoriteError) return;
     const timer = setTimeout(() => {
@@ -184,20 +183,23 @@ export function ProductListingPage() {
       : t('plp.resultsUpdated');
 
   return (
-    <div className="plp-container">
+    <div className="mx-auto w-full max-w-[1280px] px-4 py-8 sm:px-6 lg:py-10">
       <Helmet>
         <title>{t('plp.metaTitle')}</title>
         <meta name="description" content={t('plp.metaDescription')} />
       </Helmet>
 
       {/* Screen-reader live region announcing filter/search result updates */}
-      <div className="plp-sr-only" role="status" aria-live="polite" aria-atomic="true">
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {liveStatusText}
       </div>
 
       {/* Optimistic rollback error banner */}
       {favoriteError && (
-        <div className="plp-toast plp-toast--error" role="alert">
+        <div
+          className="plp-toast--error fixed bottom-6 right-6 z-[var(--z-toast)] flex max-w-md items-center gap-3 rounded-xl border border-danger-border bg-surface px-4 py-3 text-sm font-medium text-danger shadow-card-lg animate-fade-in"
+          role="alert"
+        >
           <svg
             width="18"
             height="18"
@@ -213,10 +215,10 @@ export function ProductListingPage() {
               d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
             />
           </svg>
-          <span>{favoriteError.message}</span>
+          <span className="flex-1">{favoriteError.message}</span>
           <button
             type="button"
-            className="plp-toast__close"
+            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-fg-muted hover:bg-surface-chip hover:text-fg-heading"
             onClick={() => setFavoriteError(null)}
             aria-label={t('plp.dismissNotification')}
           >
@@ -240,8 +242,8 @@ export function ProductListingPage() {
       )}
 
       {/* PLP Header */}
-      <header className="plp-header">
-        <span className="plp-header__badge">
+      <header className="mb-8 flex flex-col gap-2">
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-brand-border bg-brand-subtle px-3 py-1 text-xs font-bold uppercase tracking-wider text-brand">
           <svg
             width="14"
             height="14"
@@ -259,11 +261,15 @@ export function ProductListingPage() {
           </svg>
           {t('plp.badge')}
         </span>
-        <h1 className="plp-header__title">{t('plp.title')}</h1>
-        <p className="plp-header__subtitle">{t('plp.subtitle')}</p>
+        <h1 className="m-0 text-2xl font-extrabold tracking-tight text-fg-heading sm:text-3xl">
+          {t('plp.title')}
+        </h1>
+        <p className="max-w-2xl text-sm text-fg-muted sm:text-base">
+          {t('plp.subtitle')}
+        </p>
       </header>
 
-      <div className="plp-layout">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[270px_minmax(0,1fr)] lg:gap-8">
         <CatalogFilters
           categories={rootCategories}
           facets={facetsQuery.data}
@@ -272,12 +278,15 @@ export function ProductListingPage() {
           onClearAll={handleResetFilters}
         />
 
-        <div className="plp-main">
+        <div className="flex min-w-0 flex-col gap-6">
           {/* Top toolbar: Results summary + Sort Dropdown */}
-          <section className="plp-toolbar" aria-label={t('plp.sortAria')}>
-            <div className="plp-results-row">
+          <section
+            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 shadow-card-sm"
+            aria-label={t('plp.sortAria')}
+          >
+            <div className="flex flex-wrap items-center gap-2.5">
               {showResults && (
-                <div className="plp-results-count">
+                <div className="text-sm font-medium text-fg">
                   {derivedTotal !== null
                     ? t('plp.showingLoadedOf', {
                         loaded: products.length,
@@ -289,14 +298,19 @@ export function ProductListingPage() {
                 </div>
               )}
               {isTransitioningFilters && (
-                <span className="plp-sync-pill" role="status">
+                <span
+                  className="plp-sync-pill inline-flex items-center rounded-full border border-brand-border bg-brand-subtle px-2.5 py-0.5 text-xs font-semibold text-brand"
+                  role="status"
+                >
                   {t('plp.updating')}
                 </span>
               )}
             </div>
 
-            <div className="plp-sort">
-              <span className="plp-sort__label">{t('plp.sortLabel')}</span>
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
+                {t('plp.sortLabel')}
+              </span>
               <Dropdown<ProductSort>
                 options={sortOptions}
                 value={urlState.sort}
@@ -309,9 +323,12 @@ export function ProductListingPage() {
 
           {/* Error State with Retry */}
           {showErrorState && (
-            <div className="plp-empty" role="alert">
+            <div
+              className="flex flex-col items-center gap-3 rounded-2xl border border-danger-border bg-surface px-6 py-12 text-center shadow-card-sm"
+              role="alert"
+            >
               <svg
-                className="plp-empty__icon plp-empty__icon--error"
+                className="h-12 w-12 text-danger"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
@@ -324,15 +341,15 @@ export function ProductListingPage() {
                   d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
                 />
               </svg>
-              <p className="plp-empty__title">{t('plp.errorTitle')}</p>
-              <p className="plp-empty__text">
+              <p className="text-lg font-bold text-fg-heading">{t('plp.errorTitle')}</p>
+              <p className="max-w-md text-sm text-fg-muted">
                 {productsQuery.error instanceof Error
                   ? productsQuery.error.message
                   : t('plp.errorFallback')}
               </p>
               <button
                 type="button"
-                className="plp-empty__reset-btn"
+                className="mt-2 inline-flex cursor-pointer items-center justify-center rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-card-sm transition-colors hover:bg-brand-hover disabled:opacity-50"
                 onClick={() => {
                   void productsQuery.refetch();
                   if (facetsQuery.isError) {
@@ -352,18 +369,21 @@ export function ProductListingPage() {
           {/* Initial Skeleton Loading */}
           {showInitialSkeleton && (
             <div
-              className="plp-grid"
+              className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
               aria-busy="true"
               aria-label={t('plp.loadingProducts')}
             >
               {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="skeleton-card">
-                  <div className="skeleton-card__img" />
-                  <div className="skeleton-card__body">
-                    <div className="skeleton-line skeleton-line--short" />
-                    <div className="skeleton-line skeleton-line--title" />
-                    <div className="skeleton-line skeleton-line--full" />
-                    <div className="skeleton-line skeleton-line--short" />
+                <div
+                  key={index}
+                  className="skeleton-card overflow-hidden rounded-2xl border border-border bg-surface"
+                >
+                  <div className="skeleton-shimmer aspect-[4/3] w-full" />
+                  <div className="flex flex-col gap-3 p-4">
+                    <div className="skeleton-shimmer h-3.5 w-1/3 rounded-md" />
+                    <div className="skeleton-shimmer h-5 w-4/5 rounded-md" />
+                    <div className="skeleton-shimmer h-4 w-full rounded-md" />
+                    <div className="skeleton-shimmer h-4 w-2/5 rounded-md" />
                   </div>
                 </div>
               ))}
@@ -374,9 +394,10 @@ export function ProductListingPage() {
           {showResults && products.length > 0 && (
             <>
               <div
-                className={`plp-grid ${
-                  isTransitioningFilters ? 'plp-grid--fetching' : ''
-                }`}
+                className={cn(
+                  'grid grid-cols-1 gap-5 transition-opacity duration-200 sm:grid-cols-2 xl:grid-cols-3',
+                  isTransitioningFilters && 'opacity-65',
+                )}
                 id="product-grid"
               >
                 {products.map((product) => (
@@ -390,10 +411,10 @@ export function ProductListingPage() {
               </div>
 
               {productsQuery.hasNextPage && (
-                <div className="plp-load-more">
+                <div className="flex justify-center pt-2">
                   <button
                     type="button"
-                    className="plp-load-more__btn"
+                    className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-border bg-surface px-6 py-3 text-sm font-bold text-fg-heading shadow-card-sm transition-colors hover:border-brand-border hover:bg-surface-chip focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={() => {
                       void productsQuery.fetchNextPage();
                     }}
@@ -411,9 +432,9 @@ export function ProductListingPage() {
 
           {/* Empty State */}
           {showResults && products.length === 0 && (
-            <div className="plp-empty">
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface px-6 py-14 text-center shadow-card-sm">
               <svg
-                className="plp-empty__icon"
+                className="h-12 w-12 text-fg-muted"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
@@ -426,11 +447,13 @@ export function ProductListingPage() {
                   d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <h2 className="plp-empty__title">{t('plp.emptyTitle')}</h2>
-              <p className="plp-empty__text">{t('plp.emptyText')}</p>
+              <h2 className="m-0 text-lg font-bold text-fg-heading">
+                {t('plp.emptyTitle')}
+              </h2>
+              <p className="max-w-md text-sm text-fg-muted">{t('plp.emptyText')}</p>
               <button
                 type="button"
-                className="plp-empty__reset-btn"
+                className="mt-2 inline-flex cursor-pointer items-center justify-center rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-card-sm transition-colors hover:bg-brand-hover"
                 onClick={handleResetFilters}
               >
                 {t('plp.clearFilters')}

@@ -11,7 +11,6 @@ import {
 } from '../../hooks/useProducts';
 import { useI18n } from '../../i18n';
 import ProductImage from '../ProductImage/ProductImage';
-import './MiniCart.css';
 
 interface CartItemProps {
   item: CartItemType;
@@ -120,22 +119,27 @@ function CartItem({
   const itemTotalCents = item.price.amount * item.quantity;
 
   return (
-    <li className="mini-cart__item" data-product-id={item.id}>
+    <li
+      className="flex gap-3.5 rounded-2xl border border-border bg-surface-subtle p-3"
+      data-product-id={item.id}
+    >
       <ProductImage
         image={item.image}
         productName={item.name}
         aspectRatio="1 / 1"
         sizes="72px"
         decorative
-        className="mini-cart__item-image"
+        className="h-18 w-18 shrink-0 rounded-xl border border-border-subtle"
       />
 
-      <div className="mini-cart__item-info">
-        <div className="mini-cart__item-top">
-          <span className="mini-cart__item-category">{item.categorySlug}</span>
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-fg-muted">
+            {item.categorySlug}
+          </span>
           <button
             type="button"
-            className="mini-cart__item-remove"
+            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-danger-bg hover:text-danger focus-visible:outline-2 focus-visible:outline-brand"
             onClick={() => onRemove(item.id)}
             aria-label={t('miniCart.removeItemAria', { name: item.name })}
           >
@@ -159,25 +163,25 @@ function CartItem({
 
         <Link
           to={productPath}
-          className="mini-cart__item-title"
+          className="line-clamp-2 text-sm font-bold leading-snug text-fg-heading no-underline hover:text-brand"
           title={item.name}
         >
           {item.name}
         </Link>
 
-        <div className="mini-cart__item-pricing" aria-busy={isPriceLoading}>
+        <div className="flex flex-wrap items-baseline gap-2" aria-busy={isPriceLoading}>
           {isPriceLoading ? (
             <span
-              className="mini-cart__shimmer mini-cart__shimmer--price"
+              className="skeleton-shimmer inline-block h-4 w-20 rounded-md"
               aria-label={t('miniCart.updatingItemPrice')}
             />
           ) : (
             <>
-              <span className="mini-cart__item-total">
+              <span className="text-sm font-extrabold tabular-nums text-fg-heading">
                 {formatPrice(itemTotalCents, item.price.currency)}
               </span>
               {item.quantity > 1 && (
-                <span className="mini-cart__item-unit-price">
+                <span className="text-xs tabular-nums text-fg-muted">
                   {t('miniCart.unitPriceEach', {
                     price: formatPrice(item.price.amount, item.price.currency),
                   })}
@@ -188,7 +192,10 @@ function CartItem({
         </div>
 
         {activeWarning && (
-          <div className="mini-cart__item-warning" role="alert">
+          <div
+            className="flex items-center gap-1.5 rounded-lg border border-warning-border bg-warning-bg px-2.5 py-1.5 text-xs font-medium text-warning"
+            role="alert"
+          >
             <svg
               width="14"
               height="14"
@@ -208,11 +215,11 @@ function CartItem({
           </div>
         )}
 
-        <div className="mini-cart__quantity-row">
-          <div className="mini-cart__qty-selector">
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center overflow-hidden rounded-lg border border-border bg-surface-input">
             <button
               type="button"
-              className="mini-cart__qty-btn"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center text-fg-heading transition-colors hover:bg-surface-chip disabled:cursor-not-allowed disabled:opacity-40"
               onClick={handleDecrement}
               disabled={item.quantity <= 1}
               aria-label={t('cart.decreaseQty')}
@@ -240,13 +247,13 @@ function CartItem({
               max={maxStock}
               value={item.quantity}
               onChange={handleInputChange}
-              className="mini-cart__qty-input"
+              className="h-7 w-10 border-x border-border bg-transparent text-center text-xs font-bold tabular-nums text-fg-heading focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               aria-label={t('cart.qtyLabel')}
             />
 
             <button
               type="button"
-              className="mini-cart__qty-btn"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center text-fg-heading transition-colors hover:bg-surface-chip disabled:cursor-not-allowed disabled:opacity-40"
               onClick={handleIncrement}
               disabled={item.quantity >= maxStock}
               aria-label={t('cart.increaseQty')}
@@ -269,16 +276,17 @@ function CartItem({
             </button>
           </div>
 
-          <span className="mini-cart__stock-hint">
+          <span className="text-[11px] text-fg-muted">
             {t('miniCart.availableCount', { count: maxStock })}
           </span>
 
           {isValidating && (
             <span
-              className="mini-cart__validating-spin"
+              className="inline-flex items-center text-brand"
               aria-label={t('cart.validatingStockEllipsis')}
             >
               <svg
+                className="h-3.5 w-3.5 animate-spin"
                 width="12"
                 height="12"
                 viewBox="0 0 24 24"
@@ -396,26 +404,31 @@ export function MiniCart() {
   return (
     <dialog
       ref={dialogRef}
-      className="mini-cart-dialog"
+      className="mini-cart-dialog minicart--open fixed inset-0 z-[var(--z-drawer)] m-0 h-dvh max-h-dvh w-screen max-w-none overflow-visible border-0 bg-transparent p-0 text-inherit open:flex open:justify-end"
       aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
         closeCart();
       }}
     >
-      <div className="mini-cart">
-        <div className="mini-cart__header">
-          <div className="mini-cart__header-title-wrapper">
-            <h2 id={titleId} className="mini-cart__title">
+      <div className="relative flex h-full w-full max-w-[440px] flex-col overflow-hidden border-l border-border bg-surface shadow-card-lg animate-slide-in-right">
+        <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface px-6 py-5">
+          <div className="flex items-center gap-2.5">
+            <h2
+              id={titleId}
+              className="m-0 text-xl font-extrabold tracking-tight text-fg-heading"
+            >
               {t('miniCart.title')}
             </h2>
-            <span className="mini-cart__badge">{cartCount}</span>
+            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full border border-brand-border bg-brand-subtle px-1.5 text-xs font-bold text-brand">
+              {cartCount}
+            </span>
           </div>
 
           <button
             ref={closeBtnRef}
             type="button"
-            className="mini-cart__close-btn"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-subtle text-fg-muted transition-colors hover:bg-surface-chip hover:text-fg-heading focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             onClick={closeCart}
             aria-label={t('miniCart.closeAria')}
           >
@@ -438,17 +451,23 @@ export function MiniCart() {
         </div>
 
         {feedbackNotice && (
-          <div className="mini-cart__notice" role="status">
+          <div
+            className="flex items-center gap-2 border-b border-brand-border bg-brand-subtle px-5 py-2.5 text-xs font-semibold text-brand"
+            role="status"
+          >
             <span>{feedbackNotice}</span>
           </div>
         )}
 
         {quoteError && (
-          <div className="mini-cart__quote-error" role="alert">
+          <div
+            className="flex items-center justify-between gap-3 border-b border-warning-border bg-warning-bg px-5 py-3 text-xs font-medium text-warning"
+            role="alert"
+          >
             <span>{quoteError}</span>
             <button
               type="button"
-              className="mini-cart__retry-btn"
+              className="shrink-0 cursor-pointer rounded-lg border border-warning-border bg-surface px-2.5 py-1 text-xs font-semibold text-warning hover:opacity-90"
               onClick={retryQuote}
             >
               {t('cart.retry')}
@@ -456,25 +475,25 @@ export function MiniCart() {
           </div>
         )}
 
-        <div className="mini-cart__body">
+        <div className="flex-1 overflow-y-auto p-5">
           {items.length === 0 ? (
-            <div className="mini-cart__empty">
-              <h3 className="mini-cart__empty-title">
+            <div className="flex h-full flex-col items-center justify-center gap-3 py-12 text-center">
+              <h3 className="m-0 text-lg font-bold text-fg-heading">
                 {t('miniCart.emptyTitle')}
               </h3>
-              <p className="mini-cart__empty-desc">
+              <p className="max-w-xs text-sm text-fg-muted">
                 {t('miniCart.emptyDesc')}
               </p>
               <button
                 type="button"
-                className="mini-cart__btn mini-cart__btn--primary"
+                className="mt-2 inline-flex cursor-pointer items-center justify-center rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-card-sm transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 onClick={closeCart}
               >
                 {t('miniCart.exploreCatalog')}
               </button>
             </div>
           ) : (
-            <ul className="mini-cart__items-list">
+            <ul className="m-0 flex list-none flex-col gap-3 p-0">
               {items.map((item) => (
                 <CartItem
                   key={item.id}
@@ -490,10 +509,10 @@ export function MiniCart() {
         </div>
 
         {items.length > 0 && (
-          <div className="mini-cart__footer">
-            <div className="mini-cart__totals" aria-busy={isTotalsLoading}>
+          <div className="shrink-0 border-t border-border bg-surface px-6 py-5">
+            <div className="mb-4 flex flex-col gap-2" aria-busy={isTotalsLoading}>
               <span
-                className="mini-cart__sr-only"
+                className="sr-only"
                 role="status"
                 aria-live="polite"
                 aria-atomic="true"
@@ -509,14 +528,12 @@ export function MiniCart() {
                         amount: formatPrice(subtotal, currentCurrency),
                       })}
               </span>
-              <div className="mini-cart__total-row">
-                <span className="mini-cart__total-label">
-                  {t('miniCart.subtotal')}
-                </span>
-                <span className="mini-cart__total-val">
+              <div className="flex items-center justify-between text-sm text-fg">
+                <span>{t('miniCart.subtotal')}</span>
+                <span className="font-semibold tabular-nums text-fg-heading">
                   {isTotalsLoading ? (
                     <span
-                      className="mini-cart__shimmer mini-cart__shimmer--total"
+                      className="skeleton-shimmer inline-block h-4 w-20 rounded-md"
                       aria-label={t('miniCart.updatingSubtotal')}
                     />
                   ) : hasCurrencyMismatch ? (
@@ -526,14 +543,14 @@ export function MiniCart() {
                   )}
                 </span>
               </div>
-              <div className="mini-cart__total-row mini-cart__total-row--final">
-                <span className="mini-cart__total-label mini-cart__total-label--bold">
+              <div className="flex items-center justify-between border-t border-border-subtle pt-2">
+                <span className="text-base font-bold text-fg-heading">
                   {t('miniCart.total')}
                 </span>
-                <span className="mini-cart__total-val mini-cart__total-val--large">
+                <span className="text-lg font-extrabold tabular-nums text-fg-heading">
                   {isTotalsLoading ? (
                     <span
-                      className="mini-cart__shimmer mini-cart__shimmer--total-lg"
+                      className="skeleton-shimmer inline-block h-5 w-24 rounded-md"
                       aria-label={t('miniCart.updatingTotal')}
                     />
                   ) : hasCurrencyMismatch ? (
@@ -543,15 +560,15 @@ export function MiniCart() {
                   )}
                 </span>
               </div>
-              <span className="mini-cart__tax-note">
+              <span className="text-xs text-fg-muted">
                 {t('miniCart.taxNote')}
               </span>
             </div>
 
-            <div className="mini-cart__actions">
+            <div className="flex flex-col gap-2.5">
               <button
                 type="button"
-                className="mini-cart__btn mini-cart__btn--primary"
+                className="inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-brand px-4 py-3 text-sm font-bold text-white shadow-card-sm transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={handleCheckout}
                 disabled={isTotalsLoading || hasCurrencyMismatch || quoteError !== null}
               >
@@ -560,7 +577,7 @@ export function MiniCart() {
 
               <button
                 type="button"
-                className="mini-cart__btn mini-cart__btn--secondary"
+                className="inline-flex w-full cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-subtle px-4 py-2.5 text-sm font-semibold text-fg-heading transition-colors hover:bg-surface-chip focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 onClick={handleViewCart}
               >
                 <span>{t('miniCart.viewFullCart')}</span>

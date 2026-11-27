@@ -3,6 +3,7 @@ import { useCartActions, useCartShippingState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useI18n } from '../../../i18n';
 import type { ShippingMethodId } from '../../../types';
+import { cn } from '../../../utils/cn';
 
 export interface CartShippingSelectorProps {
   isPriceLoading?: boolean;
@@ -54,15 +55,21 @@ export const CartShippingSelector = memo(function CartShippingSelector({
   };
 
   return (
-    <section className="cart-panel" aria-labelledby="cart-shipping-heading">
-      <div className="cart-panel__header">
-        <h2 id="cart-shipping-heading" className="cart-panel__title">
+    <section
+      className="flex flex-col gap-3.5 rounded-2xl border border-border bg-surface p-5 shadow-card-sm"
+      aria-labelledby="cart-shipping-heading"
+    >
+      <div className="flex items-center justify-between">
+        <h2
+          id="cart-shipping-heading"
+          className="m-0 text-base font-bold text-fg-heading"
+        >
           {t('cart.shippingHeading')}
         </h2>
       </div>
 
       <div
-        className="cart-shipping__list"
+        className="flex flex-col gap-2.5"
         role="radiogroup"
         aria-labelledby="cart-shipping-heading"
         aria-busy={isPriceLoading}
@@ -78,9 +85,12 @@ export const CartShippingSelector = memo(function CartShippingSelector({
           return (
             <label
               key={option.id}
-              className={`cart-shipping__option ${
-                isSelected ? 'cart-shipping__option--selected' : ''
-              }`}
+              className={cn(
+                'flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors',
+                isSelected
+                  ? 'border-brand-border bg-brand-subtle'
+                  : 'border-border bg-surface-subtle hover:bg-surface-chip',
+              )}
             >
               <input
                 type="radio"
@@ -88,20 +98,23 @@ export const CartShippingSelector = memo(function CartShippingSelector({
                 value={option.id}
                 checked={isSelected}
                 onChange={() => setShippingMethod(option.id)}
-                className="cart-shipping__radio"
+                className="h-4 w-4 cursor-pointer accent-brand"
               />
-              <div className="cart-shipping__details">
-                <span className="cart-shipping__name">{copy.name}</span>
-                <span className="cart-shipping__eta">{copy.eta}</span>
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="text-sm font-bold text-fg-heading">
+                  {copy.name}
+                </span>
+                <span className="text-xs text-fg-muted">{copy.eta}</span>
               </div>
               <span
-                className={`cart-shipping__price ${
-                  isFree ? 'cart-shipping__price--free' : ''
-                }`}
+                className={cn(
+                  'shrink-0 text-sm font-bold tabular-nums',
+                  isFree ? 'text-success' : 'text-fg-heading',
+                )}
               >
                 {isPriceLoading && option.basePriceCents > 0 ? (
                   <span
-                    className="cart-shimmer cart-shimmer--shipping"
+                    className="skeleton-shimmer inline-block h-4 w-16 rounded-md"
                     aria-label={t('cart.updatingShippingPrice')}
                   />
                 ) : hasCurrencyMismatch &&
