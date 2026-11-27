@@ -14,7 +14,7 @@ export function NotFoundPage({ title, description }: NotFoundPageProps) {
   const resolvedDescription = description ?? t('notFound.description');
 
   return (
-    <main className="not-found-page" role="main">
+    <div className="not-found-page">
       <Helmet>
         <title>{t('notFound.metaTitle')}</title>
         <meta name="description" content={t('notFound.metaDescription')} />
@@ -28,7 +28,7 @@ export function NotFoundPage({ title, description }: NotFoundPageProps) {
           {t('notFound.backToCatalog')}
         </Link>
       </div>
-    </main>
+    </div>
   );
 }
 

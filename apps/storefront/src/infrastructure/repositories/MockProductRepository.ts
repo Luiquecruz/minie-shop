@@ -712,7 +712,11 @@ export class MockProductRepository implements ProductRepository {
           ? 'keyword'
           : this.searchMode;
 
-    const filtered = this.products.filter((product) => {
+    const currency = params.currency ?? 'BRL';
+    const pricedProducts = this.products.map((product) =>
+      priceProductForCurrency(product, currency),
+    );
+    const filtered = pricedProducts.filter((product) => {
       if (!matchesSearchQuery(product, q, effectiveMode)) {
         return false;
       }

@@ -2,6 +2,34 @@
    Mini-Cart Slide-Over Drawer Styles
    ========================================================================== */
 
+.mini-cart-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  z-index: 1000;
+  overflow: visible;
+}
+
+.mini-cart-dialog[open] {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mini-cart-dialog::backdrop {
+  background: rgba(15, 16, 21, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: miniCartOverlayFadeIn 0.25s ease;
+}
+
 .mini-cart-overlay {
   position: fixed;
   inset: 0;

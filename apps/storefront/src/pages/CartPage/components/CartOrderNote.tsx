@@ -1,6 +1,6 @@
 import { memo } from 'react';
-import { MAX_ORDER_NOTE_LENGTH } from '../../../store/slices/cartSlice';
 import {
+  MAX_ORDER_NOTE_LENGTH,
   useCartActions,
   useCartOrderNoteState,
 } from '../../../hooks/useCart';

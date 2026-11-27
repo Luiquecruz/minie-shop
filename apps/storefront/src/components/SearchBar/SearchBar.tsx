@@ -1,12 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useLocation, useMatch, useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import type { CategoriesResponseDTO, CategoryDTO, SearchSuggestionDTO } from '@minieshop/contracts';
+import type { SearchSuggestionDTO } from '@minieshop/contracts';
 import { useCombobox } from '../../hooks/useCombobox';
 import { useDebounce } from '../../hooks/useDebounce';
 import { MIN_SUGGEST_QUERY_LENGTH, useSearchSuggestQuery } from '../../hooks/useSearch';
 import { useI18n } from '../../i18n';
-import { queryKeys } from '../../query/queryKeys';
 import { MAX_SEARCH_QUERY_LENGTH, parseSearchUrlQuery } from '../../utils/searchUrlParams';
 import './SearchBar.css';
 
@@ -18,42 +16,6 @@ type ComboboxOption =
   | { kind: 'suggestion'; suggestion: SearchSuggestionDTO }
   | { kind: 'seeAll'; query: string };
 
-function normalizeForMatch(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
-
-function slugifyFallback(value: string): string {
-  const slug = normalizeForMatch(value)
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return slug || 'catalog';
-}
-
-function resolveCategorySlug(
-  categories: CategoriesResponseDTO | undefined,
-  categoryName: string,
-): string {
-  const target = normalizeForMatch(categoryName);
-  if (categories && target.length > 0) {
-    const queue: CategoryDTO[] = [...categories];
-    while (queue.length > 0) {
-      const current = queue.shift();
-      if (!current) continue;
-      if (normalizeForMatch(current.name) === target) {
-        return current.slug;
-      }
-      if (current.children.length > 0) {
-        queue.push(...current.children);
-      }
-    }
-  }
-  return slugifyFallback(categoryName);
-}
-
 /**
  * Accessible global search combobox (WAI-ARIA APG) backed by GET /search/suggest
  * with 200ms debounce, React Query cancellation, and navigation to PDP or /search.
@@ -64,7 +26,6 @@ export function SearchBar({ placeholder }: SearchBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isSearchRoute = useMatch('/search') !== null;
-  const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const urlSearchQuery = isSearchRoute
@@ -157,18 +118,15 @@ export function SearchBar({ placeholder }: SearchBarProps) {
         return;
       }
 
-      const cachedCategories = queryClient.getQueryData<CategoriesResponseDTO>(
-        queryKeys.categories.all,
-      );
-      const categorySlug = resolveCategorySlug(
-        cachedCategories,
-        selected.suggestion.categoryName,
-      );
+      const categorySlug =
+        selected.suggestion.categorySlug.trim() || 'catalog';
       setInputValue(selected.suggestion.name);
       setIsOpen(false);
-      navigate(`/${categorySlug}/${encodeURIComponent(selected.suggestion.slug)}`);
+      navigate(
+        `/${encodeURIComponent(categorySlug)}/${encodeURIComponent(selected.suggestion.slug)}`,
+      );
     },
-    [options, navigateToSearchResults, queryClient, navigate],
+    [options, navigateToSearchResults, navigate],
   );
 
   const {

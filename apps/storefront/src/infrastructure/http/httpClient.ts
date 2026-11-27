@@ -1,4 +1,5 @@
 import { clientApiErrorResponseSchema } from '@minieshop/contracts/catalog/client';
+import { clientCsrfTokenResponseSchema } from '@minieshop/contracts/identity/client';
 import { getStorefrontEnv } from '../../config/env';
 import { getDevChaosHeaders } from './chaos';
 import {
@@ -10,6 +11,59 @@ import {
 } from './errors';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+const CSRF_HEADER_NAME = 'x-csrf-token';
+const CSRF_ENDPOINT = '/auth/csrf';
+const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+function hasHeaderCaseInsensitive(
+  headers: Record<string, string>,
+  targetName: string,
+): boolean {
+  const normalizedTarget = targetName.toLowerCase();
+  return Object.keys(headers).some(
+    (name) => name.toLowerCase() === normalizedTarget,
+  );
+}
+
+/**
+ * Awaits a shared promise while letting an individual caller stop waiting if its
+ * own `AbortSignal` fires, without cancelling the shared work for other callers.
+ */
+function awaitWithAbortSignal<T>(
+  promise: Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> {
+  if (!signal) {
+    return promise;
+  }
+  if (signal.aborted) {
+    return Promise.reject(
+      new DOMException('The request was aborted.', 'AbortError'),
+    );
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => {
+      reject(new DOMException('The request was aborted.', 'AbortError'));
+    };
+
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (err: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        if (signal.aborted) {
+          reject(new DOMException('The request was aborted.', 'AbortError'));
+        } else {
+          reject(err);
+        }
+      },
+    );
+  });
+}
 
 export interface SafeParseSchema<T> {
   safeParse(
@@ -23,6 +77,7 @@ export interface HttpClientOptions {
   baseUrl?: string;
   timeoutMs?: number;
   fetchFn?: typeof fetch;
+  initialCsrfToken?: string;
 }
 
 export interface HttpRequestOptions<T> {
@@ -32,6 +87,7 @@ export interface HttpRequestOptions<T> {
   signal?: AbortSignal;
   timeoutMs?: number;
   schema?: SafeParseSchema<T>;
+  skipCsrfRetry?: boolean;
 }
 
 function buildUrl(baseUrl: string, path: string): string {
@@ -56,6 +112,8 @@ export class HttpClient {
   private readonly baseUrl: string;
   private readonly defaultTimeoutMs: number;
   private readonly fetchFn: typeof fetch;
+  private csrfToken: string | null = null;
+  private csrfFetchPromise: Promise<string | null> | null = null;
 
   constructor(options: HttpClientOptions = {}) {
     this.baseUrl = (options.baseUrl ?? getStorefrontEnv().VITE_API_URL).replace(
@@ -64,9 +122,101 @@ export class HttpClient {
     );
     this.defaultTimeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.fetchFn = options.fetchFn ?? ((input, init) => globalThis.fetch(input, init));
+    this.csrfToken = options.initialCsrfToken ?? null;
+  }
+
+  setCsrfToken(token: string | null): void {
+    this.csrfToken = token;
+  }
+
+  clearCsrfToken(): void {
+    this.csrfToken = null;
+  }
+
+  /**
+   * Fetches and caches a session-bound CSRF token from `GET /auth/csrf`.
+   * Deduplicates concurrent calls and returns `null` if the caller has no active session.
+   */
+  async fetchCsrfToken(): Promise<string | null> {
+    if (!this.csrfFetchPromise) {
+      this.csrfFetchPromise = this.executeRequest<{ csrfToken: string }>(
+        CSRF_ENDPOINT,
+        {
+          method: 'GET',
+          schema: clientCsrfTokenResponseSchema,
+          skipCsrfRetry: true,
+        },
+      )
+        .then((payload) => {
+          this.csrfToken = payload.csrfToken;
+          return payload.csrfToken;
+        })
+        .catch((error: unknown) => {
+          if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+            this.csrfToken = null;
+            return null;
+          }
+          throw error;
+        })
+        .finally(() => {
+          this.csrfFetchPromise = null;
+        });
+    }
+    return this.csrfFetchPromise;
   }
 
   async request<T = void>(
+    path: string,
+    options: HttpRequestOptions<T> = {},
+  ): Promise<T> {
+    const method = options.method ?? 'GET';
+    const isStateChanging = STATE_CHANGING_METHODS.has(method);
+    const hasExplicitCsrf =
+      options.headers !== undefined &&
+      hasHeaderCaseInsensitive(options.headers, CSRF_HEADER_NAME);
+
+    const requestHeaders: Record<string, string> = {
+      ...options.headers,
+      ...(isStateChanging && !hasExplicitCsrf && this.csrfToken
+        ? { [CSRF_HEADER_NAME]: this.csrfToken }
+        : {}),
+    };
+
+    try {
+      return await this.executeRequest<T>(path, {
+        ...options,
+        headers: requestHeaders,
+      });
+    } catch (error: unknown) {
+      if (
+        isStateChanging &&
+        !options.skipCsrfRetry &&
+        !hasExplicitCsrf &&
+        error instanceof ApiError &&
+        error.status === 403 &&
+        error.code === 'CSRF_INVALID'
+      ) {
+        this.clearCsrfToken();
+        const freshToken = await awaitWithAbortSignal(
+          this.fetchCsrfToken(),
+          options.signal,
+        );
+        if (freshToken) {
+          return this.executeRequest<T>(path, {
+            ...options,
+            headers: {
+              ...options.headers,
+              [CSRF_HEADER_NAME]: freshToken,
+            },
+            skipCsrfRetry: true,
+          });
+        }
+      }
+      throw error;
+    }
+  }
+
+  private async executeRequest<T = void>(
     path: string,
     options: HttpRequestOptions<T> = {},
   ): Promise<T> {

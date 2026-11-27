@@ -1,6 +1,10 @@
 import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useCartActions, useCartItemState } from '../../../hooks/useCart';
+import {
+  resolveMaxStock,
+  useCartActions,
+  useCartItemState,
+} from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useDebounce } from '../../../hooks/useDebounce';
 import {
@@ -8,7 +12,6 @@ import {
   useStockValidationQuery,
 } from '../../../hooks/useProducts';
 import { useI18n } from '../../../i18n';
-import { resolveMaxStock } from '../../../store/slices/cartSlice';
 import ProductImage from '../../../components/ProductImage/ProductImage';
 
 export interface CartItemRowProps {

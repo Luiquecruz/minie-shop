@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import './Dropdown.css';
 
 export interface DropdownOption<T extends string | number = string> {
@@ -18,7 +18,9 @@ export interface DropdownProps<T extends string | number = string> {
 }
 
 /**
- * Custom Dropdown component providing visual unity across operating systems and browsers.
+ * Accessible custom Dropdown (WAI-ARIA APG listbox button pattern) supporting
+ * ArrowDown/ArrowUp, Home/End, Enter/Space selection, Escape dismissal, and
+ * trigger focus restoration.
  */
 export function Dropdown<T extends string | number = string>({
   options = [],
@@ -31,11 +33,57 @@ export function Dropdown<T extends string | number = string>({
   ariaLabel = 'Selector',
 }: DropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const listboxId = useId();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  const selectedOption = options.find((opt) => opt.value === value);
+  const selectedIndex = options.findIndex((opt) => opt.value === value);
+  const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : undefined;
+  const isMenuOpen = isOpen && options.length > 0;
+  const effectiveFocusedIndex =
+    !isMenuOpen
+      ? -1
+      : Math.min(Math.max(focusedIndex, 0), options.length - 1);
 
-  // Close the menu when clicking outside
+  const focusOptionAt = useCallback((index: number): void => {
+    setFocusedIndex(index);
+    optionRefs.current[index]?.focus();
+  }, []);
+
+  const openMenuAt = useCallback(
+    (targetIndex: number): void => {
+      if (options.length === 0) return;
+      const clamped = Math.max(0, Math.min(options.length - 1, targetIndex));
+      setFocusedIndex(clamped);
+      setIsOpen(true);
+    },
+    [options.length],
+  );
+
+  const closeMenu = useCallback((restoreFocus: boolean): void => {
+    setIsOpen(false);
+    setFocusedIndex(-1);
+    if (restoreFocus) {
+      triggerRef.current?.focus();
+    }
+  }, []);
+
+  // Reconcile DOM focus when the menu opens or when the options list changes dynamically.
+  useEffect(() => {
+    optionRefs.current.length = options.length;
+    if (!isOpen) return;
+    if (options.length === 0) {
+      triggerRef.current?.focus();
+      return;
+    }
+    if (effectiveFocusedIndex >= 0) {
+      optionRefs.current[effectiveFocusedIndex]?.focus();
+    }
+  }, [isOpen, effectiveFocusedIndex, options.length]);
+
+  // Close the menu when clicking outside.
   useEffect(() => {
     const handleClickOutside = (event: PointerEvent): void => {
       if (
@@ -43,47 +91,106 @@ export function Dropdown<T extends string | number = string>({
         event.target instanceof Node &&
         !containerRef.current.contains(event.target)
       ) {
-        setIsOpen(false);
+        closeMenu(false);
       }
     };
 
-    if (isOpen) {
+    if (isMenuOpen) {
       document.addEventListener('pointerdown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('pointerdown', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isMenuOpen, closeMenu]);
 
-  // Close on Escape key press
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
-    if (event.key === 'Escape' && isOpen) {
-      setIsOpen(false);
+  const handleSelect = (optionValue: T): void => {
+    onChange?.(optionValue);
+    closeMenu(true);
+  };
+
+  const handleTriggerKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+  ): void => {
+    if (options.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      openMenuAt(selectedIndex >= 0 ? selectedIndex : 0);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      openMenuAt(selectedIndex >= 0 ? selectedIndex : options.length - 1);
+    } else if (event.key === 'Home' && isMenuOpen) {
+      event.preventDefault();
+      focusOptionAt(0);
+    } else if (event.key === 'End' && isMenuOpen) {
+      event.preventDefault();
+      focusOptionAt(options.length - 1);
+    } else if (event.key === 'Escape' && isMenuOpen) {
+      event.preventDefault();
+      closeMenu(true);
     }
   };
 
-  const handleSelect = (optionValue: T): void => {
-    if (onChange) {
-      onChange(optionValue);
+  const handleOptionKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ): void => {
+    if (options.length === 0) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        focusOptionAt((index + 1) % options.length);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        focusOptionAt((index - 1 + options.length) % options.length);
+        break;
+      case 'Home':
+        event.preventDefault();
+        focusOptionAt(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        focusOptionAt(options.length - 1);
+        break;
+      case 'Escape':
+        event.preventDefault();
+        closeMenu(true);
+        break;
+      case 'Tab':
+        closeMenu(false);
+        break;
+      default:
+        break;
     }
-    setIsOpen(false);
+  };
+
+  const handleTriggerClick = (): void => {
+    if (isMenuOpen) {
+      closeMenu(false);
+    } else {
+      openMenuAt(selectedIndex >= 0 ? selectedIndex : 0);
+    }
   };
 
   return (
     <div
       ref={containerRef}
       className={`custom-dropdown custom-dropdown--${size} custom-dropdown--align-${align} ${
-        isOpen ? 'custom-dropdown--open' : ''
+        isMenuOpen ? 'custom-dropdown--open' : ''
       } ${className}`.trim()}
-      onKeyDown={handleKeyDown}
     >
       <button
+        ref={triggerRef}
         type="button"
         className="custom-dropdown__trigger"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={handleTriggerClick}
+        onKeyDown={handleTriggerKeyDown}
         aria-haspopup="listbox"
-        aria-expanded={isOpen}
+        aria-expanded={isMenuOpen}
+        aria-controls={isMenuOpen ? listboxId : undefined}
         aria-label={ariaLabel}
       >
         <span className="custom-dropdown__label">
@@ -105,24 +212,30 @@ export function Dropdown<T extends string | number = string>({
         </svg>
       </button>
 
-      {isOpen && (
+      {isMenuOpen && (
         <div
+          id={listboxId}
           className="custom-dropdown__menu"
           role="listbox"
           aria-label={ariaLabel}
         >
-          {options.map((option) => {
+          {options.map((option, index) => {
             const isSelected = option.value === value;
             return (
               <button
                 key={option.value}
+                ref={(el) => {
+                  optionRefs.current[index] = el;
+                }}
                 type="button"
                 className={`custom-dropdown__option ${
                   isSelected ? 'custom-dropdown__option--selected' : ''
                 }`}
                 role="option"
                 aria-selected={isSelected}
+                tabIndex={effectiveFocusedIndex === index ? 0 : -1}
                 onClick={() => handleSelect(option.value)}
+                onKeyDown={(event) => handleOptionKeyDown(event, index)}
               >
                 <span className="custom-dropdown__option-text">
                   {option.label}

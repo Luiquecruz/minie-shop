@@ -1,6 +1,7 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { lazy, Suspense, useCallback, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import RootLayout from './layouts/RootLayout/RootLayout';
 import ProductListingPage from './pages/ProductListingPage/ProductListingPage';
 import ProductDetailPage from './pages/ProductDetailPage/ProductDetailPage';
@@ -10,9 +11,10 @@ import { useI18n } from './i18n';
 import { resolveLegacyProductPath } from './routes/legacyProductRedirects';
 import './App.css';
 
-const SearchResultsPage = lazy(
-  () => import('./pages/SearchResultsPage/SearchResultsPage'),
-);
+const loadSearchResultsPage = () =>
+  import('./pages/SearchResultsPage/SearchResultsPage');
+
+const InitialSearchResultsPage = lazy(loadSearchResultsPage);
 
 function SearchRouteFallback() {
   const { t } = useI18n();
@@ -33,6 +35,26 @@ function SearchRouteFallback() {
   );
 }
 
+/**
+ * Wraps the lazy-loaded SearchResultsPage so retrying after a transient chunk-load
+ * failure creates a fresh `React.lazy` wrapper instead of re-throwing a cached rejection.
+ */
+function LazySearchRoute({ resetKey }: { resetKey: string }) {
+  const [LazyPage, setLazyPage] = useState(() => InitialSearchResultsPage);
+
+  const handleRetryChunk = useCallback(() => {
+    setLazyPage(() => lazy(loadSearchResultsPage));
+  }, []);
+
+  return (
+    <ErrorBoundary resetKey={resetKey} onReset={handleRetryChunk}>
+      <Suspense fallback={<SearchRouteFallback />}>
+        <LazyPage />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
 function LegacyProductRedirect() {
   const { id } = useParams<{ id: string }>();
   const target = resolveLegacyProductPath(id);
@@ -43,24 +65,24 @@ function LegacyProductRedirect() {
 }
 
 export function AppRoutes() {
+  const location = useLocation();
+
   return (
-    <Routes>
-      <Route element={<RootLayout />}>
-        <Route index element={<ProductListingPage />} />
-        <Route
-          path="search"
-          element={
-            <Suspense fallback={<SearchRouteFallback />}>
-              <SearchResultsPage />
-            </Suspense>
-          }
-        />
-        <Route path="cart" element={<CartPage />} />
-        <Route path="product/:id" element={<LegacyProductRedirect />} />
-        <Route path=":category/:slug" element={<ProductDetailPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
-    </Routes>
+    <ErrorBoundary resetKey={location.key}>
+      <Routes>
+        <Route element={<RootLayout />}>
+          <Route index element={<ProductListingPage />} />
+          <Route
+            path="search"
+            element={<LazySearchRoute resetKey={location.key} />}
+          />
+          <Route path="cart" element={<CartPage />} />
+          <Route path="product/:id" element={<LegacyProductRedirect />} />
+          <Route path=":category/:slug" element={<ProductDetailPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </ErrorBoundary>
   );
 }
 

@@ -296,4 +296,13 @@ export const ptBRMessages: Record<MessageKey, string> = {
   // Favorites error
   'favorites.toggleError':
     'Não foi possível atualizar o favorito. Sua alteração foi revertida.',
+
+  // Accessibility & Error Boundary
+  'a11y.skipToContent': 'Pular para o conteúdo principal',
+  'pdp.tabsAria': 'Abas de informações do produto',
+  'errorBoundary.title': 'Algo deu errado',
+  'errorBoundary.description':
+    'Ocorreu um erro inesperado ao renderizar esta seção.',
+  'errorBoundary.retry': 'Tentar novamente',
+  'errorBoundary.backToCatalog': 'Voltar ao catálogo',
 };

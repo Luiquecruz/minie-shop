@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { getStorefrontEnv } from './config/env';
 import { ProductRepositoryProvider } from './context/ProductRepositoryProvider';
+import { HttpProductRepository } from './infrastructure/repositories/HttpProductRepository';
 import { I18nProvider } from './i18n';
 import store from './store';
 import { queryClient } from './query/queryClient';
@@ -14,6 +15,8 @@ import App from './App';
 // Fail fast on boot if frontend environment configuration is invalid.
 getStorefrontEnv();
 
+const productRepository = new HttpProductRepository();
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('Root element #root not found');
@@ -22,7 +25,7 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     <I18nProvider>
-      <ProductRepositoryProvider>
+      <ProductRepositoryProvider repository={productRepository}>
         <QueryClientProvider client={queryClient}>
           <Provider store={store}>
             <App />

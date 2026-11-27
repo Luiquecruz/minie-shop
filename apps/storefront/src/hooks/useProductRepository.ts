@@ -1,11 +1,13 @@
 import { useContext } from 'react';
 import type { ProductRepository } from '../domain/repositories/ProductRepository';
-import {
-  getDefaultProductRepository,
-  ProductRepositoryContext,
-} from '../context/productRepositoryContext';
+import { ProductRepositoryContext } from '../context/productRepositoryContext';
 
 export function useProductRepository(): ProductRepository {
   const repository = useContext(ProductRepositoryContext);
-  return repository ?? getDefaultProductRepository();
+  if (!repository) {
+    throw new Error(
+      'useProductRepository must be used within a ProductRepositoryProvider',
+    );
+  }
+  return repository;
 }

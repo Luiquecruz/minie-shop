@@ -1,12 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  readDevChaosConfig,
-  resetDevChaosConfig,
-  subscribeDevChaos,
-  writeDevChaosKey,
-  type DevChaosConfig,
-} from '../../infrastructure/http/chaos';
+import { useDevChaos } from '../../hooks/useDevChaos';
 import './ApiDebugFab.css';
 
 /**
@@ -18,18 +12,15 @@ import './ApiDebugFab.css';
 export function ApiDebugFab() {
   const [isOpen, setIsOpen] = useState(false);
   const [notice, setNotice] = useState('');
-  const [config, setConfig] = useState<DevChaosConfig>(() => readDevChaosConfig());
+  const { config, setChaosValue, resetChaos } = useDevChaos();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const popoverId = useId();
+  const delayInputId = useId();
+  const failInputId = useId();
+  const statusInputId = useId();
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    return subscribeDevChaos(() => {
-      setConfig(readDevChaosConfig());
-    });
-  }, []);
 
   const hasActiveChaos =
     config.delay.length > 0 ||
@@ -119,51 +110,54 @@ export function ApiDebugFab() {
           </header>
 
           <div className="api-debug-fab__body">
-            <label className="api-debug-fab__toggle">
+            <div className="api-debug-fab__toggle">
               <div className="api-debug-fab__toggle-text">
-                <span className="api-debug-fab__toggle-label">
+                <label htmlFor={delayInputId} className="api-debug-fab__toggle-label">
                   Artificial Delay (ms or min-max)
-                </span>
+                </label>
                 <input
+                  id={delayInputId}
                   type="text"
                   value={config.delay}
                   placeholder="e.g. 800 or 200-800"
-                  onChange={(e) => writeDevChaosKey('delay', e.target.value)}
+                  onChange={(e) => setChaosValue('delay', e.target.value)}
                   className="api-debug-fab__input"
                 />
               </div>
-            </label>
+            </div>
 
-            <label className="api-debug-fab__toggle">
+            <div className="api-debug-fab__toggle">
               <div className="api-debug-fab__toggle-text">
-                <span className="api-debug-fab__toggle-label">
+                <label htmlFor={failInputId} className="api-debug-fab__toggle-label">
                   Force Failure (x-chaos-fail=1)
-                </span>
+                </label>
               </div>
               <input
+                id={failInputId}
                 type="checkbox"
                 checked={config.fail === '1'}
                 onChange={(e) =>
-                  writeDevChaosKey('fail', e.target.checked ? '1' : '')
+                  setChaosValue('fail', e.target.checked ? '1' : '')
                 }
                 className="api-debug-fab__checkbox"
               />
-            </label>
+            </div>
 
-            <label className="api-debug-fab__toggle">
+            <div className="api-debug-fab__toggle">
               <div className="api-debug-fab__toggle-text">
-                <span className="api-debug-fab__toggle-label">
+                <label htmlFor={statusInputId} className="api-debug-fab__toggle-label">
                   Forced HTTP Status (400-599)
-                </span>
+                </label>
                 <input
+                  id={statusInputId}
                   type="text"
                   value={config.status}
                   placeholder="e.g. 503 or 429"
-                  onChange={(e) => writeDevChaosKey('status', e.target.value)}
+                  onChange={(e) => setChaosValue('status', e.target.value)}
                   className="api-debug-fab__input"
                 />
               </div>
-            </label>
+            </div>
           </div>
 
           <footer className="api-debug-fab__footer">
@@ -179,7 +173,7 @@ export function ApiDebugFab() {
                 type="button"
                 className="api-debug-fab__reset-btn"
                 onClick={() => {
-                  resetDevChaosConfig();
+                  resetChaos();
                   showNotice('Chaos cleared');
                 }}
               >

@@ -1,10 +1,10 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { useCart } from '../../hooks/useCart';
+import { isNotFoundError } from '../../domain/errors';
+import { useCartActions } from '../../hooks/useCart';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useProductQuery } from '../../hooks/useProducts';
-import { ApiError } from '../../infrastructure/http/errors';
 import { useI18n } from '../../i18n';
 import AttributeIcon from '../../components/AttributeIcon/AttributeIcon';
 import PriceBox from '../../components/PriceBox/PriceBox';
@@ -21,8 +21,9 @@ export function ProductDetailPage() {
     slug: string;
   }>();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { addToCart } = useCartActions();
   const { t } = useI18n();
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const {
     isFavorite,
     toggleFavorite,
@@ -88,8 +89,7 @@ export function ProductDetailPage() {
   }
 
   if (productQuery.isError || !product) {
-    const isNotFound =
-      productQuery.error instanceof ApiError && productQuery.error.isNotFound;
+    const isNotFound = isNotFoundError(productQuery.error);
 
     if (isNotFound) {
       return <NotFoundPage />;
@@ -189,6 +189,31 @@ export function ProductDetailPage() {
     { id: 'specs', label: t('pdp.tabSpecs') },
   ];
 
+  const handleTabKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ): void => {
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') {
+      nextIndex = (index + 1) % tabs.length;
+    } else if (event.key === 'ArrowLeft') {
+      nextIndex = (index - 1 + tabs.length) % tabs.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = tabs.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      const nextTab = tabs[nextIndex];
+      if (nextTab) {
+        setTabSelection({ productSlug: slug, tab: nextTab.id });
+        tabRefs.current[nextIndex]?.focus();
+      }
+    }
+  };
+
   return (
     <div className="pdp-wrapper">
       <Helmet>
@@ -244,7 +269,7 @@ export function ProductDetailPage() {
         </div>
       )}
 
-      <main className="pdp-container">
+      <div className="pdp-container">
         {/* API Breadcrumbs */}
         <nav className="pdp-breadcrumb" aria-label={t('pdp.breadcrumbAria')}>
           <Link to="/" className="pdp-breadcrumb__link">
@@ -497,21 +522,30 @@ export function ProductDetailPage() {
 
             {/* Content Tabs */}
             <div className="pdp-tabs">
-              <div className="pdp-tabs__nav" role="tablist">
-                {tabs.map((tab) => (
+              <div
+                className="pdp-tabs__nav"
+                role="tablist"
+                aria-label={t('pdp.tabsAria')}
+              >
+                {tabs.map((tab, index) => (
                   <button
                     key={tab.id}
+                    ref={(el) => {
+                      tabRefs.current[index] = el;
+                    }}
                     type="button"
                     role="tab"
                     id={`tab-${tab.id}`}
                     aria-controls={`panel-${tab.id}`}
                     aria-selected={activeTab === tab.id}
+                    tabIndex={activeTab === tab.id ? 0 : -1}
                     className={`pdp-tabs__tab ${
                       activeTab === tab.id ? 'pdp-tabs__tab--active' : ''
                     }`}
                     onClick={() =>
                       setTabSelection({ productSlug: slug, tab: tab.id })
                     }
+                    onKeyDown={(event) => handleTabKeyDown(event, index)}
                   >
                     {tab.label}
                   </button>
@@ -524,6 +558,7 @@ export function ProductDetailPage() {
                     id="panel-description"
                     role="tabpanel"
                     aria-labelledby="tab-description"
+                    tabIndex={0}
                     className="pdp-tab-panel"
                   >
                     <p className="pdp-description-text">{description}</p>
@@ -550,6 +585,7 @@ export function ProductDetailPage() {
                     id="panel-specs"
                     role="tabpanel"
                     aria-labelledby="tab-specs"
+                    tabIndex={0}
                     className="pdp-tab-panel"
                   >
                     {attributes.length > 0 ? (
@@ -577,7 +613,7 @@ export function ProductDetailPage() {
 
           <PdpRecommendationsSection key={product.slug} slug={product.slug} />
         </div>
-      </main>
+      </div>
 
       {/* Floating Bottom Action Bar */}
       <aside className="pdp-floating-bar" aria-label={t('pdp.floatingBarAria')}>

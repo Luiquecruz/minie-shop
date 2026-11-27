@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CartItem as CartItemType } from '../../types';
 import { useCart } from '../../hooks/useCart';
@@ -146,6 +146,7 @@ function CartItem({
               stroke="currentColor"
               strokeWidth="2"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -195,6 +196,7 @@ function CartItem({
               stroke="currentColor"
               strokeWidth="2"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -222,6 +224,7 @@ function CartItem({
                 stroke="currentColor"
                 strokeWidth="2.5"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -255,6 +258,7 @@ function CartItem({
                 stroke="currentColor"
                 strokeWidth="2.5"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -274,7 +278,13 @@ function CartItem({
               className="mini-cart__validating-spin"
               aria-label={t('cart.validatingStockEllipsis')}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
                 <circle
                   cx="12"
                   cy="12"
@@ -318,29 +328,58 @@ export function MiniCart() {
     isItemPriceLoading,
   } = useCartQuoteSync(isOpen);
   const navigate = useNavigate();
-  const drawerRef = useRef<HTMLDivElement | null>(null);
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const [feedbackNotice, setFeedbackNotice] = useState('');
 
   useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!isOpen || !dialog) {
+      return;
+    }
+
+    previouslyFocusedRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    if (!dialog.open && typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    }
+
+    closeBtnRef.current?.focus();
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeCart();
+      }
+    };
+    const handleBackdropMouseDown = (e: MouseEvent): void => {
+      if (e.target === dialog) {
         closeCart();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, closeCart]);
+    dialog.addEventListener('mousedown', handleBackdropMouseDown);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
     return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      dialog.removeEventListener('mousedown', handleBackdropMouseDown);
       document.body.style.overflow = '';
+      if (dialog.open && typeof dialog.close === 'function') {
+        dialog.close();
+      }
+      const previous = previouslyFocusedRef.current;
+      if (previous && previous.isConnected) {
+        previous.focus();
+      }
+      previouslyFocusedRef.current = null;
     };
-  }, [isOpen]);
+  }, [isOpen, closeCart]);
 
   const handleCheckout = (): void => {
     setFeedbackNotice(t('miniCart.checkoutNotice'));
@@ -355,25 +394,26 @@ export function MiniCart() {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="mini-cart-overlay"
-      onClick={closeCart}
-      aria-modal="true"
-      role="dialog"
+    <dialog
+      ref={dialogRef}
+      className="mini-cart-dialog"
+      aria-labelledby={titleId}
+      onCancel={(e) => {
+        e.preventDefault();
+        closeCart();
+      }}
     >
-      <div
-        ref={drawerRef}
-        className="mini-cart"
-        onClick={(e) => e.stopPropagation()}
-        aria-label={t('miniCart.drawerAria')}
-      >
-        <header className="mini-cart__header">
+      <div className="mini-cart">
+        <div className="mini-cart__header">
           <div className="mini-cart__header-title-wrapper">
-            <h2 className="mini-cart__title">{t('miniCart.title')}</h2>
+            <h2 id={titleId} className="mini-cart__title">
+              {t('miniCart.title')}
+            </h2>
             <span className="mini-cart__badge">{cartCount}</span>
           </div>
 
           <button
+            ref={closeBtnRef}
             type="button"
             className="mini-cart__close-btn"
             onClick={closeCart}
@@ -386,6 +426,7 @@ export function MiniCart() {
               stroke="currentColor"
               strokeWidth="2"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -394,7 +435,7 @@ export function MiniCart() {
               />
             </svg>
           </button>
-        </header>
+        </div>
 
         {feedbackNotice && (
           <div className="mini-cart__notice" role="status">
@@ -449,7 +490,7 @@ export function MiniCart() {
         </div>
 
         {items.length > 0 && (
-          <footer className="mini-cart__footer">
+          <div className="mini-cart__footer">
             <div className="mini-cart__totals" aria-busy={isTotalsLoading}>
               <span
                 className="mini-cart__sr-only"
@@ -525,10 +566,10 @@ export function MiniCart() {
                 <span>{t('miniCart.viewFullCart')}</span>
               </button>
             </div>
-          </footer>
+          </div>
         )}
       </div>
-    </div>
+    </dialog>
   );
 }
 

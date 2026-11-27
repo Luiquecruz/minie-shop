@@ -31,11 +31,6 @@ import {
   clientSearchSuggestResponseSchema,
 } from '@minieshop/contracts/search/client';
 import {
-  buildCatalogQueryString,
-  buildCrossSellQueryString,
-  buildProductRecommendationsQueryString,
-  buildSearchQueryString,
-  buildSuggestQueryString,
   quotePricingInBatches,
   type CrossSellParams,
   type FacetsParams,
@@ -46,6 +41,13 @@ import {
   type SuggestProductsParams,
 } from '../../domain/repositories/ProductRepository';
 import { createHttpClient, type HttpClient } from '../http/httpClient';
+import {
+  buildCatalogQueryString,
+  buildCrossSellQueryString,
+  buildProductRecommendationsQueryString,
+  buildSearchQueryString,
+  buildSuggestQueryString,
+} from './queryStrings';
 
 export class HttpProductRepository implements ProductRepository {
   private readonly httpClient: HttpClient;
