@@ -16,6 +16,7 @@ export interface RecommendationCarouselProps {
   isLoading?: boolean;
   isError?: boolean;
   errorCode?: string | null;
+  showErrorDebug?: boolean;
   skeletonCount?: number;
   onAddToCart?: (product: ProductCardDTO) => void;
   onFavoriteError?: (error: Error) => void;
@@ -42,6 +43,7 @@ export function RecommendationCarousel({
   isLoading = false,
   isError = false,
   errorCode = null,
+  showErrorDebug = false,
   skeletonCount = 4,
   onAddToCart,
   onFavoriteError,
@@ -204,7 +206,7 @@ export function RecommendationCarousel({
   };
 
   if (isError && items.length === 0) {
-    if (!import.meta.env.DEV) {
+    if (!showErrorDebug) {
       return null;
     }
     return (

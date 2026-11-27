@@ -1,4 +1,8 @@
-import type { ProductCardDTO, SearchMode } from '@minieshop/contracts';
+import type {
+  ProductCardDTO,
+  SearchMode,
+  SupportedCurrency,
+} from '@minieshop/contracts';
 import {
   MAX_SEARCH_LIMIT,
   MAX_SEARCH_OFFSET,
@@ -80,6 +84,7 @@ function buildEmptyResponse(
 }
 
 export interface CreateSearchClientOptions {
+  currency?: SupportedCurrency;
   onTelemetry?: (telemetry: SearchTelemetry) => void;
 }
 
@@ -173,6 +178,7 @@ export function createStorefrontSearchClient(
               const response = await repository.searchProducts(
                 {
                   q: trimmedQuery,
+                  currency: options?.currency,
                   limit: hitsPerPage,
                   offset,
                 },

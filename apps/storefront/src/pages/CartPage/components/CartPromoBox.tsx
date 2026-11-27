@@ -3,8 +3,9 @@ import {
   EMPTY_COUPON_ERROR,
   extractInvalidCouponCode,
   PROMO_COUPONS,
-} from '../../../store/slices/cartSlice';
-import { useCartActions, useCartPromoState } from '../../../hooks/useCart';
+  useCartActions,
+  useCartPromoState,
+} from '../../../hooks/useCart';
 import { useI18n } from '../../../i18n';
 
 const SUGGESTED_CODES = Object.keys(PROMO_COUPONS);

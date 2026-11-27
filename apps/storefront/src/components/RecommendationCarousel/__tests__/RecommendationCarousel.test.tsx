@@ -91,19 +91,32 @@ describe('RecommendationCarousel R05.4 & R05.5', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('logs warning on error without breaking host layout', () => {
+  it('logs warning on error without breaking host layout and gates debug badge behind showErrorDebug', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    renderCarousel({
+    const { unmount } = renderCarousel({
       items: [],
       isError: true,
       errorCode: 'CHAOS_FAILURE',
-      testId: 'rec-err',
+      testId: 'rec-err-silent',
     });
 
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('Você também pode gostar'),
     );
+    expect(
+      screen.queryByTestId('rec-err-silent-dev-error'),
+    ).not.toBeInTheDocument();
+    unmount();
+
+    renderCarousel({
+      items: [],
+      isError: true,
+      errorCode: 'CHAOS_FAILURE',
+      showErrorDebug: true,
+      testId: 'rec-err',
+    });
+
     expect(
       screen.getByRole('heading', { level: 1, name: 'Produto Demo' }),
     ).toBeInTheDocument();

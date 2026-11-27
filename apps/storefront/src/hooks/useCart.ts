@@ -16,9 +16,14 @@ import {
   applyCoupon as applyCouponAction,
   clearCart as clearCartAction,
   closeCart as closeCartAction,
+  EMPTY_COUPON_ERROR,
+  extractInvalidCouponCode,
+  MAX_ORDER_NOTE_LENGTH,
   openCart as openCartAction,
+  PROMO_COUPONS,
   removeCoupon as removeCouponAction,
   removeFromCart as removeFromCartAction,
+  resolveMaxStock,
   setCouponInput as setCouponInputAction,
   setOrderNote as setOrderNoteAction,
   setShippingMethod as setShippingMethodAction,
@@ -26,6 +31,14 @@ import {
   toggleCart as toggleCartAction,
   updateQuantity as updateQuantityAction,
 } from '../store/slices/cartSlice';
+
+export {
+  EMPTY_COUPON_ERROR,
+  extractInvalidCouponCode,
+  MAX_ORDER_NOTE_LENGTH,
+  PROMO_COUPONS,
+  resolveMaxStock,
+};
 import {
   selectCartAppliedCoupon,
   selectCartCount,

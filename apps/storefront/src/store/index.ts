@@ -4,9 +4,14 @@ import {
   createListenerMiddleware,
   isAnyOf,
 } from '@reduxjs/toolkit';
-import currencyReducer from './slices/currencySlice';
+import currencyReducer, {
+  initialCurrencyState,
+  setCurrency,
+  type CurrencyState,
+} from './slices/currencySlice';
 import cartReducer, {
   addToCart,
+  applyCartQuote,
   applyCoupon,
   clearCart,
   initialCartState,
@@ -23,6 +28,10 @@ import {
   savePersistedCartItems,
   savePersistedCartPrefs,
 } from './persistence/cartStorage';
+import {
+  loadPersistedCurrency,
+  savePersistedCurrency,
+} from './persistence/currencyStorage';
 
 const rootReducer = combineReducers({
   currency: currencyReducer,
@@ -30,6 +39,13 @@ const rootReducer = combineReducers({
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
+
+export function hydrateCurrencyState(): CurrencyState {
+  return {
+    ...initialCurrencyState,
+    currentCurrency: loadPersistedCurrency(),
+  };
+}
 
 export function hydrateCartState(): CartState {
   const items = loadPersistedCartItems();
@@ -60,10 +76,24 @@ export function createAppStore(preloadedState?: Partial<RootState>) {
   const cartPersistenceListener = createListenerMiddleware();
 
   cartPersistenceListener.startListening({
-    matcher: isAnyOf(addToCart, updateQuantity, removeFromCart, clearCart),
+    matcher: isAnyOf(
+      addToCart,
+      updateQuantity,
+      removeFromCart,
+      clearCart,
+      applyCartQuote,
+    ),
     effect: (_action, listenerApi) => {
       const state = listenerApi.getState() as RootState;
       savePersistedCartItems(state.cart.items);
+    },
+  });
+
+  cartPersistenceListener.startListening({
+    actionCreator: setCurrency,
+    effect: (_action, listenerApi) => {
+      const state = listenerApi.getState() as RootState;
+      savePersistedCurrency(state.currency.currentCurrency);
     },
   });
 
@@ -105,6 +135,7 @@ export function createAppStore(preloadedState?: Partial<RootState>) {
 }
 
 export const store = createAppStore({
+  currency: hydrateCurrencyState(),
   cart: hydrateCartState(),
 });
 

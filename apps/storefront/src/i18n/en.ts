@@ -290,6 +290,15 @@ export const enMessages = {
   // Favorites error
   'favorites.toggleError':
     'Could not update favorite status. Your change has been reverted.',
+
+  // Accessibility & Error Boundary
+  'a11y.skipToContent': 'Skip to main content',
+  'pdp.tabsAria': 'Product information tabs',
+  'errorBoundary.title': 'Something went wrong',
+  'errorBoundary.description':
+    'An unexpected error occurred while rendering this section.',
+  'errorBoundary.retry': 'Try again',
+  'errorBoundary.backToCatalog': 'Back to Catalog',
 } as const;
 
 export type MessageKey = keyof typeof enMessages;

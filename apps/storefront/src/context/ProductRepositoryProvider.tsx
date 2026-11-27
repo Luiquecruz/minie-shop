@@ -1,30 +1,23 @@
-import { useMemo, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { ProductRepository } from '../domain/repositories/ProductRepository';
-import {
-  getDefaultProductRepository,
-  ProductRepositoryContext,
-} from './productRepositoryContext';
+import { ProductRepositoryContext } from './productRepositoryContext';
 
 export interface ProductRepositoryProviderProps {
-  repository?: ProductRepository;
+  repository: ProductRepository;
   children: ReactNode;
 }
 
 /**
  * Dependency injection boundary for the catalog ProductRepository.
- * Production uses HttpProductRepository; tests inject MockProductRepository.
+ * The composition root (`main.tsx`) injects `HttpProductRepository`;
+ * tests inject `MockProductRepository`.
  */
 export function ProductRepositoryProvider({
   repository,
   children,
 }: ProductRepositoryProviderProps) {
-  const resolvedRepository = useMemo(
-    () => repository ?? getDefaultProductRepository(),
-    [repository],
-  );
-
   return (
-    <ProductRepositoryContext.Provider value={resolvedRepository}>
+    <ProductRepositoryContext.Provider value={repository}>
       {children}
     </ProductRepositoryContext.Provider>
   );

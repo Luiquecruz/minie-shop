@@ -1,13 +1,13 @@
 import { memo, useCallback, useMemo } from 'react';
 import type { ProductCardDTO } from '@minieshop/contracts';
 import { RecommendationCarousel } from '../../../components/RecommendationCarousel/RecommendationCarousel';
+import { getErrorCode } from '../../../domain/errors';
 import {
   useCartActions,
   useCartItemIds,
   useRecentCartProductIds,
 } from '../../../hooks/useCart';
 import { useCartCrossSellQuery } from '../../../hooks/useRecommendations';
-import { ApiError } from '../../../infrastructure/http/errors';
 import { useI18n } from '../../../i18n';
 
 const CROSS_SELL_LIMIT = 8;
@@ -53,8 +53,7 @@ export const CartCrossSellSection = memo(function CartCrossSellSection() {
     return null;
   }
 
-  const errorCode =
-    crossSellQuery.error instanceof ApiError ? crossSellQuery.error.code : null;
+  const errorCode = getErrorCode(crossSellQuery.error);
 
   return (
     <div
@@ -67,6 +66,7 @@ export const CartCrossSellSection = memo(function CartCrossSellSection() {
         isLoading={crossSellQuery.isPending && visibleItems.length === 0}
         isError={crossSellQuery.isError && visibleItems.length === 0}
         errorCode={errorCode}
+        showErrorDebug={import.meta.env.DEV}
         skeletonCount={4}
         onAddToCart={handleAddToCart}
         testId="cart-cross-sell-carousel"

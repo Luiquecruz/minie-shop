@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import type { ProductCardDTO, SearchResponseDTO } from '@minieshop/contracts';
-import Navbar from '../../../components/Navbar/Navbar';
+import RootLayout from '../../../layouts/RootLayout/RootLayout';
 import { ProductRepositoryProvider } from '../../../context/ProductRepositoryProvider';
 import { I18nProvider } from '../../../i18n';
 import { ApiError } from '../../../infrastructure/http/errors';
@@ -59,10 +59,18 @@ function renderSearchPage(
           <QueryClientProvider client={queryClient}>
             <Provider store={store}>
               <MemoryRouter initialEntries={initialEntries}>
-                <Navbar />
-                <UrlTracker />
                 <Routes>
-                  <Route path="/search" element={<SearchResultsPage />} />
+                  <Route element={<RootLayout />}>
+                    <Route
+                      path="/search"
+                      element={
+                        <>
+                          <UrlTracker />
+                          <SearchResultsPage />
+                        </>
+                      }
+                    />
+                  </Route>
                 </Routes>
               </MemoryRouter>
             </Provider>

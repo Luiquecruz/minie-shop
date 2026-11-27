@@ -1,7 +1,7 @@
 import { RecommendationCarousel } from '../../../components/RecommendationCarousel/RecommendationCarousel';
+import { getErrorCode } from '../../../domain/errors';
 import { useInView } from '../../../hooks/useInView';
 import { useProductRecommendationsQuery } from '../../../hooks/useRecommendations';
-import { ApiError } from '../../../infrastructure/http/errors';
 import { useI18n } from '../../../i18n';
 
 export interface PdpRecommendationsSectionProps {
@@ -37,8 +37,7 @@ export function PdpRecommendationsSection({
   const hasVisibleRecommendations =
     !recsQuery.isError && (relatedItems.length > 0 || upsellItems.length > 0);
   const showDevErrorBadge = import.meta.env.DEV && hasIntersected && recsQuery.isError;
-  const errorCode =
-    recsQuery.error instanceof ApiError ? recsQuery.error.code : null;
+  const errorCode = getErrorCode(recsQuery.error);
 
   if (isSettled && !hasVisibleRecommendations && !showDevErrorBadge) {
     return null;
@@ -61,6 +60,7 @@ export function PdpRecommendationsSection({
         isLoading={isInitialLoading}
         isError={hasIntersected && recsQuery.isError}
         errorCode={errorCode}
+        showErrorDebug={import.meta.env.DEV}
         skeletonCount={4}
         testId="pdp-related-carousel"
       />

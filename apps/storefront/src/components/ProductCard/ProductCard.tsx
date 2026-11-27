@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { ProductCardDTO } from '@minieshop/contracts';
-import { useCart } from '../../hooks/useCart';
+import { useCartActions } from '../../hooks/useCart';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useI18n } from '../../i18n';
 import AttributeIcon from '../AttributeIcon/AttributeIcon';
@@ -19,7 +19,7 @@ export function ProductCard({
   onAddToCart,
   onFavoriteError,
 }: ProductCardProps) {
-  const { addToCart } = useCart();
+  const { addToCart } = useCartActions();
   const { isFavorite, toggleFavorite } = useFavorites(onFavoriteError);
   const { t } = useI18n();
 

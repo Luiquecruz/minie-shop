@@ -293,4 +293,144 @@ describe('HttpClient', () => {
       (err: unknown) => err instanceof NetworkError && err.isTimeout === true,
     );
   });
+
+  it('attaches cached x-csrf-token on state-changing requests and retries once after 403 CSRF_INVALID', async () => {
+    let postAttempt = 0;
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.endsWith('/auth/csrf')) {
+        return jsonResponse({ csrfToken: 'fresh-csrf-token-123' });
+      }
+      postAttempt += 1;
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      if (postAttempt === 1) {
+        expect(headers['x-csrf-token']).toBe('stale-token');
+        return jsonResponse(
+          {
+            error: {
+              code: 'CSRF_INVALID',
+              message: 'Invalid CSRF token',
+              requestId: 'req-csrf-1',
+            },
+          },
+          { status: 403, statusText: 'Forbidden' },
+        );
+      }
+      expect(headers['x-csrf-token']).toBe('fresh-csrf-token-123');
+      return jsonResponse({ items: [], nextCursor: null });
+    });
+
+    const client = new HttpClient({
+      baseUrl: 'http://localhost:3001',
+      fetchFn: fetchMock,
+      initialCsrfToken: 'stale-token',
+    });
+
+    const data = await client.post(
+      '/pricing/quote',
+      clientProductListResponseSchema,
+      { body: { currency: 'USD', productIds: [] } },
+    );
+
+    expect(data.items).toEqual([]);
+    expect(postAttempt).toBe(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    // Subsequent DELETE reuses the newly cached CSRF token without refetching /auth/csrf
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await client.delete('/favorites/20000000-0000-4000-8000-000000000001');
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'http://localhost:3001/favorites/20000000-0000-4000-8000-000000000001',
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: expect.objectContaining({
+          'x-csrf-token': 'fresh-csrf-token-123',
+        }),
+      }),
+    );
+  });
+
+  it('deduplicates concurrent GET /auth/csrf refreshes and returns null cleanly on 401', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ csrfToken: 'shared-csrf-token' }),
+    );
+
+    const client = new HttpClient({
+      baseUrl: 'http://localhost:3001',
+      fetchFn: fetchMock,
+    });
+
+    const [t1, t2] = await Promise.all([
+      client.fetchCsrfToken(),
+      client.fetchCsrfToken(),
+    ]);
+
+    expect(t1).toBe('shared-csrf-token');
+    expect(t2).toBe('shared-csrf-token');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Unauthenticated /auth/csrf returns null cleanly
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Sign in required',
+            requestId: 'req-401',
+          },
+        },
+        { status: 401, statusText: 'Unauthorized' },
+      ),
+    );
+    await expect(client.fetchCsrfToken()).resolves.toBeNull();
+  });
+
+  it('aborts waiting caller immediately during CSRF refresh without cancelling the shared refresh', async () => {
+    let resolveCsrf!: (response: Response) => void;
+    const csrfPromise = new Promise<Response>((resolve) => {
+      resolveCsrf = resolve;
+    });
+
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/auth/csrf')) {
+        return csrfPromise;
+      }
+      return jsonResponse(
+        {
+          error: {
+            code: 'CSRF_INVALID',
+            message: 'Expired CSRF token',
+            requestId: 'req-csrf-abort',
+          },
+        },
+        { status: 403, statusText: 'Forbidden' },
+      );
+    });
+
+    const client = new HttpClient({
+      baseUrl: 'http://localhost:3001',
+      fetchFn: fetchMock,
+    });
+
+    const controller = new AbortController();
+    const requestPromise = client.post(
+      '/pricing/quote',
+      clientProductListResponseSchema,
+      { body: { currency: 'BRL', productIds: [] }, signal: controller.signal },
+    );
+
+    // Wait a tick for POST 403 -> GET /auth/csrf to be in flight
+    await Promise.resolve();
+    await Promise.resolve();
+
+    controller.abort();
+    await expect(requestPromise).rejects.toSatisfy((err: unknown) =>
+      isAbortError(err),
+    );
+
+    // Shared refresh still settles cleanly for other callers
+    resolveCsrf(jsonResponse({ csrfToken: 'recovered-token' }));
+    await expect(csrfPromise).resolves.toBeInstanceOf(Response);
+  });
 });

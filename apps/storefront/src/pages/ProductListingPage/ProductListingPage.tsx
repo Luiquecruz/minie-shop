@@ -7,7 +7,7 @@ import type {
   ProductCardDTO,
   ProductSort,
 } from '@minieshop/contracts';
-import { useCart } from '../../hooks/useCart';
+import { useCartActions } from '../../hooks/useCart';
 import { useFavoritesQuery } from '../../hooks/useFavorites';
 import {
   useCategoriesQuery,
@@ -54,7 +54,7 @@ function deriveTotalFromFacets(
 }
 
 export function ProductListingPage() {
-  const { addToCart } = useCart();
+  const { addToCart } = useCartActions();
   const { t } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -184,7 +184,7 @@ export function ProductListingPage() {
       : t('plp.resultsUpdated');
 
   return (
-    <main className="plp-container">
+    <div className="plp-container">
       <Helmet>
         <title>{t('plp.metaTitle')}</title>
         <meta name="description" content={t('plp.metaDescription')} />
@@ -439,7 +439,7 @@ export function ProductListingPage() {
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

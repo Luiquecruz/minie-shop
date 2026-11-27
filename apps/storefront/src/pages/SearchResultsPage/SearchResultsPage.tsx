@@ -10,15 +10,14 @@ import {
 } from 'react-instantsearch';
 import type { ProductCardDTO, SearchMode } from '@minieshop/contracts';
 import { MAX_SEARCH_OFFSET } from '../../domain/repositories/ProductRepository';
-import { useCart } from '../../hooks/useCart';
-import { useProductRepository } from '../../hooks/useProductRepository';
+import { useCartActions } from '../../hooks/useCart';
 import {
-  createStorefrontSearchClient,
   SEARCH_HITS_PER_PAGE,
   SEARCH_INDEX_NAME,
+  useStorefrontSearchClient,
   type SearchTelemetry,
   type StorefrontSearchHit,
-} from '../../infrastructure/search/instantSearchAdapter';
+} from '../../hooks/useSearch';
 import { useI18n } from '../../i18n';
 import { parseSearchUrlQuery } from '../../utils/searchUrlParams';
 import ProductCard from '../../components/ProductCard/ProductCard';
@@ -80,7 +79,7 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
   const { items, results, isLastPage, showMore } =
     useInfiniteHits<StorefrontSearchHit>();
   const { status, error, refresh } = useInstantSearch({ catchError: true });
-  const { addToCart } = useCart();
+  const { addToCart } = useCartActions();
   const { t } = useI18n();
 
   const [favoriteError, setFavoriteError] = useState<Error | null>(null);
@@ -189,7 +188,7 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
     : t('searchPage.metaTitle');
 
   return (
-    <main className="search-page">
+    <div className="search-page">
       <Helmet>
         <title>{metaTitle}</title>
         <meta name="description" content={t('searchPage.metaDescription')} />
@@ -370,7 +369,7 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
           </Link>
         </section>
       )}
-    </main>
+    </div>
   );
 }
 
@@ -380,18 +379,13 @@ function SearchResultsContent({ urlQuery }: SearchResultsContentProps) {
  * Driven by the `?q=` URL parameter updated from the unified global header SearchBar.
  */
 export function SearchResultsPage() {
-  const repository = useProductRepository();
   const [searchParams] = useSearchParams();
   const urlQuery = useMemo(
     () => parseSearchUrlQuery(searchParams),
     [searchParams],
   );
   const [initialUrlQuery] = useState<string>(() => urlQuery);
-
-  const searchClient = useMemo(
-    () => createStorefrontSearchClient(repository),
-    [repository],
-  );
+  const searchClient = useStorefrontSearchClient();
 
   return (
     <InstantSearch
