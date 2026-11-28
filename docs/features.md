@@ -1,6 +1,6 @@
 # Features Inventory (Incremental)
 
-Tracks all implemented user-facing features, their entry points, dependencies, and evolution phase.
+Tracks all implemented user-facing features, their entry points, dependencies, and evolution phase across the monorepo.
 
 ---
 
@@ -8,100 +8,78 @@ Tracks all implemented user-facing features, their entry points, dependencies, a
 
 | ID | Feature | Phase | Primary Files | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `F-01` | Product Catalog, Filtering & Pagination (PLP) | Phase 3 / Post-Phase 5 | `ProductListingPage.tsx`, `Pagination.tsx`, `ProductCard.tsx`, `Dropdown.tsx` | Implemented |
-| `F-02` | Pricing & Discount Precedence Engine | Phase 3 | `utils/price.ts`, `PriceBox.tsx` | Implemented |
-| `F-03` | Server-Side Multi-Currency Engine & Persistence | Phase 6.1 | `pricing.service.ts`, `currencySlice.ts`, `useCurrency.ts`, `useCartQuoteSync.ts`, `Navbar.tsx` | Implemented |
-| `F-04` | Product Detail Page (PDP) & SEO | Phase 4 / Post-Phase 5 | `ProductDetailPage.tsx`, `useProducts.ts`, `App.tsx` | Implemented |
-| `F-05` | Global Autocomplete Search | Phase 4 / Post-Phase 5 | `SearchBar.tsx`, `useDebounce.ts`, `useProducts.ts`, `api.ts` | Implemented |
-| `F-06` | Floating Mini-Cart & Stock Guardrails | Phase 5 / Post-Phase 5 | `MiniCart.tsx`, `cartSlice.ts`, `useCart.ts`, `useProducts.ts` | Implemented |
-| `F-07` | Incremental TypeScript Migration | Pre-Phase 6 | `tsconfig.json`, `src/types/*`, `src/store/hooks.ts`, all `src/**/*.ts(x)` | Implemented |
-| `F-08` | React Query Caching, Optimistic Favorites & API Simulator | Post-Phase 5 | `src/query/*`, `useProducts.ts`, `useFavorites.ts`, `ApiDebugFab.tsx` | Implemented |
-| `F-09` | Dedicated Cart Page (Increment 2: Pure Redux + Memoized Selectors) | Phase 6 (Inc. 2) | `CartPage.tsx`, `cartSlice.ts`, `cartSelectors.ts`, `cartStorage.ts`, `useCart.ts` | Implemented |
-| `F-10` | Checkout Flow & Order Confirmation | Phase 6 (Inc. 3) | — | Planned |
+| `F-01` | Product Catalog, Disjunctive Facets & Cursor Pagination (PLP) | Phases 3, 6 & Pre-DS | `ProductListingPage.tsx`, `CatalogFilters.tsx`, `ProductCard.tsx`, `Dropdown.tsx`, `catalogUrlParams.ts` | Implemented |
+| `F-02` | Server-Authoritative Pricing & Discount Presentation | Phases 3 & 6 | `PriceBox.tsx`, `utils/money.ts`, `apps/api` `CatalogService` | Implemented |
+| `F-03` | Server-Side Multi-Currency Engine & Persistence | Phase 6.1 & Pre-DS | `pricing.service.ts`, `search.service.ts`, `currencySlice.ts`, `currencyStorage.ts`, `useCurrency.ts`, `useCartQuoteSync.ts`, `Navbar.tsx` | Implemented |
+| `F-04` | Canonical Product Detail Page (PDP), APG Tabs & SEO | Phases 4, 6 & Pre-DS | `ProductDetailPage.tsx`, `useProducts.ts`, `legacyProductRedirects.ts`, `App.tsx` | Implemented |
+| `F-05` | Header APG Autocomplete Combobox (`GET /search/suggest`) | Phase 7 (`S08.2`) & Pre-DS | `SearchBar.tsx`, `useCombobox.ts`, `useDebounce.ts`, `useSearch.ts` | Implemented |
+| `F-06` | Native `<dialog>` Mini-Cart & Stock Guardrails | Phases 5, 6 & Pre-DS | `MiniCart.tsx`, `cartSlice.ts`, `useCart.ts`, `useProducts.ts` | Implemented |
+| `F-07` | Stack-Pinned Strict TypeScript & Shared Contracts | Pre-Phase 6 & Pre-DS | `packages/config/*`, `packages/contracts/*`, `apps/*/tsconfig.json` | Implemented |
+| `F-08` | TanStack Query Caching, Optimistic Favorites & DEV Chaos Controls | Phase 6 & Pre-DS | `src/query/*`, `useProducts.ts`, `useFavorites.ts`, `useDevChaos.ts`, `ApiDebugFab.tsx` | Implemented |
+| `F-09` | Dedicated Cart Page (Pure Redux + Memoized Selectors) | Phase 6 (Inc. 2) & Pre-DS | `CartPage.tsx`, `cartSlice.ts`, `cartSelectors.ts`, `cartStorage.ts`, `useCart.ts` | Implemented |
+| `F-10` | Checkout Flow & Order Confirmation | Post-Phase 8 | — | Planned |
 | `F-11` | Storefront Internationalization (`en` + `pt-BR`) | Phase 6.1 | `src/i18n/*`, `Navbar.tsx`, `useCurrency.ts`, all storefront pages/components | Implemented |
-| `F-12` | Header APG Autocomplete Combobox & Lazy Search Route (`/search`) | Phase 7 (`S08`) | `useCombobox.ts`, `SearchBar.tsx`, `SearchResultsPage.tsx`, `instantSearchAdapter.ts`, `searchUrlParams.ts` | Implemented |
-| `F-13` | Lazy PDP Recommendations & Inline Cart Cross-Sell Carousels | Phase 7 (`R05`) | `RecommendationCarousel.tsx`, `PdpRecommendationsSection.tsx`, `CartCrossSellSection.tsx`, `useRecommendations.ts`, `useInView.ts` | Implemented |
+| `F-12` | Lazy Search Results Route (`/search`) via React InstantSearch | Phase 7 (`S08.3`) & Pre-DS | `SearchResultsPage.tsx`, `instantSearchAdapter.ts`, `searchUrlParams.ts`, `ErrorBoundary.tsx` | Implemented |
+| `F-13` | Lazy PDP Recommendations & Inline Cart Cross-Sell Carousels | Phase 7 (`R05`) & Pre-DS | `RecommendationCarousel.tsx`, `PdpRecommendationsSection.tsx`, `CartCrossSellSection.tsx`, `useRecommendations.ts`, `useInView.ts` | Implemented |
+| `F-14` | Tailwind CSS v4, Semantic `light-dark()` Tokens & Theme Toggle | Pre-DS (`ADR-0024`) | `src/index.css`, `index.html`, `useTheme.ts`, `utils/cn.ts`, `Navbar.tsx` | Implemented |
 
 ---
 
 ## Feature Details
 
-### F-01: Product Catalog, Filtering & Pagination (PLP)
-- **Route:** `/` (and fallback `*`)
+### F-01: Product Catalog, Disjunctive Facets & Cursor Pagination (PLP)
+- **Route:** `/`
 - **Capabilities:**
-  - Displays 30 mock catalog products paginated (`12` per page) via `useProductsQuery` with `placeholderData: keepPreviousData` so page transitions do not flash skeletons.
-  - Synchronizes `?page=&category=&sort=` in URL search parameters via `useSearchParams` so returning from a PDP preserves filters and reads directly from React Query cache.
-  - Dynamic category chip filters loaded via `useCategoriesQuery()` (`All`, `Favorites` with live badge count, plus catalog categories).
-  - Sorting via generic `Dropdown<ProductSortOption>` (`Default (Featured)`, `Lowest Price`, `Highest Price`, `Top Rated`, `Name (A - Z)`).
-  - Initial 8-card skeleton loading state, error alert with React Query `refetch()` ("Try Again"), empty state with filter reset, and direct `Add to Cart` action.
+  - Cursor-paginated catalog (`useInfiniteQuery` with `PAGE_SIZE = 12` and "Load More") keeping prior cards visible during filter transitions (`keepPreviousData`) without flashing skeletons.
+  - Synchronizes `?category=`, `?q=`, `?minPrice=`, `?maxPrice=`, `?inStock=`, `?sort=`, and `?attr.*` via Zod-validated `catalogUrlParams.ts`.
+  - Disjunctive category, price, stock, and attribute facets (`CatalogFilters`) plus WAI-ARIA APG keyboard-navigable sort `Dropdown<ProductSort>`.
+  - Initial skeleton grid, retryable error state, empty state with filter reset, optimistic favorite toggle, and `useCartActions().addToCart` without subscribing cards to full cart state.
 
-### F-02: Pricing & Discount Precedence Engine
+### F-02 & F-03: Server-Authoritative Multi-Currency Pricing & Persistence
 - **Capabilities:**
-  - Evaluates `regular_price` vs. `special_price` via `calculatePrice()`.
-  - Applies `special_price` as `final_price` only when it is a valid number `> 0` and `< regular_price`.
-  - Computes rounded `discount_percentage` and renders strikethrough original price + discount badge in `PriceBox`.
+  - All monetary values travel and compute strictly in **integer cents** (`MoneyDTO` + `PriceDTO`); client-side FX conversion is forbidden (`ADR-0017`, `ADR-0018`).
+  - Supports `BRL`, `USD`, and `EUR` across `GET /products`, `GET /products/:slug`, `GET /search?currency=`, recommendations, and `POST /pricing/quote`.
+  - `currencySlice` is 100% pure; `currencyStorage.ts` hydrates initial currency in `createAppStore()` and persists updates via `createListenerMiddleware` under `minieshop_currency`.
+  - `useCartQuoteSync` reprices open carts lazily with a 5-minute TTL and persists repriced `applyCartQuote` snapshots to `localStorage`.
 
-### F-03: Multi-Currency Engine & Persistence
+### F-04: Canonical Product Detail Page (PDP), APG Tabs & SEO
+- **Route:** `/:category/:slug` (with legacy `/product/:id` redirect support via `legacyProductRedirects.ts` and canonical category redirect)
 - **Capabilities:**
-  - Supports `BRL` (base catalog currency, rate `1.0`), `USD` (rate `0.18`), and `EUR` (rate `0.16`).
-  - Selector in `Navbar` dispatches `setCurrency` and persists choice under `localStorage` key `minieshop_currency` with `isCurrencyCode` runtime validation.
-  - Formats values via `Intl.NumberFormat` according to target currency locale (`pt-BR`, `en-US`, `de-DE`).
+  - Dynamic `<title>` and `<meta name="description">` via `react-helmet-async`.
+  - Breadcrumbs, responsive image gallery (`ProductImage` with `srcset` and inline SVG fallback), optimistic `Save` / `Saved` favorite toggle, and WAI-ARIA APG keyboard-accessible `Description` / `Technical Specs` tabs (`ArrowLeft`/`ArrowRight`/`Home`/`End`, roving `tabIndex`).
+  - Inline CTAs + sticky floating bottom action bar (`Add to Cart`, `Buy Now`) and full-width `PdpRecommendationsSection` cleanly below the 2-column desktop grid.
 
-### F-04: Product Detail Page (PDP) & SEO
-- **Route:** `/product/:id`
+### F-05 & F-12: Header APG Autocomplete & Lazy Search Route (`/search`)
+- **Locations:** Persistent `Navbar` (`SearchBar`) and lazy-loaded `/search` (`SearchResultsPage` wrapped in `<ErrorBoundary>` + `<Suspense>`).
 - **Capabilities:**
-  - Dynamic `<title>` and `<meta name="description">` via `react-helmet-async` (including "Product Not Found" and transient error states).
-  - Breadcrumb navigation (`Catalog / <category> / <name>`).
-  - Open masonry image gallery (4 aspect-ratio views per product) with mobile swipe hint.
-  - Optimistic Favorite toggle button (`Save` / `Saved`) in the details header.
-  - 3 accessible tabs (`Description`, `Manufacturer`, `Technical Specs` key-value grid).
-  - Inline action buttons + sticky floating bottom action bar (`Add to Cart`, `Buy Now`) with toast feedback.
-  - Related products grid (`limit = 4`) fetched via dependent `useRelatedProductsQuery()`.
-  - Distinguishes `ProductNotFoundError` from transient/simulated errors, offering a **"Try Again"** (`refetch()`) button for recoverable errors.
+  - `SearchBar` implements headless WAI-ARIA APG `useCombobox` backed by 200ms debounced `GET /search/suggest` (>= 2 trimmed chars, max 8 suggestions, `AbortSignal`), navigating directly via server-supplied `suggestion.categorySlug` to `/:category/:slug` or to `/search?q=`.
+  - `/search` loads `react-instantsearch@7.55.1` in an isolated lazy chunk via `useStorefrontSearchClient()` (`hitsPerPage = 24`, `offset <= 200` cutoff notice, `?currency=` propagation, DEV-only mode/latency badge across `hybrid`, `keyword`, and `postgres` modes).
 
-### F-05: Global Autocomplete Search
-- **Location:** `Navbar` (persistent across all routes, including `/search`)
+### F-06 & F-09: Native `<dialog>` Mini-Cart & Dedicated Cart Page (`/cart`)
+- **Locations:** Global `MiniCart` inside `RootLayout` and dedicated `/cart` route (`CartPage`).
 - **Capabilities:**
-  - Replaced in Phase 7 (`F-12`) by the unified `SearchBar` combobox (`useCombobox` + `useSearchSuggestQuery` backed by `GET /search/suggest` with 200 ms debounce and `AbortSignal` cancellation), navigating to canonical `/:category/:slug` PDP routes or `/search?q=` (see **F-12** below for complete current details).
+  - `MiniCart` uses native `<dialog>.showModal()` with right-aligned slide-in drawer, backdrop click, `Escape` dismissal, body scroll lock, focus restoration, and clean document landmarks.
+  - Pure Redux `cartSlice` (frozen in Phase 7) + memoized `createSelector` (`cartSelectors.ts`) + `React.memo` subcomponents (`CartHeader`, `CartItemRow`, `CartPromoBox`, `CartShippingSelector`, `CartOrderNote`, `CartOrderSummary`) + versioned `v2` `localStorage` persistence via `createListenerMiddleware`.
+  - Supports quantity clamping (`1..stock`), 300ms debounced stock validation (`useStockValidationQuery`), promo codes (`MINIE10`, `MINIE20`, `FREESHIP`), shipping method selection, free-shipping threshold indicator, and order notes (`maxLength = 200`).
 
-### F-06: Floating Mini-Cart & Stock Guardrails
-- **Location:** `RootLayout` (mounted globally)
+### F-08: TanStack Query Caching, Optimistic Favorites & DEV Chaos Controls
 - **Capabilities:**
-  - Automatically opens when an item is added (`addToCart` sets `isOpen = true`).
-  - Persists cart items under `localStorage` key `minieshop_cart` with runtime schema validation (`isValidCartItem`).
-  - Enforces min (`1`) and max (`product.stock`) bounds in both Redux reducers and UI controls.
-  - Performs debounced (`300ms`) async stock validation via `useDebounce` + `useStockValidationQuery` per cart item.
-  - Locks `document.body.style.overflow` while open, closes on `Escape` or backdrop click, and navigates to `/cart` on **View Full Cart** (keeping placeholder notice for **Proceed to Checkout** until Increment 2+).
+  - Configured `QueryClient` (`staleTime`, `gcTime`, no retries on 4xx) and DEV-only `ReactQueryDevtools`.
+  - `useFavorites` queues concurrent optimistic toggles per `QueryClient` with rollback on error and automatic `x-csrf-token` bootstrap/retry via `HttpClient`.
+  - Lazy-loaded DEV-only `ApiDebugFab` backed by `useDevChaos()` injects `x-chaos-delay` and `x-chaos-fail` headers (tree-shaken out of production bundles).
 
-### F-07: Incremental TypeScript Migration
+### F-11: Storefront Internationalization (`en` + `pt-BR`)
 - **Capabilities:**
-  - Strict TypeScript (`"strict": true`, `"allowJs": false`, `"noUnusedLocals": true`, `"noUnusedParameters": true`, `"noFallthroughCasesInSwitch": true`) enforced via `npm run typecheck` and `npm run build`.
-  - Zero explicit or implicit `any` enforced by Oxlint (`typescript/no-explicit-any: "error"`) and `tsconfig.json`.
-  - Shared domain entities in `src/types/` (`currency.ts`, `product.ts`, `cart.ts`, `api.ts`) and co-located component prop interfaces.
+  - Reactive `I18nProvider` (`en` and `pt-BR`), `<html lang>` synchronization, `minieshop_locale` persistence, and independent locale vs. currency selection in `Navbar`.
 
-### F-08: React Query Caching, Optimistic Favorites & API Simulator
+### F-13: Lazy PDP Recommendations & Inline Cart Cross-Sell Carousels
 - **Capabilities:**
-  - Configured `QueryClient` (`staleTime: 2m`, `gcTime: 10m`, `refetchOnWindowFocus: false`, smart `retry: 2` with exponential backoff) and `ReactQueryDevtools` (`DEV` only, bottom-right).
-  - Optimistic Favorites toggle (`useToggleFavoriteMutation`) on `ProductCard` and `ProductDetailPage`, persisted in `localStorage` (`minieshop_favorites`), with automatic cache rollback on mutation failure and targeted invalidation of `favorites` and `favoritesOnly` product lists.
-  - Discreet bottom-left `ApiDebugFab` popover allowing live toggling of **Simulate Query Error**, **Simulate Favorite Error**, and **Invalidate Cache**.
+  - Reusable accessible `RecommendationCarousel` (`scroll-snap-type: x mandatory`, `prefers-reduced-motion`, boundary Prev/Next focus redirection, zero-CLS skeleton, explicit `showErrorDebug` prop, silent collapse on empty/error).
+  - PDP loads `related` and `upsell` in one call once `IntersectionObserver` triggers (`rootMargin: '200px 0px'`, `CLS = 0`).
+  - Cart fetches cross-sell for up to 20 recent distinct product IDs (`selectRecentCartProductIds`) and adds inline (`addToCart` + `closeCart`) without opening `MiniCart`.
 
-### F-09: Dedicated Cart Page (Increment 2: Pure Redux + Memoized Selectors)
-- **Route:** `/cart`
+### F-14: Tailwind CSS v4, Semantic `light-dark()` Tokens & Theme Toggle (`ADR-0024`)
 - **Capabilities:**
-  - Migrated from monolithic Context + `useReducer` to pure immutable Redux Toolkit `cartSlice` reducers, memoized `createSelector` derivations (`cartSelectors.ts`), granular hooks (`useCart.ts`), and `React.memo` subcomponents, reducing measured React `<Profiler>` updates across 4 cart interactions from `70` to `16` (-77.1%).
-  - Persists items (`minieshop_cart`) and checkout preferences (`minieshop_cart_prefs`) to `localStorage` via RTK `createListenerMiddleware` (`cartStorage.ts`) without side effects inside reducers.
-  - Displays cart line items with quantity steppers, numeric bounds (`1..stock`), debounced stock validation (`useStockValidationQuery`), item removal, and Clear Cart.
-  - Supports promo coupons (`MINIE10`, `MINIE20`, `FREESHIP`), shipping method selection (`Standard Delivery`, `Express Courier`, `Store Pickup`), free-shipping threshold progress (`>= 500 BRL`), order/delivery notes (`maxLength = 200`), and multi-currency conversion (`useCurrency`).
-
-### F-12: Header APG Autocomplete Combobox & Lazy Search Route (`/search`) (`S08`)
-- **Locations:** Persistent `Navbar` (`SearchBar`, visible across all routes including `/search`) and lazy route `/search` (`SearchResultsPage`).
-- **Capabilities:**
-  - `SearchBar` implements proprietary WAI-ARIA APG `useCombobox` (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-autocomplete="list"`, `aria-activedescendant`, `role="listbox"`, `role="option"`, `aria-live="polite"`) backed by 200 ms debounced `useSearchSuggestQuery` (>= 2 trimmed chars, max 8 suggestions, `AbortSignal` cancellation, `"Ver todos os resultados para "` + `<strong>` fallback option, and `?q=` sync on `/search`).
-  - `/search` loads `react-instantsearch@7.55.1` in a separate `React.lazy` chunk with custom `createStorefrontSearchClient` routing through `ProductRepository.searchProducts` (`hitsPerPage=24`, `offset <= 200` cutoff message, `?q=` Zod URL sync from global `SearchBar` navigation, semantic `<strong>` query emphasis, DEV-only mode + latency badge across `hybrid`, `keyword`, and `postgres` modes).
-
-### F-13: Lazy PDP Recommendations & Inline Cart Cross-Sell Carousels (`R05`)
-- **Locations:** `ProductDetailPage` (`PdpRecommendationsSection`) and `CartPage` (`CartCrossSellSection`).
-- **Capabilities:**
-  - Reusable accessible `RecommendationCarousel` with CSS `scroll-snap-type: x mandatory`, `overscroll-behavior-x: contain`, `prefers-reduced-motion` compliance, Prev/Next boundary disabling with focus redirection, horizontal focus-into-view, zero-CLS loading skeletons, and silent collapse on empty/error states.
-  - PDP loads `related` (`"Você também pode gostar"`) and `upsell` (`"Alternativas para considerar"`) in a single request only after `IntersectionObserver` triggers (`rootMargin: '200px 0px'`).
-  - Cart queries cross-sell (`"Combine com o seu pedido"`) for up to 20 most recent distinct item IDs (`selectRecentCartProductIds`), deduplicates already-added items immediately on client, and invokes `addToCart` + `closeCart` inline without opening `MiniCart` or modifying frozen `cartSlice` reducers.
+  - Single CSS entrypoint (`apps/storefront/src/index.css`) with two-tier CSS-first tokens (`light-dark()` + `color-scheme: light dark`, exposed via `@theme inline`) and zero legacy component `.css` files (`-48%` raw production CSS).
+  - Synchronous inline anti-FOUC script in `apps/storefront/index.html` sets `html[data-theme="light" | "dark"]` before first paint.
+  - `useTheme()` (`system | light | dark`, `localStorage['minieshop_theme']`, live `prefers-color-scheme` listener) paired with an accessible 3-way inline-SVG segmented toggle in `Navbar`.

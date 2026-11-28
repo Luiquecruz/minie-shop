@@ -1,23 +1,23 @@
-# Modelo de Banco de Dados (`T07`)
+# Database Model (`PostgreSQL 17 + pgvector`)
 
-Documentação do modelo relacional do **Progressive Minie Shop** em PostgreSQL 17 (`pgvector/pgvector:pg17`), organizado com **um schema por módulo** conforme [`ADR-0006`](./adr/0006-organizacao-banco-schemas-por-modulo.md) e [`ADR-0007`](./adr/0007-autenticacao-sessoes-opacas-propria.md).
-
----
-
-## 1. Schemas e Extensões
-
-- **Extensões criadas na migration `0000`:** `pgcrypto`, `vector` (`pgvector`), `unaccent`.
-- **Schemas:**
-  - `catalog` — árvore de categorias, produtos, variantes, definições de atributos, imagens de produto e favoritos.
-  - `media` — metadados de ativos de mídia no object storage (bytes nunca vão para o banco).
-  - `inventory` — controle de estoque físico e reservas por variante.
-  - `identity` — tabelas de clientes, endereços, sessões opacas, tokens de e-mail, staff e RBAC (implementação de auth fica para fase posterior).
-  - `platform` — configurações da loja, trilha de auditoria e outbox transacional (`platform.outbox`, `ADR-0012`).
-  - `recommendations` — relações pré-calculadas entre produtos (`recommendations.product_relations`) e mapa de categorias complementares (`recommendations.category_complements`), conforme [`ADR-0013`](./adr/0013-recomendacoes-pre-calculadas-e-curadoria.md).
+Relational data model for **Progressive Minie Shop** running on PostgreSQL 17 (`pgvector/pgvector:pg17`), organized with **one PostgreSQL schema per domain module** per [`ADR-0006`](./adr/0006-organizacao-banco-schemas-por-modulo.md) and statically enforced by per-schema ESLint boundaries in `apps/api/eslint.config.mjs` (`ADR-0023`).
 
 ---
 
-## 2. Diagrama ER por Módulo
+## 1. Schemas & Extensions
+
+- **Extensions (migration `0000`):** `pgcrypto`, `vector` (`pgvector`), `unaccent`.
+- **Module-Owned Schemas:**
+  - `catalog` — category hierarchy, products, product variants, attribute definitions, product image links (exclusively written by `CatalogService`), product embeddings (`pgvector` 768-dim, `ADR-0011` / `ADR-0022`), and favorites.
+  - `media` — object-storage asset metadata and generated WebP variant descriptors (binary bytes live in SeaweedFS/S3, never in PostgreSQL).
+  - `inventory` — physical stock quantities and reservations per product variant.
+  - `identity` — customers, customer addresses, opaque sessions, signed email tokens, staff users, roles, and RBAC permissions (`ADR-0007`, `ADR-0014`, `ADR-0015`).
+  - `platform` — store settings, immutable audit trail (`platform.audit_log`), and transactional outbox (`platform.outbox_events`, `ADR-0012`).
+  - `recommendations` — pre-computed product relations (`recommendations.product_relations`) and complementary category map (`recommendations.category_complements`, `ADR-0013`).
+
+---
+
+## 2. Entity-Relationship Diagrams by Module
 
 ### `catalog` + `media` + `inventory`
 
@@ -37,6 +37,7 @@ erDiagram
     text slug UK
     text sku UK
     text name
+    text status
     int regular_price_cents
     int special_price_cents
     varchar currency
@@ -75,6 +76,14 @@ erDiagram
     boolean is_primary
   }
 
+  catalog_product_embeddings {
+    uuid product_id PK, FK
+    text model
+    text content_hash
+    vector embedding
+    timestamptz updated_at
+  }
+
   catalog_favorites {
     uuid id PK
     uuid product_id FK
@@ -107,6 +116,7 @@ erDiagram
   catalog_categories ||--o{ catalog_products : category_id
   catalog_products ||--|{ catalog_product_variants : product_id
   catalog_products ||--o{ catalog_product_images : product_id
+  catalog_products ||--o| catalog_product_embeddings : product_id
   media_media_assets ||--o{ catalog_product_images : media_asset_id
   catalog_products ||--o{ catalog_favorites : product_id
   catalog_product_variants ||--|| inventory_stock_items : variant_id
@@ -121,6 +131,7 @@ erDiagram
     text email UK
     text password_hash
     text full_name
+    text phone
     timestamptz email_verified_at
     boolean is_active
   }
@@ -129,6 +140,7 @@ erDiagram
     uuid id PK
     uuid customer_id FK
     text label
+    text phone
     text city
     varchar state
     varchar postal_code
@@ -171,7 +183,9 @@ erDiagram
     text subject_type
     uuid customer_id FK
     uuid staff_user_id FK
+    timestamptz last_seen_at
     timestamptz expires_at
+    timestamptz absolute_expires_at
     timestamptz revoked_at
   }
 
@@ -196,7 +210,24 @@ erDiagram
     text action
     text entity_type
     text entity_id
+    jsonb before_state
+    jsonb after_state
+    text ip_address
+    text user_agent
+    text request_id
     jsonb metadata
+  }
+
+  platform_outbox_events {
+    uuid id PK
+    text event_type
+    text consumer
+    jsonb payload
+    text status
+    int attempts
+    timestamptz next_attempt_at
+    timestamptz locked_until
+    timestamptz processed_at
   }
 
   identity_customers ||--o{ identity_customer_addresses : customer_id
@@ -209,7 +240,7 @@ erDiagram
   identity_permissions ||--o{ identity_role_permissions : permission_id
 ```
 
-### `recommendations` *(Fase 4 — `R02`)*
+### `recommendations`
 
 ```mermaid
 erDiagram
@@ -227,8 +258,8 @@ erDiagram
   }
 
   recommendations_category_complements {
-    uuid category_id PK_FK
-    uuid complement_category_id PK_FK
+    uuid category_id PK, FK
+    uuid complement_category_id PK, FK
     int position
     timestamptz created_at
     timestamptz updated_at
@@ -242,22 +273,23 @@ erDiagram
 
 ---
 
-## 3. Constraints e Índices Principais
+## 3. Key Constraints & Indexes
 
-- **Preços:** `regular_price_cents >= 0`, `special_price_cents IS NULL OR (special_price_cents >= 0 AND special_price_cents <= regular_price_cents)`, `product_variants.price_cents IS NULL OR price_cents >= 0`.
-- **Estoque (`inventory.stock_items`):** `quantity >= 0`, `reserved >= 0`, `reserved <= quantity`, `variant_id UNIQUE`.
-- **Mídia (`media.media_assets`):** `status IN ('pending', 'ready', 'failed')`, `storage_key UNIQUE`, `checksum_sha256 UNIQUE`, `size_bytes > 0`.
-- **Busca textual e filtros (`catalog.products`):**
-  - `status` (`text NOT NULL DEFAULT 'published'`, `CHECK (status IN ('draft', 'published', 'archived'))`, índice `products_status_idx`) e `CHECK (slug <> 'facets')` adicionados na migration `0006` (`ADR-0008`).
-  - `search_vector` (`tsvector`) atualizado automaticamente via trigger `BEFORE INSERT OR UPDATE` usando `to_tsvector('portuguese', public.unaccent(...))` com pesos `A` (`name`) e `B` (`description`), indexado com **GIN**.
-  - `attributes` (`jsonb`) indexado com **GIN**.
-  - Índices B-tree em `category_id`, `regular_price_cents` e `special_price_cents`.
-- **Favoritos (`catalog.favorites`):** exige `customer_id IS NOT NULL OR session_id IS NOT NULL`, com índices únicos parciais por `(customer_id, product_id)` e `(session_id, product_id)`.
-- **Recomendações (`recommendations.product_relations` e `recommendations.category_complements`, migration `0009`):**
-  - `product_relations`: `product_id <> related_product_id` (sem auto-relação), `UNIQUE (product_id, related_product_id, type)`, `type IN ('related', 'upsell', 'cross_sell')`, `source IN ('manual', 'auto')` (extensível para `'behavior'` no futuro), `method IN ('vector', 'rule', 'manual')`, invariante `source = 'manual' => method = 'manual' AND score IS NULL` e `source = 'auto' => method IN ('vector', 'rule') AND score IS NOT NULL`, `position >= 0`, FKs `ON DELETE CASCADE` para `catalog.products(id)`. Índices `product_relations_lookup_idx (product_id, type, position)` e `product_relations_reverse_idx (related_product_id)`.
-  - `category_complements`: `PRIMARY KEY (category_id, complement_category_id)`, `category_id <> complement_category_id`, `position >= 0`, FKs `ON DELETE CASCADE` para `catalog.categories(id)`. Índice `category_complements_category_pos_idx (category_id, position)`.
-- **Identidade e Auditoria (Fase 5, migration `0010`):**
-  - `identity.customers.phone` (`text`, opcional) e `identity.customer_addresses.phone` (`text`, opcional), `label` opcional, e índice único parcial `customer_addresses_default_uidx (customer_id) WHERE is_default = true`.
-  - `identity.sessions`: adicionadas `last_seen_at` (`timestamptz NOT NULL DEFAULT now()`) e `absolute_expires_at` (`timestamptz NOT NULL`) para expiração dupla (ociosa + absoluta), com índices em `customer_id`, `staff_user_id` e `absolute_expires_at`.
-  - `platform.audit_log`: adicionadas colunas `before_state` (`jsonb`), `after_state` (`jsonb`), `ip_address` (`text`), `user_agent` (`text`) e `request_id` (`text`), além de índices por `(actor_type, actor_id)` e `action`.
-- **FKs entre schemas:** apontam exclusivamente para a chave primária (`id`) da tabela dona (`ADR-0006`).
+- **Pricing (integer cents):** `regular_price_cents >= 0`, `special_price_cents IS NULL OR (special_price_cents >= 0 AND special_price_cents <= regular_price_cents)`, `product_variants.price_cents IS NULL OR price_cents >= 0`.
+- **Inventory (`inventory.stock_items`):** `quantity >= 0`, `reserved >= 0`, `reserved <= quantity`, `variant_id UNIQUE`.
+- **Media (`media.media_assets`):** `status IN ('pending', 'ready', 'failed')`, `storage_key UNIQUE`, `checksum_sha256 UNIQUE`, `size_bytes > 0`. Product image association writes live exclusively in `CatalogService.linkProductImage` (`catalog.product_images`).
+- **Catalog Search & Embeddings (`catalog.products`, `catalog.product_embeddings`):**
+  - `status IN ('draft', 'published', 'archived')` (`products_status_idx`) and `CHECK (slug <> 'facets')` (`ADR-0008`).
+  - `search_vector` (`tsvector`) maintained via `BEFORE INSERT OR UPDATE` trigger using `to_tsvector('portuguese', public.unaccent(...))` with weights `A` (`name`) and `B` (`description`), indexed with **GIN**.
+  - `attributes` (`jsonb`) indexed with **GIN**; B-tree indexes on `category_id`, `regular_price_cents`, and `special_price_cents`.
+  - `catalog.product_embeddings` stores 768-dimensional vectors generated by `embeddinggemma-2` (`ADR-0022`) with HNSW `vector_cosine_ops` index and `content_hash` idempotency guard.
+- **Favorites (`catalog.favorites`):** Requires `customer_id IS NOT NULL OR session_id IS NOT NULL`, with partial unique indexes on `(customer_id, product_id)` and `(session_id, product_id)`.
+- **Recommendations (`recommendations.product_relations`, `recommendations.category_complements`):**
+  - `product_relations`: `product_id <> related_product_id`, `UNIQUE (product_id, related_product_id, type)`, `type IN ('related', 'upsell', 'cross_sell')`, `source IN ('manual', 'auto')`, `method IN ('vector', 'rule', 'manual')`, manual/auto score invariants, `position >= 0`, `ON DELETE CASCADE` FKs to `catalog.products(id)`.
+  - `category_complements`: `PRIMARY KEY (category_id, complement_category_id)`, `category_id <> complement_category_id`, `position >= 0`, `ON DELETE CASCADE` FKs to `catalog.categories(id)`.
+- **Identity, Sessions & Audit (`identity.*`, `platform.audit_log`, `platform.outbox_events`):**
+  - Partial unique index `customer_addresses_default_uidx (customer_id) WHERE is_default = true`.
+  - Dual expiration (`expires_at` idle + `absolute_expires_at` hard cap) and `last_seen_at` on `identity.sessions`.
+  - Structured `before_state`, `after_state`, `ip_address`, `user_agent`, and `request_id` columns on `platform.audit_log`.
+  - `platform.outbox_events` polled with `SELECT ... FOR UPDATE SKIP LOCKED` and per-consumer rows (`ADR-0012`).
+- **Cross-Schema FKs:** Strictly reference primary keys (`id`) of owning tables only (`ADR-0006`).

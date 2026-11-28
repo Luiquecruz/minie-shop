@@ -1,32 +1,34 @@
 ---
 trigger: model_decision
-description: "Typechecking, linting, production build checks, browser validation cadence, and future automated testing standards."
+description: "Typechecking, linting, production build checks, Vitest/axe, Playwright metrics, security audit, and browser validation standards."
 ---
 
 # Testing & Verification Rules
 
-## 1. Current Verification Baseline
-At the current milestone (Phase 6 Increment 2 — Vitest + React Testing Library captured in `ADR-0001`), every code change must pass the following verification gates:
+## 1. Mandatory Verification Gates
+Every code change must pass the following workspace verification gates before requesting commit/push approval:
 
-1. **Automated Tests (`npm test`):** Executes `vitest run` across reducer, memoized selector, and React `<Profiler>` tests. Must finish with `0 failures`.
-2. **Static Typechecking (`npm run typecheck`):** Executes `tsc --noEmit` using strict `tsconfig.json`. Must finish with `0 errors`.
-3. **Static Linting (`npm run lint`):** Executes `oxlint` using `.oxlintrc.json` (`react`, `oxc`, `typescript` plugins). Must finish with `0 warnings and 0 errors`.
-4. **Production Bundle (`npm run build`):** Executes `tsc --noEmit && vite build` to verify TypeScript compilation, module resolution, TSX compilation, and CSS bundling.
-5. **Browser Validation Cadence:** Perform end-to-end browser inspection at the conclusion of each implemented user flow or upon explicit user request. Avoid spawning heavy browser checks for purely documentation edits.
+1. **Static Typechecking (`pnpm typecheck`):** Runs `turbo run typecheck` across all packages (`typescript 5.9.3` in Node packages, `7.0.2` in storefront). Must finish with `0 errors`.
+2. **Static Linting (`pnpm lint`):** Runs ESLint (`apps/api` with `eslint-plugin-boundaries` + per-module DB schema rules, `packages/contracts`, `packages/email`) and Oxlint (`apps/storefront` with `react`, `jsx-a11y`, `oxc`, `typescript`, `import/no-cycle`, and layer-scoped `no-restricted-imports`). Must finish with `0 warnings and 0 errors`.
+3. **Unit, Component & A11y Tests (`pnpm test`):** Runs contract tests (`@minieshop/contracts`), email renderer tests (`@minieshop/email`), API unit tests (`@minieshop/api`), and storefront Vitest + Testing Library + `vitest-axe` suites (`@minieshop/storefront`, including pages mounted inside `RootLayout` to catch landmark/heading regressions). Must finish with `0 failures`.
+4. **Production Build (`pnpm build`):** Builds `@minieshop/contracts`, `@minieshop/email`, `@minieshop/api`, and `@minieshop/storefront` (`tsc --noEmit && vite build`).
+5. **Security Audit (`pnpm audit --audit-level=high`):** Blocking gate requiring `0` high or critical advisories.
+6. **Package Export Verification (when touching contracts):** `pnpm --filter @minieshop/contracts lint:pkg` (`publint --strict`).
+7. **Backend Integration Suite (when touching API/schema/search/auth):** `pnpm --filter @minieshop/api test:integration` against Postgres + Meilisearch.
+8. **Playwright Metrics & Visual QA (when touching storefront UI/perf/routing):** `pnpm --filter @minieshop/storefront metrics` against the live local API + storefront stack (`CLS`, lazy search bundle split, optimistic favorites, chaos recovery).
+9. **CodeRabbit CLI Review:** Run `coderabbit review --agent --uncommitted --include-untracked` before opening/updating a PR and resolve all actionable findings.
 
 ## 2. Browser Flow Validation Checklist
-When validating UI flows in the browser (`npm run dev` on `http://localhost:5199`):
-- **PLP (`/`):** Category chip filtering, sort dropdown (`Default`, `Lowest Price`, `Highest Price`, `Top Rated`, `Name (A - Z)`), skeleton loading, empty/error states, and `Add to Cart`.
-- **SearchBar (`Navbar`):** Debounced autocomplete (`300ms`), match highlighting, keyboard navigation (`ArrowUp`, `ArrowDown`, `Enter`, `Escape`), clear button, and navigation to `/product/:id`.
-- **Multi-Currency (`Navbar` + `PriceBox` + `MiniCart`):** Switching `BRL`, `USD`, and `EUR` updates all prices and persists across page reloads (`minieshop_currency`).
-- **PDP (`/product/:id`):** Dynamic `<title>` via `react-helmet-async`, open masonry gallery, 3-tab switching (`Description`, `Manufacturer`, `Technical Specs`), floating action bar, and related products.
-- **MiniCart (`RootLayout`):** Auto-open on add, quantity increment/decrement/input guardrails (`1..stock`), debounced `validateStock` (`300ms`), warning alerts, item removal, and `localStorage` persistence (`minieshop_cart`).
-- **Visual & Responsive Quality:** Check desktop, tablet, and mobile layouts plus light and dark color schemes, confirming zero emojis in the UI.
+When validating storefront UI flows (`pnpm dev:storefront` on `http://localhost:5199` + API on `http://localhost:3001`):
+- **Theme & Anti-FOUC (`Navbar` + `index.html`):** Toggle `System / Light / Dark` (`html[data-theme]`), verify computed surface/text/skeleton contrast in both modes, and confirm hard reload in Dark mode applies `data-theme="dark"` synchronously with zero FOUC.
+- **PLP (`/`):** Category/facet filters (`CatalogFilters`), sort `Dropdown` keyboard navigation (`ArrowUp`/`ArrowDown`/`Home`/`End`/`Escape`), cursor `Load More`, `keepPreviousData` smooth transitions, optimistic favorite toggle, and `Add to Cart`.
+- **Header Search (`SearchBar`) & `/search`:** 200ms debounced APG combobox (`GET /search/suggest` with `categorySlug` navigation to `/:category/:slug`), Enter / "See all" navigation to lazy-loaded `/search?q=` (`react-instantsearch`), direct hard reload of `/search?q=fone`, and zero InstantSearch code in the main bundle.
+- **Multi-Currency & i18n (`Navbar` + `PriceBox` + `MiniCart` + `CartPage`):** Switching `EN` / `PT-BR` and `BRL` / `USD` / `EUR` triggers server repricing (`?currency=` / `POST /pricing/quote`) with zero client FX math and persists across reloads.
+- **PDP (`/:category/:slug`):** Dynamic `<title>`, breadcrumbs, gallery, APG keyboard-accessible `Tabs`, full-width `PdpRecommendationsSection` below the 2-column grid with `IntersectionObserver` lazy fetch and `CLS = 0`, and floating action bar.
+- **MiniCart & CartPage (`/cart`):** Native `<dialog>.showModal()` right-aligned drawer with backdrop click, `Escape`, focus restoration, debounced stock validation, promo codes, shipping selector, order note, and inline `CartCrossSellSection` adds that keep `MiniCart` closed.
+- **Landmarks, 404 & Responsive Quality:** Single `<main id="main-content">` + Skip Link, clean 404 page, zero console/page errors, zero emojis, and zero horizontal overflow across Desktop (`1440×900`), Tablet (`768×1024`), and Mobile (`390×844`).
 
-## 3. Rules for Introducing Automated Tests (Future Incremental Phase)
-- Before installing a test runner (e.g., Vitest + React Testing Library + Playwright), record an ADR in `docs/adr/` defining the tool choice, folder convention, and `package.json` test scripts.
-- Prioritize the test pyramid incrementally:
-  1. **Unit tests:** `src/utils/price.ts`, `src/utils/currency.ts`, `src/store/slices/cartSlice.ts`, `src/store/slices/currencySlice.ts`, and `src/services/api.ts`.
-  2. **Hook & Component tests:** `useFetch` (`AbortController` + fake timers for debounce), `useCart`, `useCurrency`, `Dropdown`, `SearchBar`, `PriceBox`, and `MiniCart`.
-  3. **E2E tests:** Critical shopping journeys (browse -> search -> PDP -> add to cart -> currency switch -> reload persistence).
-- Isolate `localStorage` and clean up fake timers between test cases so tests remain deterministic.
+## 3. Test Hygiene Standards
+- Isolate `localStorage`, theme attributes (`document.documentElement.dataset.theme`), and fake timers between tests.
+- Keep `MockProductRepository` contract-aligned with `HttpProductRepository` via `productRepositoryContract.test.ts`.
+- Avoid running heavy browser/Playwright checks for purely documentation-only changes (`docs/`, `AGENTS.md`, `.agent/`).

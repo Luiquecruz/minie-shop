@@ -1,6 +1,6 @@
 # ADR-0012 — Outbox Transacional em PostgreSQL e Worker como Segundo Entrypoint *(spec ADR-010)*
 
-- **Status:** Accepted
+- **Status:** Partially Superseded by [ADR-0016](./0016-monorepo-pnpm-workspaces-turborepo.md) and [ADR-0023](./0023-monorepo-package-boundaries-stack-typescript-and-contracts.md) *(monorepo unified under pnpm workspaces + Turborepo, compiled production Docker stage added, and `EmbeddingsOutboxHandler` atomic transaction hardened; outbox/worker topology unchanged)*
 - **Date:** 2026-11-22
 - **Phase:** Backend Fase 3 (`S03`)
 

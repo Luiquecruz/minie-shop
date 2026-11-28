@@ -1,6 +1,6 @@
 # ADR-0017: Camada de Dados do Storefront, Parse Tolerante, Paginação por Cursor e Rotas Canônicas
 
-- **Status:** Accepted
+- **Status:** Partially Superseded by [ADR-0018](./0018-multicurrency-pricing-and-storefront-i18n.md), [ADR-0023](./0023-monorepo-package-boundaries-stack-typescript-and-contracts.md), and [ADR-0024](./0024-tailwind-v4-semantic-tokens-and-theme-activation.md) *(server-side multi-currency pricing, `queryStrings.ts` + composition-root DI cleanup, `HttpClient` CSRF bootstrap/retry, and Tailwind CSS v4 styling)*
 - **Date:** 2026-11-23
 - **Phase:** Fase 6 — Integração Storefront ↔ API (`T22`, `T23`, `T25`)
 

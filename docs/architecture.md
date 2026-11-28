@@ -1,12 +1,12 @@
-# Arquitetura do Sistema — Progressive Minie Shop
+# System Architecture — Progressive Minie Shop
 
-Visão arquitetural completa do monorepo (`apps/storefront`, `apps/api`, `packages/contracts`, `packages/config`, `packages/email` e `infra/`).
+End-to-end architectural overview of the **react-minieshop** monorepo (`apps/storefront`, `apps/api`, `packages/contracts`, `packages/config`, `packages/email`, and `infra/`).
 
 ---
 
-## 1. Módulos do Backend (`apps/api`)
+## 1. Backend Modular Monolith (`apps/api`)
 
-A API segue o estilo de **monolito modular** (`ADR-0002`), com fronteiras verificadas por `eslint-plugin-boundaries` (cada módulo expõe apenas `index.ts`) e isolamento de persistência com um schema PostgreSQL por domínio (`ADR-0006`):
+The API follows a **modular monolith** architecture (`ADR-0002`, `ADR-0023`) with NestJS 11 + Fastify 5 and Drizzle ORM `0.45.4`. Module boundaries and per-schema database ownership are statically enforced by `eslint-plugin-boundaries` in `apps/api/eslint.config.mjs`—each module exposes only `index.ts` and writes strictly to its own PostgreSQL schema (`ADR-0006`).
 
 ```mermaid
 flowchart LR
@@ -15,18 +15,19 @@ flowchart LR
     WORKER["Worker Process\nOutbox Polling\n:3002/health"]
   end
 
-  subgraph Modules["Módulos de Domínio (fronteiras via index.ts)"]
-    CAT["catalog\n(schema: catalog)\nCategorias, Produtos, Facetas, Favoritos"]
-    MED["media\n(schema: media)\nSharp WebP, variantes, S3"]
-    INV["inventory\n(schema: inventory)\nEstoque por variante"]
-    SRC["search\nSearchPort -> Meilisearch\nFallback 3 camadas"]
-    REC["recommendations\n(schema: recommendations)\nRelacionados, Upsell, Cross-sell"]
-    IDN["identity\n(schema: identity)\nSessões opacas, CSRF, RBAC, Perfil"]
-    PLT["platform\n(schema: platform)\nOutbox, Audit Log, E-mail"]
+  subgraph Modules["Domain Modules (boundaries via index.ts)"]
+    CAT["catalog\n(schema: catalog)\nCategories, Products, Facets, Favorites, Image Links"]
+    MED["media\n(schema: media)\nSharp WebP, variants, S3"]
+    INV["inventory\n(schema: inventory)\nVariant stock items"]
+    SRC["search\nSearchPort -> Meilisearch\n3-tier fallback + ?currency="]
+    REC["recommendations\n(schema: recommendations)\nRelated, Upsell, Cross-sell"]
+    IDN["identity\n(schema: identity)\nOpaque sessions, CSRF, RBAC, Profile"]
+    PLT["platform\n(schema: platform)\nOutbox, Audit Log, Mailer"]
   end
 
-  subgraph Shared["Pacotes Compartilhados"]
-    CTR["@minieshop/contracts\nZod .strict()"]
+  subgraph Shared["Workspace Packages"]
+    CFG["@minieshop/config\ntsconfig.{base,node,web}, ESLint, Prettier"]
+    CTR["@minieshop/contracts\nZod v4 (.strict server / .strip client)"]
     EML["@minieshop/email\nReact Email"]
   end
 
@@ -46,83 +47,92 @@ flowchart LR
   WORKER --> REC
   PLT --> EML
   Modules -.-> CTR
+  Modules -.-> CFG
 ```
+
+### Key Hardening Guarantees
+- **Output Contract Masking:** `parseOutput()` validates responses against `.strict()` server schemas; contract violations log structured details server-side in `GlobalExceptionFilter` and return a generic `500 INTERNAL_ERROR` envelope without leaking internal field paths.
+- **Last-Admin Protection:** `StaffAdminService` filters `isActive = true` when enforcing last-admin and sole `staff:manage` invariants.
+- **Production Container Image:** `apps/api/Dockerfile` separates `development` (Compose) from a compiled `production` stage (`node dist/main.js`) packaging `dist` and `drizzle` migrations only.
 
 ---
 
-## 2. Fluxo Assíncrono: Outbox → Worker → Índice / Recomendações / E-mail
+## 2. Asynchronous Outbox Flow: Outbox -> Worker -> Search / Recommendations / Email
 
-Mutações de catálogo, mídia e identidade gravam eventos na tabela `platform.outbox_events` na **mesma transação ACID** do PostgreSQL (`ADR-0012`). O processo `worker` consome eventos com `SELECT ... FOR UPDATE SKIP LOCKED`, retentativas com backoff e dead-letter:
+Domain mutations record events in `platform.outbox_events` inside the **same PostgreSQL ACID transaction** (`ADR-0012`), including `EmbeddingsOutboxHandler` upserting vectors and enqueueing `product.embedding_updated` atomically. The `worker` entrypoint claims batches with `SELECT ... FOR UPDATE SKIP LOCKED`, leases, exponential backoff + jitter, and dead-letter handling:
 
 ```mermaid
 sequenceDiagram
   participant API as API / Seed
-  participant PG as PostgreSQL (Domínio + platform.outbox_events)
+  participant PG as PostgreSQL 17 (Domain + platform.outbox_events)
   participant WRK as Worker (Outbox Consumers)
-  participant OLL as Ollama (profile: ai)
+  participant OLL as Ollama (embeddinggemma-2)
   participant MS as Meilisearch
   participant MP as Mailpit / Resend
 
-  API->>PG: BEGIN; grava mutação + INSERT outbox_events; COMMIT
-  loop Polling com SKIP LOCKED
-    WRK->>PG: Busca eventos pendentes por consumer
+  API->>PG: BEGIN; domain write + INSERT outbox_events; COMMIT
+  loop Polling with SKIP LOCKED
+    WRK->>PG: Claim pending rows per consumer
     alt Consumer: search-index
-      WRK->>PG: Hidrata documento + embedding (se existir)
-      WRK->>MS: Upsert/Delete documento no índice products
-    else Consumer: embeddings (profile ai)
-      WRK->>OLL: Gera vetor (768 dims)
-      WRK->>PG: Persiste em catalog.product_embeddings (pgvector)
+      WRK->>PG: Hydrate product document + embedding vector
+      WRK->>MS: Upsert/Delete document in products index
+    else Consumer: embeddings (profile: ai)
+      WRK->>OLL: Generate 768-dim vector (embeddinggemma-2)
+      WRK->>PG: BEGIN; upsert catalog.product_embeddings + enqueue product.embedding_updated; COMMIT
     else Consumer: recommendations
-      WRK->>PG: Recalcula related / upsell / cross_sell
-    else Consumer: email
-      WRK->>MP: Envia verificação / reset de senha (React Email)
+      WRK->>PG: Rebuild related / upsell / cross_sell scores
+    else Consumer: mailer
+      WRK->>MP: Send verification / password reset email (React Email)
     end
-    WRK->>PG: Marca evento como processado (ou agenda retry/DLQ)
+    WRK->>PG: Mark processed (or schedule retry / dead-letter)
   end
 ```
 
 ---
 
-## 3. Fluxo Storefront → API (`apps/storefront`)
+## 3. Storefront -> API Data Flow (`apps/storefront`)
 
-O storefront separa rigorosamente **estado de servidor** (TanStack React Query) de **estado local/cliente** (Redux Toolkit para o carrinho e `useSearchParams` da URL para filtros):
+The storefront separates **server state** (TanStack React Query), **URL state** (`useSearchParams` parsed/serialized with Zod), and **pure client state** (Redux Toolkit slices persisted via `createListenerMiddleware`), styled with **Tailwind CSS v4** (`ADR-0024`):
 
 ```mermaid
 flowchart TD
-  URL["URL SearchParams\n(?category, q, minPrice, maxPrice, inStock, sort, attr.*)"] <-->|"Zod parse/serialize\n(push / replace)"| PLP["ProductListingPage\n(useInfiniteQuery + Facets)"]
-  NAV["Navbar / SearchBar\n(useCombobox APG + debounce ~200ms)"] -->|"Enter sem opção / Ver todos\n?q= (Zod)"| SRP["SearchResultsPage (/search, React.lazy)\n(react-instantsearch + offset <= 200)"]
-  NAV -->|"Enter/Click na sugestão\n/:category/:slug"| PDP
-  PLP -->|"Link /:category/:slug"| PDP["ProductDetailPage\n(useProductQuery + Galeria + Lazy Recs)"]
-  PDP -->|"IntersectionObserver (200px)\ntypes=related,upsell"| RC["RecommendationCarousel\n(scroll-snap + zero-CLS)"]
-  PLP --> Cart["CartPage (/cart) & MiniCart\n(Redux cartSlice CONGELADO + Cross-Sell)"]
+  URL["URL SearchParams\n(?category, q, minPrice, maxPrice, inStock, sort, attr.*)"] <-->|"Zod parse/serialize"| PLP["ProductListingPage\n(useInfiniteQuery + CatalogFilters)"]
+  NAV["Navbar (Theme Toggle + i18n + Currency + SearchBar)\n(useCombobox APG + 200ms debounce)"] -->|"Enter / See all -> ?q="| SRP["SearchResultsPage (/search, React.lazy + ErrorBoundary)\n(react-instantsearch + offset <= 200)"]
+  NAV -->|"Select suggestion -> /:category/:slug"| PDP
+  PLP -->|"Link /:category/:slug"| PDP["ProductDetailPage\n(useProductQuery + APG Tabs + Full-width Lazy Recs)"]
+  PDP -->|"IntersectionObserver (200px)\ntypes=related,upsell"| RC["RecommendationCarousel\n(scroll-snap + CLS = 0)"]
+  PLP --> Cart["CartPage (/cart) & MiniCart (<dialog>)\n(Frozen cartSlice + Inline Cross-Sell)"]
   PDP --> Cart
 
-  PLP --> RQ["TanStack QueryClient\n(staleTime explícito, keepPreviousData,\nsem retry em 4xx)"]
+  PLP --> RQ["TanStack QueryClient\n(staleTime, keepPreviousData, no 4xx retry)"]
   NAV -->|"GET /search/suggest"| RQ
   PDP --> RQ
-  SRP -->|"SearchClient customizado"| Repo
-  Cart -->|"Validação inStock + Cross-Sell"| RQ
+  SRP -->|"useStorefrontSearchClient"| Repo
+  Cart -->|"Stock validation + POST /pricing/quote + Cross-Sell"| RQ
 
-  RQ --> Repo["ProductRepository (Contexto React)\nHttpProductRepository | MockProductRepository"]
-  Repo --> HTTP["httpClient\n(env Zod, credentials: include,\nAbortSignal, timeout, x-chaos-* só DEV)"]
-  HTTP -->|"Parse tolerante (.strip)"| Contracts["@minieshop/contracts\n(catalog/client, search/client, recommendations/client)"]
-  HTTP -->|"HTTP :3001 (same-site localhost)"| API["apps/api (NestJS + Fastify)"]
-  API -->|"ImageDTO (variants + placeholder)"| Img["ProductImage\n(srcset, sizes, aspect-ratio,\nfallback SVG inline por estado)"]
-  Cart --> LS["localStorage versionado (v2)\n(createListenerMiddleware)"]
+  RQ --> Repo["ProductRepository (Composition-root DI in main.tsx)\nHttpProductRepository | MockProductRepository"]
+  Repo --> HTTP["HttpClient\n(Zod env, credentials: include, CSRF bootstrap/retry,\nAbortSignal, timeout, DEV-only x-chaos-*)"]
+  HTTP -->|"Tolerant parse (.strip)"| Contracts["@minieshop/contracts/*/client"]
+  HTTP -->|"HTTP :3001"| API["apps/api (NestJS + Fastify)"]
+  API -->|"ImageDTO (variants + placeholder)"| Img["ProductImage\n(srcset, sizes, aspect-ratio, inline SVG fallback)"]
+  Cart --> LS["Versioned localStorage (v2)\n(createListenerMiddleware)"]
 ```
 
 ---
 
-## 4. Camadas e Fronteiras do Storefront
+## 4. Storefront Layer Boundaries (Enforced by Oxlint)
 
-- **Domínio (`src/domain/`):** interface `ProductRepository` (catálogo, busca, sugestões e recomendações) e tipos derivados de `@minieshop/contracts`.
-- **Infraestrutura (`src/infrastructure/`):** `httpClient`, mapeamento de erros (`ApiError`, `NetworkError`, `ContractViolationError`), adaptador `createStorefrontSearchClient` (`src/infrastructure/search/instantSearchAdapter.ts`) para `react-instantsearch`, `HttpProductRepository`, `MockProductRepository` (com simulação dos três modos de busca e falhas) e leitura DEV-only de cabeçalhos de caos (`x-chaos-*`).
-- **Estado de Servidor (`src/query/`, `src/hooks/useProducts.ts`, `src/hooks/useSearch.ts`, `src/hooks/useRecommendations.ts`, `src/hooks/useFavorites.ts`):** `useInfiniteQuery` para cursor pagination, `useQuery` para categorias/facetas/PDP/sugestões/recomendações/favoritos e `useMutation` otimista para favoritos com rollback.
-- **Estado de Cliente (`src/store/`, `src/hooks/useCart.ts`, `src/hooks/useCombobox.ts`):** Redux Toolkit `cartSlice` (congelado na Fase 7), `createSelector` memoizado (incluindo `selectRecentCartProductIds` limitado a 20 IDs distintos), `cartStorage.ts` versionado (v2) com `createListenerMiddleware`, cálculos 100% em centavos inteiros e hook headless `useCombobox` (WAI-ARIA APG).
-- **UI e Resiliência (`src/components/`, `src/pages/`):** `SearchBar` com combobox APG acessível persistente no cabeçalho em toda a navegação (inclusive em `/search`, sincronizado com `?q=`), rota lazy `SearchResultsPage` (`/search`), `RecommendationCarousel` acessível com `scroll-snap` e reserva de altura zero-CLS (`useInView` na PDP e cross-sell inline sem abrir o `MiniCart` em `/cart`), `ProductImage` com fallback SVG inline (`ADR-0005`), `CatalogFilters`, `formatMoney` na borda e camada i18n (`en` + `pt-BR`).
+`apps/storefront/.oxlintrc.json` enforces `jsx-a11y`, `import/no-cycle`, and directional layer imports (`no-restricted-imports`):
+
+- **Domain (`src/domain/`):** `ProductRepository` port and framework-free domain error helpers (`errors.ts`). Cannot import React or `infrastructure/`.
+- **Infrastructure (`src/infrastructure/`):** `HttpClient` (CSRF token cache/retry with `awaitWithAbortSignal`, `AbortSignal`, DEV-only chaos), `HttpProductRepository`, `MockProductRepository`, `queryStrings.ts`, and `instantSearchAdapter.ts`.
+- **Composition Root & Context (`src/main.tsx`, `src/context/`):** Instantiates `HttpProductRepository` at app boot and injects it via `ProductRepositoryProvider` (zero concrete infrastructure import inside `context/`).
+- **Hooks & Server State (`src/query/`, `src/hooks/`):** Domain facades (`useCart`, `useCartActions`, `useCurrency`, `useTheme`, `useFavorites`, `useProducts`, `useSearch`, `useRecommendations`, `useCombobox`, `useInView`, `useDevChaos`, `useDebounce`).
+- **Client State (`src/store/`):** Pure `cartSlice` (frozen in Phase 7) and pure `currencySlice`, memoized `createSelector` derivations (`cartSelectors.ts`), and `createListenerMiddleware` persistence (`cartStorage.ts`, `currencyStorage.ts`, including `applyCartQuote` persistence).
+- **UI, Accessibility & Styling (`src/layouts/`, `src/components/`, `src/pages/`, `src/index.css`):** Single `<main id="main-content">` + Skip Link in `RootLayout`, route & lazy-chunk `<ErrorBoundary>`, native `<dialog>` `MiniCart`, WAI-ARIA APG keyboard controls (`SearchBar`, `Dropdown`, PDP `Tabs`), and unified Tailwind CSS v4 semantic utilities backed by `light-dark()` tokens (`Baseline 2024+`, `html[data-theme]`, zero legacy `.css` files).
 
 ---
 
-## 5. Governança de Decisões (ADRs)
+## 5. Architecture Decision Records
 
-Todas as decisões arquiteturais do projeto estão registradas de forma incremental em [`docs/adr/README.md`](./adr/README.md) (`ADR-0001` até `ADR-0021`).
+All incremental architectural decisions are recorded in [`docs/adr/README.md`](./adr/README.md) (`ADR-0001` through `ADR-0024`).

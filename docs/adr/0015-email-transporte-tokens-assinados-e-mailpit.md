@@ -1,6 +1,6 @@
 # ADR-0015: E-mail Transacional — `packages/email`, Tokens Assinados, Outbox e Mailpit
 
-- **Status:** Accepted
+- **Status:** Partially Superseded by [ADR-0023](./0023-monorepo-package-boundaries-stack-typescript-and-contracts.md) *(`@minieshop/email` extended with unit tests, ESLint, and shared `@minieshop/config` Node preset; signed token and outbox email flow unchanged)*
 - **Date:** 2026-11-22
 - **Phase:** Fase 5 — Identidade, Segurança e Auditoria (`I03`, ref. spec `ADR-012`)
 
