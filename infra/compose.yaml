@@ -70,18 +70,28 @@ services:
     command:
       - |
         echo "[init-buckets] Waiting for SeaweedFS filer & S3 gateway..."
-        for i in 1 2 3 4 5 6 7 8 9 10; do
-          if echo "s3.bucket.list" | weed shell -master=storage:9333 >/dev/null 2>&1; then
+        ready=0
+        for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+          if echo "s3.bucket.list" | timeout -s KILL 10 weed shell -master=storage:9333 -filer=storage:8888 >/dev/null 2>&1; then
+            ready=1
             break
           fi
-          sleep 1
+          echo "[init-buckets] Retry $$i/12: SeaweedFS shell not ready yet..."
+          sleep 2
         done
+        if [ "$$ready" -ne 1 ]; then
+          echo "[init-buckets] ERROR: SeaweedFS did not become ready in time." >&2
+          exit 1
+        fi
         echo "[init-buckets] Creating public bucket: $${S3_PUBLIC_BUCKET}"
-        echo "s3.bucket.create -name=$${S3_PUBLIC_BUCKET}" | weed shell -master=storage:9333
+        echo "s3.bucket.create -name=$${S3_PUBLIC_BUCKET}" | timeout -s KILL 15 weed shell -master=storage:9333 -filer=storage:8888
         echo "[init-buckets] Creating private bucket: $${S3_PRIVATE_BUCKET}"
-        echo "s3.bucket.create -name=$${S3_PRIVATE_BUCKET}" | weed shell -master=storage:9333
+        echo "s3.bucket.create -name=$${S3_PRIVATE_BUCKET}" | timeout -s KILL 15 weed shell -master=storage:9333 -filer=storage:8888
         echo "[init-buckets] Current buckets:"
-        echo "s3.bucket.list" | weed shell -master=storage:9333
+        buckets="$$(echo "s3.bucket.list" | timeout -s KILL 15 weed shell -master=storage:9333 -filer=storage:8888)"
+        printf '%s\n' "$$buckets"
+        printf '%s\n' "$$buckets" | grep -Fq "$${S3_PUBLIC_BUCKET}"
+        printf '%s\n' "$$buckets" | grep -Fq "$${S3_PRIVATE_BUCKET}"
         echo "[init-buckets] Done."
 
   search:
