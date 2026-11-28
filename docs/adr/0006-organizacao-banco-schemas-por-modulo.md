@@ -1,6 +1,6 @@
 # ADR-0006: Organização do Banco de Dados — Um Schema por Módulo
 
-- **Status:** Accepted
+- **Status:** Partially Superseded by [ADR-0023](./0023-monorepo-package-boundaries-stack-typescript-and-contracts.md) *(per-schema write ownership now statically enforced via `eslint-plugin-boundaries` on `src/database/schema/*`; `catalog.product_images` writes consolidated in `CatalogService`)*
 - **Date:** 2026-11-21
 - **Phase:** Fase 1 — Fundação Backend (`T01`, ref. spec `ADR-008`)
 

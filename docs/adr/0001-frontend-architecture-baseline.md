@@ -1,6 +1,6 @@
 # ADR-0001: Frontend Architecture Baseline (Phases 1–6 Inc. 2)
 
-- **Status:** Accepted
+- **Status:** Partially Superseded by [ADR-0016](./0016-monorepo-pnpm-workspaces-turborepo.md), [ADR-0017](./0017-camada-dados-storefront-repositorio-cursor-rotas.md), [ADR-0018](./0018-multicurrency-pricing-and-storefront-i18n.md), and [ADR-0024](./0024-tailwind-v4-semantic-tokens-and-theme-activation.md) *(monorepo relocation, live API repository + cursor pagination, server-side currency pricing, and Tailwind CSS v4 semantic tokens)*
 - **Date:** 2026-11-21
 - **Phase:** Phases 1–6 (Increment 2)
 - **Consolidates:** Former incremental ADRs `0001`–`0010` (pre-backend frontend milestones, preserved in Git history)

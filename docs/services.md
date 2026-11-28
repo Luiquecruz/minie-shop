@@ -1,50 +1,52 @@
 # Services & Data Layer Inventory (Incremental)
 
-Tracks catalog, search, and recommendations data access (`ProductRepository`, `httpClient`, `instantSearchAdapter`), tolerant client contracts (`@minieshop/contracts/*/client`), and mock fixture providers.
+Tracks storefront domain ports, HTTP transport, repositories, query-string builders, tolerant client contracts (`@minieshop/contracts/*/client`), and the React InstantSearch adapter under `apps/storefront/src/{domain,infrastructure,context}/`.
+
+*(Note: The Phase 1–5 frontend-only simulated `src/services/api.ts` and `src/data/products.ts` were retired in Phase 6 (`ADR-0017`) and replaced by the real NestJS API + `ProductRepository` architecture below.)*
 
 ---
 
-## Phase 6 & Phase 7 Live Data Layer (`src/domain/`, `src/infrastructure/`)
+## 1. Domain Layer (`apps/storefront/src/domain/`)
 
-- **`ProductRepository` (`src/domain/repositories/ProductRepository.ts`):** Interface implemented by `HttpProductRepository` and `MockProductRepository` (with constants `MAX_SEARCH_LIMIT = 60`, `SEARCH_PAGE_SIZE = 24`, `MAX_SEARCH_OFFSET = 200`, `MAX_SUGGEST_LIMIT = 8`, `MAX_CROSS_SELL_PRODUCT_IDS = 20`, `MAX_RECOMMENDATION_LIMIT = 24`).
-- **HTTP Transport (`src/infrastructure/http/httpClient.ts`):** Single shared HTTP client validating `VITE_API_URL` via Zod, forwarding `AbortSignal`, enforcing timeouts, setting `credentials: 'include'`, injecting DEV-only `x-chaos-*` headers, mapping `ApiError`/`NetworkError`/`ContractViolationError`, and validating responses with `.strip()` tolerant client schemas from `@minieshop/contracts/catalog/client`, `search/client`, and `recommendations/client`.
-- **Phase 7 Methods (`HttpProductRepository` & `MockProductRepository`):**
-  - `searchProducts(params, signal?)` -> `GET /search` (supports `hybrid`, `keyword`, and `postgres` simulation in `MockProductRepository`).
-  - `suggestProducts(params, signal?)` -> `GET /search/suggest` (max 8 suggestions + error simulation in `MockProductRepository`).
-  - `getProductRecommendations(params, signal?)` -> `GET /products/:slug/recommendations` (`types`, optional `limit`).
-  - `getCrossSell(params, signal?)` -> `GET /recommendations/cross-sell` (up to 20 `productIds`, excludes input IDs and out-of-stock products).
-- **`instantSearchAdapter.ts` (`src/infrastructure/search/instantSearchAdapter.ts`):** Custom `SearchClient` bridging React InstantSearch pagination (`page`, `hitsPerPage = 24`) to `ProductRepository.searchProducts`, short-circuiting empty queries and `offset > 200` without network calls.
+Framework-free contracts and helpers enforced by Oxlint (`domain/` cannot import React or `infrastructure/`):
 
----
-
-## Legacy Phase 1–5 Simulated API Service (Historical Baseline)
-
-Exports `productsApi` (named and default export), `ProductNotFoundError`, and `apiErrorSimulator` backed by `PRODUCTS_MOCK` and `localStorage` (`minieshop_favorites`). Uses `DEFAULT_DELAY_MS = 300` and an internal `delay(ms, signal)` helper that cleans up abort listeners and rejects with `DOMException('The user aborted a request.', 'AbortError')` when aborted.
-
-### `productsApi` Methods
-
-| Method | Parameters | Returns | Notes |
-| :--- | :--- | :--- | :--- |
-| `getProducts` | `GetProductsParams = {}` | `Promise<PaginatedProductsResponse>` | Supports `category`, `search`, `sortBy`, `page`, `limit`, `favoritesOnly`, `signal`, and `delayMs` |
-| `getProductById` | `(id: number \| string, delayMs?: number, signal?: AbortSignal)` | `Promise<Product>` | Coerces `id` via `Number(id)`; throws `ProductNotFoundError` if missing |
-| `getCategories` | `(delayMs?: number, signal?: AbortSignal)` | `Promise<string[]>` | Deduplicates categories from `PRODUCTS_MOCK` |
-| `getRelatedProducts` | `(productId: number \| string, category: string, limit?: number, delayMs?: number, signal?: AbortSignal)` | `Promise<Product[]>` | Filters same-category items excluding `productId`, backfills with other products if `< limit` |
-| `searchProducts` | `SearchProductsParams = {}` | `Promise<Product[]>` | Matches `name`, `category`, or `description` (case-insensitive); supports `AbortSignal` |
-| `validateStock` | `(productId: number \| string, requestedQuantity: number, signal?: AbortSignal)` | `Promise<StockValidationResult>` | `150ms` simulated delay; supports `AbortSignal`; defaults `maxStock` to `99` if non-numeric |
-| `getFavorites` | `(delayMs?: number, signal?: AbortSignal)` | `Promise<number[]>` | Reads validated integer IDs from `localStorage` (`minieshop_favorites`); after a write fails, reads use session memory until storage is successfully written again |
-| `toggleFavorite` | `(productId: number)` | `Promise<number[]>` | `280ms` delay; persists toggle to `localStorage`; throws if `failFavoritesMutation` is enabled |
-
-### `apiErrorSimulator`
-Observable store (`subscribe`, `getSnapshot`, `setFailQueries`, `setFailFavoritesMutation`, `reset`) consumed by `ApiDebugFab` via `useSyncExternalStore` to simulate query failures and optimistic mutation rollbacks.
+- **`ProductRepository` (`src/domain/repositories/ProductRepository.ts`):** Repository interface implemented by `HttpProductRepository` and `MockProductRepository`, defining domain limits (`MAX_SEARCH_LIMIT = 60`, `SEARCH_PAGE_SIZE = 24`, `MAX_SEARCH_OFFSET = 200`, `MAX_SUGGEST_LIMIT = 8`, `MAX_CROSS_SELL_PRODUCT_IDS = 20`, `MAX_RECOMMENDATION_LIMIT = 24`) and typed query/response methods:
+  - `getCategories(signal?)`
+  - `getProducts(params, signal?)` (cursor-paginated `GET /products`)
+  - `getFacets(params, signal?)` (`GET /products/facets`)
+  - `getProductBySlug(slug, currency?, signal?)` (`GET /products/:slug`)
+  - `getFavorites(signal?)` (`GET /favorites`)
+  - `addFavorite(productId, signal?)` (`POST /favorites/:productId`)
+  - `removeFavorite(productId, signal?)` (`DELETE /favorites/:productId`)
+  - `quoteCart(request, signal?)` (`POST /pricing/quote`)
+  - `searchProducts(params, signal?)` (`GET /search` with `?currency=`)
+  - `suggestProducts(params, signal?)` (`GET /search/suggest` returning `categorySlug`)
+  - `getProductRecommendations(params, signal?)` (`GET /products/:slug/recommendations`)
+  - `getCrossSell(params, signal?)` (`GET /recommendations/cross-sell`)
+- **`errors.ts` (`src/domain/errors.ts`):** Pure type guards (`isNotFoundError`, `getErrorCode`, `getErrorStatus`) so presentation layers inspect error semantics without importing `infrastructure/http/errors`.
 
 ---
 
-## Mock Product Dataset (`src/data/products.ts`)
+## 2. Infrastructure Layer (`apps/storefront/src/infrastructure/`)
 
-Exports `PRODUCTS_MOCK: Product[]` (30 `RawProduct` entries in `RAW_PRODUCTS` transformed at module load).
+- **HTTP Transport (`src/infrastructure/http/httpClient.ts`):**
+  - Validates `VITE_API_URL` at boot via Zod (`src/config/env.ts`).
+  - Sends `credentials: 'include'`, propagates caller `AbortSignal`, enforces per-request timeouts, and injects DEV-only `x-chaos-delay` / `x-chaos-fail` headers (tree-shaken in production).
+  - **CSRF Bootstrap & Retry:** Automatically fetches and caches the CSRF token (`GET /auth/csrf`), attaches `x-csrf-token` on state-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`), performs a single refresh-and-retry on `403` CSRF errors, and wraps shared token-refresh awaits in `awaitWithAbortSignal` so caller aborts cancel immediately without aborting sibling callers.
+  - Maps HTTP/network/schema failures into typed `ApiError`, `NetworkError`, and `ContractViolationError` (`src/infrastructure/http/errors.ts`).
+  - Validates all responses using tolerant `.strip()` client schemas from `@minieshop/contracts/{catalog,search,recommendations,identity}/client`.
+- **Query String Builders (`src/infrastructure/repositories/queryStrings.ts`):**
+  - Houses all HTTP `URLSearchParams` encoders (`buildProductsQueryString`, `buildFacetsQueryString`, `buildSearchQueryString`, `buildSuggestQueryString`, `buildRecommendationsQueryString`, `buildCrossSellQueryString`) outside `domain/`, including `?currency=` support on `/search`.
+- **Repositories (`src/infrastructure/repositories/`):**
+  - `HttpProductRepository.ts`: Production repository instantiated in the composition root (`apps/storefront/src/main.tsx`) and injected via `ProductRepositoryProvider`.
+  - `MockProductRepository.ts`: Deterministic in-memory test/offline twin backed by `src/test/fixtures/catalogFixture.ts`, supporting `hybrid`/`keyword`/`postgres` search simulation and failure modes.
+  - `productRepositoryContract.test.ts`: Shared contract test suite verifying behavioral parity between `HttpProductRepository` and `MockProductRepository`.
+- **Search Client Adapter (`src/infrastructure/search/instantSearchAdapter.ts`):**
+  - `createStorefrontSearchClient(repository, currency)` bridges `react-instantsearch` pagination (`page`, `hitsPerPage = 24`) to `ProductRepository.searchProducts`, short-circuiting empty queries and `offset > 200` without network requests. Exposed to UI components via `useStorefrontSearchClient()` in `src/hooks/useSearch.ts`.
 
-### Transformation Pipeline per Product
-1. `images`: `generateGalleryImages(product.image)` strips existing `&ar=` params and generates 4 aspect-ratio gallery URLs (`base`, `4:5`, `1:1`, `3:4`).
-2. `specs`: `generateSpecs(product)` produces 8 `ProductSpec` rows (`Category`, `Model / SKU` formatted `MS-00001`, `Stock Status`, `Official Warranty`, `Shipping Estimate`, `Quality Standard`, `Packaging`, `Customer Satisfaction`).
-3. `manufacturer`: `generateManufacturerInfo(product)` builds `ManufacturerInfo` (`{ brand, origin, warrantyText, sustainability, support }`).
-4. `price`: `calculatePrice(product.price)` enriches `RawPriceInput` into `CalculatedPrice` (`regular_price`, `special_price`, `final_price`, `discount_percentage`, `has_discount`).
+---
+
+## 3. Composition Root & Context (`src/main.tsx`, `src/context/`)
+
+- `productRepositoryContext.ts` holds only the `ProductRepository` port type (zero concrete `HttpProductRepository` import).
+- `main.tsx` instantiates the default `HttpProductRepository` and passes it to `<ProductRepositoryProvider repository={repository}>`, while Vitest suites inject `new MockProductRepository()`.

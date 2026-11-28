@@ -1,6 +1,6 @@
 # ADR-0002: Monolito Modular em Monorepo e Gatilhos de Extração
 
-- **Status:** Accepted
+- **Status:** Partially Superseded by [ADR-0016](./0016-monorepo-pnpm-workspaces-turborepo.md) and [ADR-0023](./0023-monorepo-package-boundaries-stack-typescript-and-contracts.md) *(Phase 1 isolated `link:` setup superseded by unified pnpm workspaces + Turborepo, stack-pinned TypeScript, and per-schema ESLint DB boundaries)*
 - **Date:** 2026-11-21
 - **Phase:** Fase 1 — Fundação Backend (`T01`, ref. spec `ADR-001`)
 

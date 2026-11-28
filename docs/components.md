@@ -1,6 +1,6 @@
 # Components, Layouts & Pages Inventory (Incremental)
 
-Tracks all layout shells, route pages, and reusable components in `src/`.
+Tracks all layout shells, route pages, and reusable UI components under `apps/storefront/src/`. Every UI unit is styled exclusively with **Tailwind CSS v4** semantic utilities composed via `cn()` (`apps/storefront/src/index.css` is the sole CSS file in the storefront).
 
 ---
 
@@ -8,112 +8,113 @@ Tracks all layout shells, route pages, and reusable components in `src/`.
 
 | Category | Name | Path | Phase |
 | :--- | :--- | :--- | :--- |
-| **Layout** | `RootLayout` | `src/layouts/RootLayout/RootLayout.tsx` | Phase 2 / 5 / Post-Phase 5 |
-| **Page** | `ProductListingPage` | `src/pages/ProductListingPage/ProductListingPage.tsx` | Phase 3 / Post-Phase 5 |
-| **Page** | `ProductDetailPage` | `src/pages/ProductDetailPage/ProductDetailPage.tsx` | Phase 4 / 6 / 7 (`R05.2`) |
-| **Page** | `SearchResultsPage` | `src/pages/SearchResultsPage/SearchResultsPage.tsx` | Phase 7 (`S08.3`, lazy) |
-| **Page** | `CartPage` | `src/pages/CartPage/CartPage.tsx` | Phase 6 / 7 (`R05.3`) |
-| **Component** | `ApiDebugFab` | `src/components/ApiDebugFab/ApiDebugFab.tsx` | Post-Phase 5 |
-| **Component** | `CartCrossSellSection` | `src/pages/CartPage/components/CartCrossSellSection.tsx` | Phase 7 (`R05.3`) |
-| **Component** | `CatalogFilters` | `src/components/CatalogFilters/CatalogFilters.tsx` | Phase 6 |
-| **Component** | `Dropdown` | `src/components/Dropdown/Dropdown.tsx` | Phase 3 / Pre-Phase 6 |
-| **Component** | `Navbar` | `src/components/Navbar/Navbar.tsx` | Phase 3 / 4 / 5 / 7 |
-| **Component** | `Pagination` | `src/components/Pagination/Pagination.tsx` | Post-Phase 5 |
-| **Component** | `PdpRecommendationsSection` | `src/pages/ProductDetailPage/components/PdpRecommendationsSection.tsx` | Phase 7 (`R05.2`) |
-| **Component** | `PriceBox` | `src/components/PriceBox/PriceBox.tsx` | Phase 3 |
-| **Component** | `ProductCard` | `src/components/ProductCard/ProductCard.tsx` | Phase 3 / 4 / 5 / 6 |
-| **Component** | `ProductImage` | `src/components/ProductImage/ProductImage.tsx` | Phase 6 |
-| **Component** | `RecommendationCarousel` | `src/components/RecommendationCarousel/RecommendationCarousel.tsx` | Phase 7 (`R05.4`) |
-| **Component** | `SearchBar` | `src/components/SearchBar/SearchBar.tsx` | Phase 4 / 7 (`S08.2`) |
-| **Component** | `MiniCart` | `src/components/MiniCart/MiniCart.tsx` | Phase 5 / 6 |
+| **Layout** | `RootLayout` | `apps/storefront/src/layouts/RootLayout/RootLayout.tsx` | Phases 2, 5 & Pre-DS |
+| **Page** | `ProductListingPage` | `apps/storefront/src/pages/ProductListingPage/ProductListingPage.tsx` | Phases 3, 6 & Pre-DS |
+| **Page** | `ProductDetailPage` | `apps/storefront/src/pages/ProductDetailPage/ProductDetailPage.tsx` | Phases 4, 6, 7 & Pre-DS |
+| **Page** | `SearchResultsPage` | `apps/storefront/src/pages/SearchResultsPage/SearchResultsPage.tsx` | Phase 7 (`S08.3`, lazy) & Pre-DS |
+| **Page** | `CartPage` | `apps/storefront/src/pages/CartPage/CartPage.tsx` | Phases 6, 7 & Pre-DS |
+| **Page** | `NotFoundPage` | `apps/storefront/src/pages/NotFoundPage/NotFoundPage.tsx` | Phase 6 & Pre-DS |
+| **Component** | `ApiDebugFab` | `apps/storefront/src/components/ApiDebugFab/ApiDebugFab.tsx` | Phase 6 (DEV-only, lazy) & Pre-DS |
+| **Component** | `AttributeIcon` | `apps/storefront/src/components/AttributeIcon/AttributeIcon.tsx` | Phase 6 |
+| **Component** | `CartCrossSellSection` | `apps/storefront/src/pages/CartPage/components/CartCrossSellSection.tsx` | Phase 7 (`R05.3`) & Pre-DS |
+| **Component** | `CatalogFilters` | `apps/storefront/src/components/CatalogFilters/CatalogFilters.tsx` | Phase 6 & Pre-DS |
+| **Component** | `Dropdown` | `apps/storefront/src/components/Dropdown/Dropdown.tsx` | Phase 3 & Pre-DS (APG keyboard) |
+| **Component** | `ErrorBoundary` | `apps/storefront/src/components/ErrorBoundary/ErrorBoundary.tsx` | Pre-DS |
+| **Component** | `MiniCart` | `apps/storefront/src/components/MiniCart/MiniCart.tsx` | Phases 5, 6 & Pre-DS (`<dialog>`) |
+| **Component** | `Navbar` | `apps/storefront/src/components/Navbar/Navbar.tsx` | Phases 3–7 & Pre-DS (Theme toggle) |
+| **Component** | `PdpRecommendationsSection` | `apps/storefront/src/pages/ProductDetailPage/components/PdpRecommendationsSection.tsx` | Phase 7 (`R05.2`) & Pre-DS |
+| **Component** | `PriceBox` | `apps/storefront/src/components/PriceBox/PriceBox.tsx` | Phases 3, 6 & Pre-DS |
+| **Component** | `ProductCard` | `apps/storefront/src/components/ProductCard/ProductCard.tsx` | Phases 3–7 & Pre-DS |
+| **Component** | `ProductImage` | `apps/storefront/src/components/ProductImage/ProductImage.tsx` | Phase 6 & Pre-DS |
+| **Component** | `RecommendationCarousel` | `apps/storefront/src/components/RecommendationCarousel/RecommendationCarousel.tsx` | Phase 7 (`R05.4`) & Pre-DS |
+| **Component** | `SearchBar` | `apps/storefront/src/components/SearchBar/SearchBar.tsx` | Phase 7 (`S08.2`) & Pre-DS |
 
 ---
 
 ## Layouts
 
-### `RootLayout` (`src/layouts/RootLayout/RootLayout.tsx`)
-- **Purpose:** Canonical React Router Layout Route shell wrapping all pages.
-- **Renders:** `.app-shell` containing `<Navbar />`, `<main className="app-content"><Outlet /></main>`, `<footer className="app-footer">` (copyright `Minie Shop`), `<MiniCart />`, and `<ApiDebugFab />`.
+### `RootLayout` (`apps/storefront/src/layouts/RootLayout/RootLayout.tsx`)
+- **Purpose:** Canonical React Router Layout Route shell wrapping all storefront routes.
+- **Renders:** Accessible Skip Link (`#main-content`), `<Navbar />`, the **single `<main id="main-content">` landmark** wrapping `<Outlet />`, `<footer>`, `<MiniCart />`, and DEV-only lazy `<ApiDebugFab />`.
 
 ---
 
 ## Pages
 
-### `ProductListingPage` (`src/pages/ProductListingPage/ProductListingPage.tsx`)
-- **Route:** `/` and `*`
-- **Dependencies:** `useSearchParams`, `Helmet`, `useCart`, `useFavoritesQuery`, `useCategoriesQuery`, `useProductsQuery`, `ProductCard`, `Dropdown<ProductSortOption>`, `Pagination`.
-- **Behavior:** Syncs `category`, `sort`, and `page` (`PAGE_SIZE = 12`) in URL search params; includes `"Favorites"` filter chip with live count; keeps previous grid visible during page changes (`keepPreviousData`); clamps out-of-bounds pages using data for the current query; renders retryable error UI and displays card mutation errors in a dismissible toast.
+### `ProductListingPage` (`apps/storefront/src/pages/ProductListingPage/ProductListingPage.tsx`)
+- **Route:** `/`
+- **Dependencies:** `useSearchParams`, `Helmet`, `useCartActions`, `useFavoritesQuery`, `useCategoriesQuery`, `useFacetsQuery`, `useProductsQuery`, `CatalogFilters`, `ProductCard`, `Dropdown<ProductSort>`, `catalogUrlParams`.
+- **Behavior:** Syncs catalog filters and sort in URL params via Zod; runs cursor pagination (`useInfiniteQuery`, `PAGE_SIZE = 12`) with `keepPreviousData`; announces updates via `sr-only` `role="status"` live region; displays retryable error state, skeleton cards, empty filter reset, and dismissible favorite error toast.
 
-### `ProductDetailPage` (`src/pages/ProductDetailPage/ProductDetailPage.tsx`)
-- **Route:** `/product/:id`
-- **Dependencies:** `useParams<{ id: string }>`, `Link`, `useNavigate`, `Helmet`, `useCart`, `useFavorites`, `useProductQuery`, `useRelatedProductsQuery`, `ProductNotFoundError`, `PriceBox`, `ProductCard`.
-- **Behavior:** Smooth-scrolls to top on `:id` change, resets tab selection per `id`, loads product and dependent related products via React Query, includes optimistic `Save` / `Saved` heart button, distinguishes `ProductNotFoundError` from retryable transient errors, and renders masonry gallery, 3 ARIA tabs, inline + floating CTA bars, and toast notifications.
+### `ProductDetailPage` (`apps/storefront/src/pages/ProductDetailPage/ProductDetailPage.tsx`)
+- **Route:** `/:category/:slug` (canonicalizes mismatched `:category` segments via `<Navigate replace />`)
+- **Dependencies:** `useParams`, `Link`, `Navigate`, `useNavigate`, `Helmet`, `isNotFoundError`, `useCartActions`, `useFavorites`, `useProductQuery`, `AttributeIcon`, `PriceBox`, `ProductImage`, `NotFoundPage`, `PdpRecommendationsSection`.
+- **Behavior:** Smooth-scrolls to top on `:slug` change; renders breadcrumbs, gallery, optimistic `Save`/`Saved` toggle, `PriceBox`, assurance badges, WAI-ARIA APG keyboard-accessible `Description` and `Technical Specs` tabs (`ArrowLeft`/`ArrowRight`/`Home`/`End`), full-width `<PdpRecommendationsSection key={product.slug} />` cleanly below the 2-column desktop grid, and a sticky bottom floating action bar.
 
-### `CartPage` (`src/pages/CartPage/CartPage.tsx`)
+### `SearchResultsPage` (`apps/storefront/src/pages/SearchResultsPage/SearchResultsPage.tsx`)
+- **Route:** `/search` (lazy-loaded chunk wrapped in `<ErrorBoundary>` + `<Suspense>` inside `App.tsx`)
+- **Dependencies:** `react-instantsearch@7.55.1` (`InstantSearch`, `useSearchBox`, `useInfiniteHits`, `useInstantSearch`, `useConfigure`), `useStorefrontSearchClient`, `useCartActions`, `parseSearchUrlQuery`, `ProductCard`, `Helmet`.
+- **Behavior:** Driven by `?q=` updated from `SearchBar`, skips API calls on empty queries, renders infinite pagination (`hitsPerPage = 24`) with `offset <= 200` cutoff message, announces counts via `aria-live="polite"`, and displays a DEV-only `mode` + latency badge.
+
+### `CartPage` (`apps/storefront/src/pages/CartPage/CartPage.tsx`)
 - **Route:** `/cart`
-- **Subcomponents (`src/pages/CartPage/components/`):** Memoized `CartHeader`, `CartItemRow`, `CartPromoBox`, `CartShippingSelector`, `CartOrderNote`, `CartOrderSummary`.
-- **Dependencies:** Granular Redux hooks (`src/hooks/useCart.ts`), `useCurrency`, `useDebounce`, `useStockValidationQuery`, `Helmet`.
-<!-- coderabbit-ai-generated:v1 -->
+- **Subcomponents (`apps/storefront/src/pages/CartPage/components/`):** Memoized `CartHeader`, `CartItemRow`, `CartPromoBox`, `CartShippingSelector`, `CartOrderNote`, `CartOrderSummary`, and `CartCrossSellSection`.
+- **Dependencies:** Granular Redux cart hooks (`src/hooks/useCart.ts`), `useCartQuoteSync`, `useCurrency`, `useDebounce`, `useStockValidationQuery`, `Helmet`.
+- **Behavior:** Isolates re-renders strictly to affected cart sections; handles quantity clamping with visible inset `focus-visible` outlines, debounced stock validation, promo codes (`MINIE10`, `MINIE20`, `FREESHIP`), server-quoted shipping selection, order notes, empty state, and inline cross-sell adds.
 
-<!-- coderabbit-ai-generated-section:v1:ff2486ae60f9219ab531356e2efa5e757468437b98be37547cc2d19d6eb7a9e1 -->
-
-- **Behavior:** Migrated in Increment 2 from monolithic Context to pure functional Redux Toolkit `cartSlice` + memoized `createSelector` + `React.memo`, isolating re-renders strictly to affected sections. Handles quantity clamping, debounced stock checks, promo codes (`MINIE10`, `MINIE20`, `FREESHIP`), shipping selection, order notes, empty state, and currency conversion. Quantity edits accept decimal and exponent notation, truncate fractions, and validate only after the committed quantity has settled. The quantity field uses the same focus colors as the promo and note fields.
-
-<!-- /coderabbit-ai-generated:v1 -->
+### `NotFoundPage` (`apps/storefront/src/pages/NotFoundPage/NotFoundPage.tsx`)
+- **Route:** `*` (and unknown product slugs)
+- **Behavior:** Renders semantic `<div>` inside `RootLayout`'s `<main>`, sets 404 SEO metadata via `<Helmet>`, and provides recovery links back to `/` and `/search`.
 
 ---
 
 ## Reusable Components
 
-### `ApiDebugFab` (`src/components/ApiDebugFab/ApiDebugFab.tsx`)
-- **Purpose:** Discreet bottom-left floating debug simulator for testing React Query retries, error states, cache invalidation, and optimistic mutation rollbacks.
-- **Dependencies:** `useMatch('/product/:id')`, `useQueryClient`, `apiErrorSimulator`.
-- **Behavior:** Shifts upward (`api-debug-fab--pdp`) on PDP routes to avoid overlapping `.pdp-floating-bar`; focuses the close button on open, restores trigger focus on panel dismissal via the close button or Escape, and preserves outside click focus; toggles `failQueries` and `failFavoritesMutation` and triggers `queryClient.invalidateQueries()`.
+### `ErrorBoundary` (`apps/storefront/src/components/ErrorBoundary/ErrorBoundary.tsx`)
+- **Purpose:** Fault boundary wrapping `App` routes and lazy `<Suspense><SearchResultsPage /></Suspense>`.
+- **Behavior:** Uses `getDerivedStateFromProps` with `resetKey` (location key) so healthy children never remount on navigation, displays an accessible `role="alert"` fallback with retry/reload recovery, and supports chunk-load retry.
 
-### `Dropdown` (`src/components/Dropdown/Dropdown.tsx`)
-- **Purpose:** Generic cross-browser styled replacement for native `<select>`.
-- **Exported Interfaces:** `DropdownOption<T extends string | number = string>`, `DropdownProps<T extends string | number = string>`
-- **Behavior:** Uses typed `pointerdown` outside-click listener and `Escape` dismissal; implements `aria-haspopup="listbox"` and `role="option"`.
+### `ApiDebugFab` (`apps/storefront/src/components/ApiDebugFab/ApiDebugFab.tsx`)
+- **Purpose:** Lazy-loaded DEV-only bottom-left floating control panel (`useDevChaos`) for toggling `chaos.delay` and `chaos.fail` and invalidating React Query cache.
+- **Behavior:** Mobile-constrained popover width (`w-80 max-w-[calc(100vw-2.5rem)]`), focus management on open/Escape/close, and tree-shaken from production builds.
 
-### `Navbar` (`src/components/Navbar/Navbar.tsx`)
-- **Purpose:** Top sticky navigation bar across all routes.
-- **Dependencies:** `Link`, `useCurrency`, `useI18n`, `useCartBadge`, `SearchBar`.
-- **Behavior:** Displays brand link (`/`), global `SearchBar`, independent language selector (`EN` / `PT-BR`) and currency selector (`BRL` / `USD` / `EUR`), and isolated cart badge toggle button displaying live `cartCount`.
+### `AttributeIcon` (`apps/storefront/src/components/AttributeIcon/AttributeIcon.tsx`)
+- **Purpose:** Maps catalog attribute `iconKey` identifiers to crisp inline vector SVGs (`aria-hidden="true"`).
 
-### `Pagination` (`src/components/Pagination/Pagination.tsx`)
-- **Purpose:** Numbered catalog pagination bar.
-- **Exported Interface (`PaginationProps`):** `currentPage`, `totalPages`, `onPageChange`, `isFetching?`.
-- **Behavior:** Renders `Previous`, numbered page buttons (`aria-current="page"`), `Next`, and an `Updating...` live status label during background transitions; returns `null` when `totalPages <= 1`.
+### `CatalogFilters` (`apps/storefront/src/components/CatalogFilters/CatalogFilters.tsx`)
+- **Purpose:** Responsive sidebar/drawer filter panel rendering category tree, price bounds, in-stock toggle, and disjunctive attribute facets synchronized to URL search parameters.
 
-### `PriceBox` (`src/components/PriceBox/PriceBox.tsx`)
-- **Purpose:** Standardized price and discount presentation connected to `useCurrency` and `calculatePrice`.
-- **Exported Interface (`PriceBoxProps`):** `price`, `size?`, `className?`, `currency?`.
+### `Dropdown` (`apps/storefront/src/components/Dropdown/Dropdown.tsx`)
+- **Purpose:** Generic accessible custom listbox selector (`DropdownProps<T extends string | number = string>`).
+- **Behavior:** Full WAI-ARIA APG keyboard navigation (`ArrowDown`, `ArrowUp`, `Home`, `End`, `Enter`, `Space`, `Escape`), outside pointer dismissal, and trigger focus restoration.
 
-### `ProductCard` (`src/components/ProductCard/ProductCard.tsx`)
-- **Purpose:** Catalog card used in PLP and PDP related products.
-- **Exported Interface (`ProductCardProps`):** `product`, `onAddToCart?`, `onFavoriteError?`.
-- **Behavior:** Wraps image `<Link>` and optimistic favorite heart `<button>` in `.product-card__media` (avoiding nested interactive elements), shows category and stock badges, star rating, description, `PriceBox`, and `Add to Cart` button.
+### `Navbar` (`apps/storefront/src/components/Navbar/Navbar.tsx`)
+- **Purpose:** Persistent sticky top navigation bar across all routes.
+- **Dependencies:** `Link`, `useCartBadge`, `useCurrency`, `useTheme`, `useI18n`, `SearchBar`.
+- **Behavior:** Displays brand link (`/`), global `SearchBar`, accessible 3-way `System / Light / Dark` inline-SVG theme toggle, independent language (`EN` / `PT-BR`) and currency (`BRL` / `USD` / `EUR`) selectors, and isolated cart badge toggle button.
 
-### `SearchResultsPage` (`src/pages/SearchResultsPage/SearchResultsPage.tsx`)
-- **Route:** `/search` (lazy-loaded chunk via `React.lazy` in `App.tsx`)
-- **Dependencies:** `react-instantsearch@7.55.1` (`InstantSearch`, `useSearchBox`, `useInfiniteHits`, `useInstantSearch`, `useConfigure`), `createStorefrontSearchClient`, `parseSearchUrlQuery`, `ProductCard`, `Helmet`.
-- **Behavior:** Driven by `?q=` URL parameter updated from the persistent global `SearchBar`, skips API requests on empty queries, highlights the queried term with semantic `<strong>` (`1rem`, bold, no guillemets), renders infinite pagination (`hitsPerPage=24`) enforcing the `offset <= 200` cutoff notice, announces result counts via `aria-live="polite"`, and shows a DEV-only `mode` + response latency badge.
+### `PriceBox` (`apps/storefront/src/components/PriceBox/PriceBox.tsx`)
+- **Purpose:** Standardized server-authoritative `PriceDTO` display (`PriceBoxProps`) formatting integer cents via `useCurrency().formatPrice`, rendering strikethrough regular price and discount badge when `hasDiscount` is true.
 
-### `SearchBar` (`src/components/SearchBar/SearchBar.tsx`)
-- **Purpose:** Global accessible WAI-ARIA APG autocomplete combobox persistent in `Navbar` across all routes (including `/search`, where it stays synced with `?q=`).
-- **Dependencies:** `useNavigate`, `useLocation`, `useMatch`, `useQueryClient`, `useDebounce`, `useSearchSuggestQuery`, `useCombobox`, `parseSearchUrlQuery`.
-- **Behavior:** Queries `/search/suggest` after ~200 ms debounce from >= 2 trimmed chars (max 8 suggestions + `"Ver todos os resultados para "` with semantic `<strong>`), handles `ArrowDown`/`ArrowUp`/`Home`/`End`/`Escape`/outside click while keeping DOM focus on `<input>`, announces counts via `aria-live="polite"`, navigates directly to `/:category/:slug` (or `/search?q=` on empty selection / `"See all"`), and preserves Enter submission when `suggest` fails.
+### `ProductCard` (`apps/storefront/src/components/ProductCard/ProductCard.tsx`)
+- **Purpose:** Catalog, search, and recommendation card (`ProductCardProps`).
+- **Behavior:** Uses `useCartActions()` (no subscription to full cart state), wraps image link and optimistic favorite toggle without nested interactive elements, displays category/stock badges, highlight chips, `PriceBox`, and `Add to Cart` button.
 
-### `RecommendationCarousel` (`src/components/RecommendationCarousel/RecommendationCarousel.tsx`)
+### `ProductImage` (`apps/storefront/src/components/ProductImage/ProductImage.tsx`)
+- **Purpose:** Responsive `<picture>`/`<img>` renderer consuming `ImageDTO` (`srcset`, `sizes`, `aspectRatio`, blur placeholder, and inline SVG fallback per `ADR-0005`).
+
+### `SearchBar` (`apps/storefront/src/components/SearchBar/SearchBar.tsx`)
+- **Purpose:** Persistent global WAI-ARIA APG autocomplete combobox (`useCombobox` + `useSearchSuggestQuery`).
+- **Behavior:** Queries `GET /search/suggest` after 200ms debounce (>= 2 trimmed chars, max 8 suggestions + "See all results"), navigates directly via `suggestion.categorySlug` to `/:category/:slug` or to `/search?q=`, and stays synced with `?q=` on `/search`.
+
+### `RecommendationCarousel` (`apps/storefront/src/components/RecommendationCarousel/RecommendationCarousel.tsx`)
 - **Purpose:** Reusable accessible horizontal product carousel (`R05.4`).
-- **Behavior:** Renders `section` (`aria-labelledby`, `aria-roledescription="carousel"`) with `ul`/`li` slides (`ProductCard`), CSS `scroll-snap-type: x mandatory`, `overscroll-behavior-x: contain`, `prefers-reduced-motion` support, boundary Prev/Next controls with focus redirection, horizontal-only `onFocusCapture` scroll-into-view, zero-CLS skeleton (`min-height: 600px`), and silent collapse on empty or error states (with DEV-only debug badge + `console.warn`).
+- **Behavior:** `section` (`aria-labelledby`, `aria-roledescription="carousel"`) with `ul`/`li` slides (`ProductCard`), CSS `scroll-snap-type: x mandatory`, `overscroll-behavior-x: contain`, `prefers-reduced-motion`, Prev/Next focus redirection, zero-CLS skeleton, explicit `showErrorDebug?: boolean` prop, and silent collapse on empty/error.
 
 ### `PdpRecommendationsSection` & `CartCrossSellSection`
-- `PdpRecommendationsSection` (`src/pages/ProductDetailPage/components/PdpRecommendationsSection.tsx`): Keyed by `product.slug`, reserves `690px` until settled, uses `useInView({ rootMargin: '200px 0px' })` to trigger a single `GET /products/:slug/recommendations?types=related,upsell` request once visible.
-- `CartCrossSellSection` (`src/pages/CartPage/components/CartCrossSellSection.tsx`): `React.memo` section below `.cart-layout` reading `useRecentCartProductIds()`, client-filtering cart items (`keepPreviousData`), and adding inline via `addToCart` + `closeCart` without opening `MiniCart`.
+- `PdpRecommendationsSection`: Keyed by `product.slug`, placed full-width below the 2-column PDP grid, triggers a single `GET /products/:slug/recommendations?types=related,upsell` request once `useInView({ rootMargin: '200px 0px' })` latches (`CLS = 0`).
+- `CartCrossSellSection`: `React.memo` section below the Cart layout reading `useRecentCartProductIds()`, client-filtering cart items (`keepPreviousData`), and invoking `addToCart` + `closeCart` inline without opening `MiniCart`.
 
-### `MiniCart` (`src/components/MiniCart/MiniCart.tsx`)
-- **Purpose:** Global slide-over shopping cart drawer.
-- **Internal Subcomponent:** `CartItem` (`CartItemProps`) — manages per-item `300ms` debounced `useStockValidationQuery` via `useDebounce`, numeric input clamping (`1..maxStock`), increment/decrement buttons, stock warnings for the current quantity, and unit/line totals.
-- **Dependencies:** `Link`, `useCart`, `useCurrency`, `useDebounce`, `useStockValidationQuery`.
-- **Behavior:** Renders `null` when `!isOpen`; locks body scroll when open; supports `Escape` and overlay click to close; shows empty state, item list, subtotal/total, navigates to `/cart` on **View Full Cart**, and shows placeholder notice for **Proceed to Checkout**.
+### `MiniCart` (`apps/storefront/src/components/MiniCart/MiniCart.tsx`)
+- **Purpose:** Global right-aligned modal drawer rendered via native `<dialog>.showModal()`.
+- **Behavior:** Renders `null` when closed, traps modal interaction cleanly without duplicating `banner`/`contentinfo` landmarks, locks body scroll, closes on `Escape` or backdrop mousedown, restores trigger focus on close, syncs server repricing via `useCartQuoteSync(isOpen)`, validates stock per item with 300ms debounce, and navigates to `/cart` on **View Full Cart**.

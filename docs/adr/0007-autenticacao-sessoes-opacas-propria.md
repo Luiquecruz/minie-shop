@@ -1,6 +1,6 @@
 # ADR-0007: Autenticação — Implementação Própria com Sessões Opacas no Servidor
 
-- **Status:** Accepted
+- **Status:** Partially Superseded by [ADR-0014](./0014-sessoes-cookies-csrf-e-parametros-seguranca.md) and [ADR-0015](./0015-email-transporte-tokens-assinados-e-mailpit.md) *(dual-expiration sessions, `__Host-` cookie hardening, HMAC CSRF protection, and signed `<id>.<hmac>` email tokens)*
 - **Date:** 2026-11-21
 - **Phase:** Fase 1 — Fundação Backend (`T01`, ref. spec `ADR-009`)
 
