@@ -8,9 +8,10 @@ Project constitution, context, and operational guidelines for AI agents and deve
 
 **Progressive Minie Shop** is an incremental full-stack e-commerce monorepo built in structured phases with a modular NestJS + Fastify backend, shared Zod contracts, React Email templates, and a React + TypeScript + Tailwind CSS v4 storefront.
 
-- **Current Phase:** Pre-Design System Baseline completed after Phase 7 (`S08` APG header autocomplete + lazy `react-instantsearch` `/search` route, `R05` lazy PDP recommendations + inline Cart cross-sell over a frozen `cartSlice`, monorepo security/contract/API hardening, storefront boundary/a11y/CSRF enforcement, and full Tailwind CSS v4 + `light-dark()` semantic token unification).
-- **Next Planned Phase:**
-  - **Phase 8:** Design System extraction (`@minieshop/ui`, Storybook 10 + MCP, Changesets, and reusable accessible primitives).
+- **Current Phase:** **Phase 8 — Design System (In Progress — `SDD-0006`):** Slice 1 completed (`packages/ui` / `@minieshop/ui` unbundled ESM `tsc` `7.0.2` foundation, React-free `@minieshop/ui/tokens` CSS-first `light-dark()` tokens + `styles.css` `@source` preset + `cn()`, strict Oxlint boundaries, `publint --strict`, storefront token consumption, and `ADR-0025`).
+- **Next Planned Slices (Phase 8):**
+  - **Slice 2:** Storybook 10 + `@storybook/addon-mcp`, Playwright Chromium `addon-a11y`, Linux Docker visual snapshots, `.github/workflows/ui.yml`, and `ADR-0026`.
+  - **Slices 3–6:** Core & APG interactive primitives, incremental Storefront adoption, and Changesets release pipeline.
 
 ---
 
@@ -24,7 +25,8 @@ Project constitution, context, and operational guidelines for AI agents and deve
 | **Shared Contracts** | `@minieshop/contracts` + Zod | `zod 4.6.7` | Strict server schemas (`.strict()`), tolerant client schemas (`.strip()`), `publint --strict` verified |
 | **Transactional Email** | `@minieshop/email` | React Email | HTML + plain-text renderers with unit tests & ESLint |
 | **Storefront Build & UI** | Vite + React + TypeScript | `vite ^8.3.4`, `react ^19.3.1`, `typescript 7.0.2` (web) / `5.9.3` (node) | Stack-pinned TypeScript (`ADR-0023`), strict mode (`allowJs: false`), dev server on port `5199` |
-| **Styling & Theming** | Tailwind CSS v4 (`@tailwindcss/vite`) + `clsx` + `tailwind-merge` | `tailwindcss ^4.3.5`, `clsx ^2.1.1`, `tailwind-merge ^3.7.1` | Single CSS entrypoint (`apps/storefront/src/index.css`), 2-tier CSS-first `light-dark()` tokens, `html[data-theme]`, anti-FOUC script (`ADR-0024`) |
+| **Design System** | `@minieshop/ui` (`packages/ui`) | `typescript 7.0.2`, `clsx ^2.1.1`, `tailwind-merge ^3.7.1` | Standalone, app-agnostic, RSC-ready tokens (`./tokens`, `./tokens.css`, `./styles.css`), unbundled ESM `tsc`, Oxlint boundaries, `publint --strict` (`ADR-0025`) |
+| **Styling & Theming** | Tailwind CSS v4 (`@tailwindcss/vite`) + `@minieshop/ui/tokens` | `tailwindcss ^4.3.5`, `@minieshop/ui` | Single CSS entrypoint (`apps/storefront/src/index.css`) importing `@minieshop/ui/styles.css`, 2-tier `light-dark()` tokens, `html[data-theme]`, anti-FOUC script (`ADR-0024`, `ADR-0025`) |
 | **Server State & Search UI** | `@tanstack/react-query` + `react-instantsearch` | `^5.108.2` / `7.55.1` (lazy `/search` chunk only) | Cursor pagination (`useInfiniteQuery`), `keepPreviousData`, optimistic Favorites queue, `useCombobox` APG |
 | **Global Client State** | `@reduxjs/toolkit` + `react-redux` | `^2.13.0` / `^9.3.0` | Pure `cartSlice` (frozen) & `currencySlice`, memoized `createSelector`, `createListenerMiddleware` `localStorage` persistence |
 | **Routing & SEO** | `react-router-dom` + `react-helmet-async` | `^7.18.4` / `^3.0.0` | Canonical `/:category/:slug` PDP, `/search`, `/cart`, `<ErrorBoundary>` + lazy `<Suspense>`, single `<main>` in `RootLayout` |
@@ -53,6 +55,7 @@ pnpm lint                                     # ESLint (api/contracts/email) + O
 pnpm test                                     # Unit & Vitest + vitest-axe suites across all packages
 pnpm build                                    # Build contracts, email, API, and storefront production bundle
 pnpm audit --audit-level=high                 # Blocking security audit gate (must report 0 high/critical)
+pnpm --filter @minieshop/ui lint:pkg          # Validate @minieshop/ui exports via publint --strict
 pnpm --filter @minieshop/contracts lint:pkg   # Validate @minieshop/contracts exports via publint --strict
 pnpm --filter @minieshop/api test:integration # Run API HTTP, search & security integration suite (PG + Meilisearch)
 pnpm --filter @minieshop/storefront metrics   # Run Playwright metrics suite against live stack
@@ -116,7 +119,8 @@ react-minieshop/
 ├── packages/
 │   ├── config/                         # Shared tsconfig.{base,node,web}.json, eslint.base.mjs, prettier.json
 │   ├── contracts/                      # Shared Zod v4 DTOs (server .strict() & client .strip()) + publint
-│   └── email/                          # React Email transactional templates + tests
+│   ├── email/                          # React Email transactional templates + tests
+│   └── ui/                             # @minieshop/ui Design System (tokens, styles.css @source preset, cn, RSC-safe ESM)
 ├── infra/                              # Docker Compose stack (Postgres, Meilisearch, SeaweedFS, Ollama, Mailpit)
 └── docs/                               # Living English docs, metrics, ADRs & SDD specs
 ```

@@ -11,6 +11,7 @@ on:
       - 'pnpm-workspace.yaml'
       - 'turbo.json'
       - 'apps/storefront/**'
+      - 'packages/ui/**'
       - 'packages/contracts/**'
       - 'packages/config/**'
       - '.github/workflows/storefront.yml'
@@ -21,6 +22,7 @@ on:
       - 'pnpm-workspace.yaml'
       - 'turbo.json'
       - 'apps/storefront/**'
+      - 'packages/ui/**'
       - 'packages/contracts/**'
       - 'packages/config/**'
       - '.github/workflows/storefront.yml'
@@ -64,6 +66,7 @@ jobs:
           pnpm exec turbo run typecheck --filter=@minieshop/storefront...
           pnpm exec turbo run test --filter=@minieshop/storefront...
           pnpm exec turbo run build --filter=@minieshop/storefront...
+          pnpm --filter @minieshop/ui lint:pkg
           pnpm --filter @minieshop/contracts lint:pkg
 
       - name: Dependency audit gate (blocking on high/critical)

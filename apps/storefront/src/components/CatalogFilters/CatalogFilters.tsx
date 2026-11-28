@@ -6,7 +6,7 @@ import type {
 } from '@minieshop/contracts';
 import { useI18n } from '../../i18n';
 import { useCurrency } from '../../hooks/useCurrency';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 import {
   hasActiveCatalogFilters,
   type CatalogUrlState,

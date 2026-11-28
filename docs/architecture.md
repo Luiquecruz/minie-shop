@@ -1,6 +1,6 @@
 # System Architecture — Progressive Minie Shop
 
-End-to-end architectural overview of the **react-minieshop** monorepo (`apps/storefront`, `apps/api`, `packages/contracts`, `packages/config`, `packages/email`, and `infra/`).
+End-to-end architectural overview of the **react-minieshop** monorepo (`apps/storefront`, `apps/api`, `packages/ui`, `packages/contracts`, `packages/config`, `packages/email`, and `infra/`).
 
 ---
 
@@ -29,6 +29,7 @@ flowchart LR
     CFG["@minieshop/config\ntsconfig.{base,node,web}, ESLint, Prettier"]
     CTR["@minieshop/contracts\nZod v4 (.strict server / .strip client)"]
     EML["@minieshop/email\nReact Email"]
+    UI["@minieshop/ui\nCSS-first light-dark() tokens & RSC-safe ESM"]
   end
 
   HTTP --> CAT
@@ -129,10 +130,10 @@ flowchart TD
 - **Composition Root & Context (`src/main.tsx`, `src/context/`):** Instantiates `HttpProductRepository` at app boot and injects it via `ProductRepositoryProvider` (zero concrete infrastructure import inside `context/`).
 - **Hooks & Server State (`src/query/`, `src/hooks/`):** Domain facades (`useCart`, `useCartActions`, `useCurrency`, `useTheme`, `useFavorites`, `useProducts`, `useSearch`, `useRecommendations`, `useCombobox`, `useInView`, `useDevChaos`, `useDebounce`).
 - **Client State (`src/store/`):** Pure `cartSlice` (frozen in Phase 7) and pure `currencySlice`, memoized `createSelector` derivations (`cartSelectors.ts`), and `createListenerMiddleware` persistence (`cartStorage.ts`, `currencyStorage.ts`, including `applyCartQuote` persistence).
-- **UI, Accessibility & Styling (`src/layouts/`, `src/components/`, `src/pages/`, `src/index.css`):** Single `<main id="main-content">` + Skip Link in `RootLayout`, route & lazy-chunk `<ErrorBoundary>`, native `<dialog>` `MiniCart`, WAI-ARIA APG keyboard controls (`SearchBar`, `Dropdown`, PDP `Tabs`), and unified Tailwind CSS v4 semantic utilities backed by `light-dark()` tokens (`Baseline 2024+`, `html[data-theme]`, zero legacy `.css` files).
+- **UI, Accessibility & Styling (`src/layouts/`, `src/components/`, `src/pages/`, `src/index.css`):** Single `<main id="main-content">` + Skip Link in `RootLayout`, route & lazy-chunk `<ErrorBoundary>`, native `<dialog>` `MiniCart`, WAI-ARIA APG keyboard controls (`SearchBar`, `Dropdown`, PDP `Tabs`), and unified Tailwind CSS v4 semantic utilities backed by `@minieshop/ui/styles.css` (`light-dark()` tokens, `Baseline 2024+`, `html[data-theme]`, zero legacy `.css` files, `ADR-0024`, `ADR-0025`).
 
 ---
 
 ## 5. Architecture Decision Records
 
-All incremental architectural decisions are recorded in [`docs/adr/README.md`](./adr/README.md) (`ADR-0001` through `ADR-0024`).
+All incremental architectural decisions are recorded in [`docs/adr/README.md`](./adr/README.md) (`ADR-0001` through `ADR-0025`).

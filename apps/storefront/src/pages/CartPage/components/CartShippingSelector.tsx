@@ -3,7 +3,7 @@ import { useCartActions, useCartShippingState } from '../../../hooks/useCart';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useI18n } from '../../../i18n';
 import type { ShippingMethodId } from '../../../types';
-import { cn } from '../../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 
 export interface CartShippingSelectorProps {
   isPriceLoading?: boolean;

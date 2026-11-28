@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import type { ImageDTO } from '@minieshop/contracts';
 import { useI18n } from '../../i18n';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 
 export interface ProductImageProps {
   image: ImageDTO | null | undefined;

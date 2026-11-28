@@ -1,8 +1,8 @@
 # Utilities Inventory (Incremental)
 
-Tracks pure, framework-agnostic utility modules under `apps/storefront/src/utils/`.
+Tracks pure, framework-agnostic utility modules under `apps/storefront/src/utils/` and shared Design System token utilities in `packages/ui/src/utils/`.
 
-*(Note: Legacy `src/utils/price.ts` and client-side FX conversion helpers were deleted as part of the server-authoritative pricing policy (`ADR-0017`, `ADR-0018`) and pre-Design System dead-code cleanup.)*
+*(Note: `cn.ts` was promoted from `apps/storefront/src/utils/cn.ts` into `@minieshop/ui/tokens` (`packages/ui/src/utils/cn.ts`) in Phase 8 Slice 1 (`ADR-0025`). Legacy `src/utils/price.ts` and client-side FX conversion helpers were deleted as part of the server-authoritative pricing policy (`ADR-0017`, `ADR-0018`).)*
 
 ---
 
@@ -10,7 +10,7 @@ Tracks pure, framework-agnostic utility modules under `apps/storefront/src/utils
 
 | Module | Path | Exports | Purpose |
 | :--- | :--- | :--- | :--- |
-| `cn.ts` | `apps/storefront/src/utils/cn.ts` | `cn` | Conditional class name composition & Tailwind CSS v4 utility conflict resolution (`clsx` + `tailwind-merge`) |
+| `cn.ts` | `packages/ui/src/utils/cn.ts` *(re-exported via `@minieshop/ui/tokens`)* | `cn`, `ClassValue` | Conditional class name composition & Tailwind CSS v4 utility conflict resolution (`clsx` + `tailwind-merge`) |
 | `currency.ts` | `apps/storefront/src/utils/currency.ts` | `SUPPORTED_CURRENCIES`, `SUPPORTED_CURRENCY_LIST`, `DEFAULT_CURRENCY`, `isCurrencyCode` | Display metadata and runtime type guard for supported ISO-4217 currencies (`BRL`, `USD`, `EUR`) — zero client FX rates |
 | `money.ts` | `apps/storefront/src/utils/money.ts` | `formatMoney`, `formatCents` | Integer-cents `MoneyDTO` formatting via `Intl.NumberFormat` at the UI display boundary |
 | `catalogUrlParams.ts` | `apps/storefront/src/utils/catalogUrlParams.ts` | `CatalogUrlState`, `parseCatalogUrlParams`, `serializeCatalogUrlParams`, `hasActiveCatalogFilters` | Zod-validated parsing and canonical serialization of PLP filter/sort `URLSearchParams` |
@@ -20,8 +20,8 @@ Tracks pure, framework-agnostic utility modules under `apps/storefront/src/utils
 
 ## Module Details
 
-### `apps/storefront/src/utils/cn.ts`
-- **`cn(...inputs: ClassValue[]): string`:** Wraps `twMerge(clsx(inputs))` so conditional Tailwind v4 utility classes resolve predictably without specificity clashes (`ADR-0024`).
+### `packages/ui/src/utils/cn.ts` (`@minieshop/ui/tokens`)
+- **`cn(...inputs: ClassValue[]): string`:** Wraps `twMerge(clsx(inputs))` so conditional Tailwind v4 utility classes resolve predictably without specificity clashes (`ADR-0024`, `ADR-0025`). Consumed by `apps/storefront` via `import { cn } from '@minieshop/ui/tokens'`.
 
 ### `apps/storefront/src/utils/currency.ts`
 - **`DEFAULT_CURRENCY: CurrencyCode`:** `'BRL'`

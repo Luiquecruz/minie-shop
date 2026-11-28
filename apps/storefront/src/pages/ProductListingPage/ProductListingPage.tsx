@@ -15,7 +15,7 @@ import {
   useProductsQuery,
 } from '../../hooks/useProducts';
 import { useI18n } from '../../i18n';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 import {
   parseCatalogUrlParams,
   serializeCatalogUrlParams,

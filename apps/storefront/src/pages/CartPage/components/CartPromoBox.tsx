@@ -7,7 +7,7 @@ import {
   useCartPromoState,
 } from '../../../hooks/useCart';
 import { useI18n } from '../../../i18n';
-import { cn } from '../../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 
 const SUGGESTED_CODES = Object.keys(PROMO_COUPONS);
 

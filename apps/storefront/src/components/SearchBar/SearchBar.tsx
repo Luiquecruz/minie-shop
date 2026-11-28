@@ -5,7 +5,7 @@ import { useCombobox } from '../../hooks/useCombobox';
 import { useDebounce } from '../../hooks/useDebounce';
 import { MIN_SUGGEST_QUERY_LENGTH, useSearchSuggestQuery } from '../../hooks/useSearch';
 import { useI18n } from '../../i18n';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 import { MAX_SEARCH_QUERY_LENGTH, parseSearchUrlQuery } from '../../utils/searchUrlParams';
 
 export interface SearchBarProps {

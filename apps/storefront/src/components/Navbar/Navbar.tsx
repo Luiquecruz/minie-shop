@@ -7,7 +7,7 @@ import {
   SUPPORTED_LOCALES,
   useI18n,
 } from '../../i18n';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 import {
   isCurrencyCode,
   SUPPORTED_CURRENCY_LIST,
