@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 
 export interface DropdownOption<T extends string | number = string> {
   value: T;

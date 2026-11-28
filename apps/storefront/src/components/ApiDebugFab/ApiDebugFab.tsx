@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDevChaos } from '../../hooks/useDevChaos';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 
 /**
  * Development-only floating control for toggling API Chaos headers

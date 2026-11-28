@@ -1,0 +1,206 @@
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ==========================================================================
+   @minieshop/ui — Two-Tier Semantic Design Tokens (Baseline 2024+)
+   Tier 1: Raw light-dark() values -> Tier 2: Semantic tokens -> @theme inline
+   Canonical theme selector: html[data-theme="light" | "dark"]
+   ========================================================================== */
+:root {
+  color-scheme: light dark;
+
+  /* Brand */
+  --brand: light-dark(#7c3aed, #a855f7);
+  --brand-hover: light-dark(#6d28d9, #9333ea);
+  --brand-light: #c084fc;
+  --brand-subtle: light-dark(rgba(124, 58, 237, 0.08), rgba(168, 85, 247, 0.16));
+  --brand-subtle-hover: light-dark(rgba(124, 58, 237, 0.14), rgba(168, 85, 247, 0.24));
+  --brand-border: light-dark(rgba(124, 58, 237, 0.22), rgba(168, 85, 247, 0.34));
+
+  /* Surfaces */
+  --surface-page: light-dark(#f9fafb, #0f1015);
+  --surface-secondary: light-dark(#f3f4f6, #17181f);
+  --surface-tertiary: light-dark(#edf0f3, #1f212a);
+  --surface-card: light-dark(#ffffff, #17181f);
+  --surface-card-subtle: light-dark(#f8fafc, #1f212a);
+  --surface-input: light-dark(#ffffff, #121318);
+  --surface-chip: light-dark(#f3f4f6, #222430);
+  --surface-chip-hover: light-dark(#e5e7eb, #2b2e3d);
+  --surface-nav: light-dark(rgba(255, 255, 255, 0.88), rgba(15, 16, 21, 0.92));
+
+  /* Borders */
+  --border-default: light-dark(#e5e7eb, #272935);
+  --border-subtle: light-dark(#f3f4f6, #20222b);
+
+  /* Typography */
+  --fg-body: light-dark(#4b5563, #9ca3af);
+  --fg-heading: light-dark(#111827, #f3f4f6);
+  --fg-muted: light-dark(#6b7280, #9ca3af);
+
+  /* Status */
+  --status-success: light-dark(#059669, #34d399);
+  --status-success-bg: light-dark(rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.16));
+  --status-success-border: light-dark(rgba(16, 185, 129, 0.28), rgba(52, 211, 153, 0.35));
+
+  --status-warning: light-dark(#b45309, #fbbf24);
+  --status-warning-bg: light-dark(rgba(245, 158, 11, 0.12), rgba(251, 191, 36, 0.14));
+  --status-warning-border: light-dark(rgba(245, 158, 11, 0.3), rgba(251, 191, 36, 0.32));
+
+  --status-danger: light-dark(#dc2626, #f87171);
+  --status-danger-bg: light-dark(rgba(239, 68, 68, 0.1), rgba(248, 113, 113, 0.14));
+  --status-danger-border: light-dark(rgba(239, 68, 68, 0.28), rgba(248, 113, 113, 0.34));
+
+  --status-info: light-dark(#2563eb, #60a5fa);
+  --status-info-bg: light-dark(rgba(59, 130, 246, 0.1), rgba(96, 165, 250, 0.15));
+  --status-info-border: light-dark(rgba(59, 130, 246, 0.25), rgba(96, 165, 250, 0.32));
+
+  /* Skeletons */
+  --skeleton-base: light-dark(#e5e7eb, #222430);
+  --skeleton-highlight: light-dark(#f3f4f6, #2d3040);
+
+  /* Layout & Elevation */
+  --container-max-width: 1280px;
+  --shadow-card-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-card-md: 0 4px 12px -2px rgba(0, 0, 0, 0.09);
+  --shadow-card-lg: 0 12px 28px -6px rgba(0, 0, 0, 0.14);
+  --shadow-floating-bar: 0 -8px 24px -4px rgba(0, 0, 0, 0.09);
+
+  /* Z-index scale */
+  --z-sticky-nav: 40;
+  --z-dropdown: 50;
+  --z-floating-bar: 60;
+  --z-toast: 70;
+  --z-fab: 80;
+  --z-drawer: 100;
+  --z-skip-link: 200;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --shadow-card-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-card-md: 0 4px 12px -2px rgba(0, 0, 0, 0.45);
+  --shadow-card-lg: 0 12px 28px -6px rgba(0, 0, 0, 0.55);
+  --shadow-floating-bar: 0 -8px 24px -4px rgba(0, 0, 0, 0.48);
+}
+
+@theme inline {
+  /* Semantic Color Utilities */
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-light: var(--brand-light);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-subtle-hover: var(--brand-subtle-hover);
+  --color-brand-border: var(--brand-border);
+
+  --color-bg: var(--surface-page);
+  --color-bg-secondary: var(--surface-secondary);
+  --color-bg-tertiary: var(--surface-tertiary);
+  --color-surface: var(--surface-card);
+  --color-surface-subtle: var(--surface-card-subtle);
+  --color-surface-input: var(--surface-input);
+  --color-surface-chip: var(--surface-chip);
+  --color-surface-chip-hover: var(--surface-chip-hover);
+  --color-surface-nav: var(--surface-nav);
+
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+
+  --color-fg: var(--fg-body);
+  --color-fg-heading: var(--fg-heading);
+  --color-fg-muted: var(--fg-muted);
+
+  --color-success: var(--status-success);
+  --color-success-bg: var(--status-success-bg);
+  --color-success-border: var(--status-success-border);
+
+  --color-warning: var(--status-warning);
+  --color-warning-bg: var(--status-warning-bg);
+  --color-warning-border: var(--status-warning-border);
+
+  --color-danger: var(--status-danger);
+  --color-danger-bg: var(--status-danger-bg);
+  --color-danger-border: var(--status-danger-border);
+
+  --color-info: var(--status-info);
+  --color-info-bg: var(--status-info-bg);
+  --color-info-border: var(--status-info-border);
+
+  --color-skeleton-base: var(--skeleton-base);
+  --color-skeleton-highlight: var(--skeleton-highlight);
+
+  /* Typography & Layout */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --container-storefront: 1280px;
+
+  /* Elevation */
+  --shadow-card-sm: var(--shadow-card-sm);
+  --shadow-card-md: var(--shadow-card-md);
+  --shadow-card-lg: var(--shadow-card-lg);
+  --shadow-floating: var(--shadow-floating-bar);
+
+  /* Keyframes & Animations */
+  --animate-shimmer: ui-shimmer 1.4s ease-in-out infinite;
+  --animate-slide-in-right: ui-slide-in-right 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-fade-in: ui-fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ui-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes ui-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes ui-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Reusable semantic shimmer gradient adapting smoothly in Light & Dark modes */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-highlight) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Hide scrollbars cleanly on horizontal carousel tracks */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+  }
+}

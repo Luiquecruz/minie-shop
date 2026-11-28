@@ -6,7 +6,7 @@ import { useCartActions } from '../../hooks/useCart';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useProductQuery } from '../../hooks/useProducts';
 import { useI18n } from '../../i18n';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 import AttributeIcon from '../../components/AttributeIcon/AttributeIcon';
 import PriceBox from '../../components/PriceBox/PriceBox';
 import ProductImage from '../../components/ProductImage/ProductImage';

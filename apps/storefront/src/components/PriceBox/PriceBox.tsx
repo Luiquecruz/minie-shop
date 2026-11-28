@@ -1,7 +1,7 @@
 import type { MoneyDTO } from '@minieshop/contracts';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useI18n } from '../../i18n';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 
 export interface PriceBoxProps {
   price: MoneyDTO;

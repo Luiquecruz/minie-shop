@@ -3,7 +3,7 @@ import type { ProductCardDTO } from '@minieshop/contracts';
 import { useCartActions } from '../../hooks/useCart';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useI18n } from '../../i18n';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 import AttributeIcon from '../AttributeIcon/AttributeIcon';
 import PriceBox from '../PriceBox/PriceBox';
 import ProductImage from '../ProductImage/ProductImage';

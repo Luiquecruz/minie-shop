@@ -19,7 +19,7 @@ import {
   type StorefrontSearchHit,
 } from '../../hooks/useSearch';
 import { useI18n } from '../../i18n';
-import { cn } from '../../utils/cn';
+import { cn } from '@minieshop/ui/tokens';
 import { parseSearchUrlQuery } from '../../utils/searchUrlParams';
 import ProductCard from '../../components/ProductCard/ProductCard';
 

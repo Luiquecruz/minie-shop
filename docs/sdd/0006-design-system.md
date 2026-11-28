@@ -1,12 +1,12 @@
 # SDD-0006: Phase 8 — Design System (`@minieshop/ui`, Storybook 10 + MCP, Testing Pyramid & Publishing)
 
-- **Status:** Draft
+- **Status:** In Progress (Slice 1 Implemented)
 - **Phase:** Phase 8 — Design System (Protagonist Milestone)
 - **Author:** Architecture & Engineering
 - **Date:** 2026-11-28
 - **Related ADRs:**
-  - Existing: [`ADR-0016`](../adr/0016-monorepo-pnpm-workspaces-turborepo.md), [`ADR-0020`](../adr/0020-combobox-autocomplete-apg-proprio.md), [`ADR-0023`](../adr/0023-monorepo-package-boundaries-stack-typescript-and-contracts.md), [`ADR-0024`](../adr/0024-tailwind-v4-semantic-tokens-and-theme-activation.md)
-  - To be authored during Phase 8: **`ADR-0025`** (`@minieshop/ui` architecture, native-first + APG accessibility, compound components, `render` prop, and SSR/RSC `"use client"` contract) and **`ADR-0026`** (Storybook 10 + MCP, 3-layer testing pyramid, Linux Docker visual snapshots, unbundled `tsc` build, and Changesets publishing pipeline)
+  - Existing: [`ADR-0016`](../adr/0016-monorepo-pnpm-workspaces-turborepo.md), [`ADR-0020`](../adr/0020-combobox-autocomplete-apg-proprio.md), [`ADR-0023`](../adr/0023-monorepo-package-boundaries-stack-typescript-and-contracts.md), [`ADR-0024`](../adr/0024-tailwind-v4-semantic-tokens-and-theme-activation.md), [`ADR-0025`](../adr/0025-design-system-package-architecture-and-rsc-contract.md)
+  - To be authored during Phase 8: **`ADR-0026`** (Storybook 10 + MCP, 3-layer testing pyramid, Linux Docker visual snapshots, unbundled `tsc` build, and Changesets publishing pipeline)
 
 ---
 
@@ -273,8 +273,8 @@ packages/ui/
 ## 8. Acceptance Criteria & Verification Plan
 
 ### Acceptance Criteria
-- [ ] `packages/ui` exists with unbundled ESM `tsc` (`7.0.2`) build, subpath `exports`, `files: ["dist"]`, `sideEffects: ["**/*.css"]`, and `publint --strict` passing.
-- [ ] `@minieshop/ui/tokens` exports 2-tier CSS-first `light-dark()` tokens + `cn()` with zero React imports; `apps/storefront` consumes them with zero token duplication.
+- [x] `packages/ui` exists with unbundled ESM `tsc` (`7.0.2`) build, subpath `exports`, `files: ["dist"]`, `sideEffects: ["**/*.css"]`, and `publint --strict` passing.
+- [x] `@minieshop/ui/tokens` exports 2-tier CSS-first `light-dark()` tokens + `cn()` with zero React imports; `apps/storefront` consumes them with zero token duplication.
 - [ ] Storybook 10 runs cleanly inside `packages/ui` with `addon-docs`, `addon-a11y`, `addon-vitest`, `addon-mcp` (verified local `/mcp` + `componentsManifest` returning every primitive's props/JSDoc), and Light/Dark `data-theme` toolbar switching.
 - [ ] All Slice 3 (core) and Slice 4 (interactive APG) primitives ship with RSC-safe exports, explicit `render` prop where polymorphic, Light/Dark stories, real-browser Chromium keyboard + `addon-a11y` tests (0 violations), and Linux-container visual regression snapshots.
 - [ ] `apps/storefront` adopts `@minieshop/ui` primitives across all pages/components while preserving domain composites, frozen `cartSlice`, 100% passing unit/a11y tests, and 10/10 Playwright `metrics` scenarios (`CLS = 0`, bundle split intact).
